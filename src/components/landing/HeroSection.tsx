@@ -7,12 +7,13 @@ const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${einsteinBackground})` }}
+      <img 
+        src={einsteinBackground}
+        alt="Einstein Hospital - Rocha Sales Seguros"
+        className="absolute inset-0 w-full h-full object-cover object-top"
       />
-      {/* Dark Overlay for readability */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/80 to-primary/70" />
+      {/* Dark Overlay for readability - reduced opacity for better visibility */}
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/60 to-primary/50" />
 
       <div className="container mx-auto px-4 py-32 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
