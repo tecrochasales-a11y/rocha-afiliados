@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Shield, Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { signInWithSocialProvider, SocialProvider } from "@/lib/socialAuth";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -73,11 +74,19 @@ const Login = () => {
     setIsLoading(false);
   };
 
-  const handleSocialLogin = (provider: string) => {
-    toast({
-      title: "Em breve",
-      description: `Login com ${provider} estará disponível em breve.`,
-    });
+  const handleSocialLogin = async (provider: SocialProvider) => {
+    setIsLoading(true);
+    const { error } = await signInWithSocialProvider(provider);
+    
+    if (error) {
+      toast({
+        title: "Erro no login",
+        description: error.message || "Não foi possível fazer login. Tente novamente.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+    // If successful, the user will be redirected automatically
   };
 
   if (authLoading) {
@@ -211,7 +220,7 @@ const Login = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialLogin("Google")}
+              onClick={() => handleSocialLogin("google")}
               className="h-12"
               disabled={isLoading}
             >
@@ -225,7 +234,7 @@ const Login = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialLogin("Facebook")}
+              onClick={() => handleSocialLogin("facebook")}
               className="h-12"
               disabled={isLoading}
             >
@@ -236,7 +245,7 @@ const Login = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialLogin("Apple")}
+              onClick={() => handleSocialLogin("apple")}
               className="h-12"
               disabled={isLoading}
             >
