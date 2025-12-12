@@ -14,6 +14,10 @@ import Perfil from "./pages/Perfil";
 import Financeiro from "./pages/Financeiro";
 import Termos from "./pages/Termos";
 import Privacidade from "./pages/Privacidade";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminAfiliados from "./pages/admin/AdminAfiliados";
+import AdminLeads from "./pages/admin/AdminLeads";
+import AdminSaques from "./pages/admin/AdminSaques";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +57,39 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Financeiro />
+                </ProtectedRoute>
+              } 
+            />
+            {/* Admin Routes */}
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/afiliados" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAfiliados />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/leads" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminLeads />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/saques" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminSaques />
                 </ProtectedRoute>
               } 
             />

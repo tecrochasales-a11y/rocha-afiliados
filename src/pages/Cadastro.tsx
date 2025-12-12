@@ -8,6 +8,7 @@ import { Shield, Eye, EyeOff, Mail, Lock, ArrowLeft, User, Phone, CreditCard, Ke
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { signInWithSocialProvider, SocialProvider } from "@/lib/socialAuth";
 import { z } from "zod";
 
 const cadastroSchema = z.object({
@@ -125,11 +126,19 @@ const Cadastro = () => {
     setIsLoading(false);
   };
 
-  const handleSocialLogin = (provider: string) => {
-    toast({
-      title: "Em breve",
-      description: `Cadastro com ${provider} estará disponível em breve.`,
-    });
+  const handleSocialLogin = async (provider: SocialProvider) => {
+    setIsLoading(true);
+    const { error } = await signInWithSocialProvider(provider);
+    
+    if (error) {
+      toast({
+        title: "Erro no cadastro",
+        description: error.message || "Não foi possível fazer cadastro. Tente novamente.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+    // If successful, the user will be redirected automatically
   };
 
   if (authLoading) {
@@ -178,7 +187,7 @@ const Cadastro = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialLogin("Google")}
+              onClick={() => handleSocialLogin("google")}
               className="h-12"
               disabled={isLoading}
             >
@@ -192,7 +201,7 @@ const Cadastro = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialLogin("Facebook")}
+              onClick={() => handleSocialLogin("facebook")}
               className="h-12"
               disabled={isLoading}
             >
@@ -203,7 +212,7 @@ const Cadastro = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleSocialLogin("Apple")}
+              onClick={() => handleSocialLogin("apple")}
               className="h-12"
               disabled={isLoading}
             >
