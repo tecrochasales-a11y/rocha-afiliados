@@ -1,11 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Eye, EyeOff, Mail, Lock, ArrowLeft, User, Phone, CreditCard, Key } from "lucide-react";
+import { Shield, Eye, EyeOff, Mail, Lock, ArrowLeft, User, Phone, CreditCard, Key, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+
+const cadastroSchema = z.object({
+  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").trim(),
+  email: z.string().email("E-mail inválido").trim(),
+  telefone: z.string().min(10, "Telefone inválido").trim(),
+  documento: z.string().min(11, "CPF/CNPJ inválido").trim(),
+  chavePix: z.string().min(1, "Chave PIX é obrigatória").trim(),
+  senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  confirmarSenha: z.string(),
+}).refine((data) => data.senha === data.confirmarSenha, {
+  message: "As senhas não coincidem",
+  path: ["confirmarSenha"],
+});
 
 const Cadastro = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -22,6 +38,14 @@ const Cadastro = () => {
   });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp, user, isLoading: authLoading } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, authLoading, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,15 +53,6 @@ const Cadastro = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (formData.senha !== formData.confirmarSenha) {
-      toast({
-        title: "Erro",
-        description: "As senhas não coincidem.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     if (!acceptTerms) {
       toast({
@@ -48,17 +63,66 @@ const Cadastro = () => {
       return;
     }
 
+    // Validate input
+    const validation = cadastroSchema.safeParse(formData);
+    if (!validation.success) {
+      toast({
+        title: "Erro de validação",
+        description: validation.error.errors[0].message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulação - será substituído por cadastro real
-    setTimeout(() => {
-      setIsLoading(false);
+    const { error } = await signUp(formData.email, formData.senha, {
+      full_name: formData.nome,
+      phone: formData.telefone,
+      cpf: formData.documento,
+      pix_key: formData.chavePix,
+    });
+
+    if (error) {
+      let errorMessage = "Erro ao criar conta. Tente novamente.";
+      
+      if (error.message.includes("User already registered")) {
+        errorMessage = "Este e-mail já está cadastrado. Faça login ou use outro e-mail.";
+      } else if (error.message.includes("Password should be")) {
+        errorMessage = "A senha não atende aos requisitos mínimos.";
+      }
+      
       toast({
-        title: "Cadastro realizado!",
-        description: "Sua conta foi criada com sucesso.",
+        title: "Erro no cadastro",
+        description: errorMessage,
+        variant: "destructive",
       });
-      navigate("/dashboard");
-    }, 1500);
+      setIsLoading(false);
+      return;
+    }
+
+    // Update profile with additional data
+    // Wait a bit for the trigger to create the profile
+    setTimeout(async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        await supabase
+          .from("profiles")
+          .update({
+            phone: formData.telefone,
+            cpf: formData.documento,
+            pix_key: formData.chavePix,
+          })
+          .eq("id", currentUser.id);
+      }
+    }, 1000);
+
+    toast({
+      title: "Cadastro realizado!",
+      description: "Sua conta foi criada com sucesso.",
+    });
+    navigate("/dashboard");
+    setIsLoading(false);
   };
 
   const handleSocialLogin = (provider: string) => {
@@ -67,6 +131,14 @@ const Cadastro = () => {
       description: `Cadastro com ${provider} estará disponível em breve.`,
     });
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4 py-12">
@@ -108,6 +180,7 @@ const Cadastro = () => {
               variant="outline"
               onClick={() => handleSocialLogin("Google")}
               className="h-12"
+              disabled={isLoading}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -121,6 +194,7 @@ const Cadastro = () => {
               variant="outline"
               onClick={() => handleSocialLogin("Facebook")}
               className="h-12"
+              disabled={isLoading}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -131,6 +205,7 @@ const Cadastro = () => {
               variant="outline"
               onClick={() => handleSocialLogin("Apple")}
               className="h-12"
+              disabled={isLoading}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
@@ -167,6 +242,7 @@ const Cadastro = () => {
                   onChange={handleChange}
                   className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -187,6 +263,7 @@ const Cadastro = () => {
                     onChange={handleChange}
                     className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -206,6 +283,7 @@ const Cadastro = () => {
                     onChange={handleChange}
                     className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -227,6 +305,7 @@ const Cadastro = () => {
                     onChange={handleChange}
                     className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -246,6 +325,7 @@ const Cadastro = () => {
                     onChange={handleChange}
                     className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -267,6 +347,7 @@ const Cadastro = () => {
                     onChange={handleChange}
                     className="pl-10 pr-10 h-12 bg-muted/50 border-border focus:border-primary"
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
@@ -293,6 +374,7 @@ const Cadastro = () => {
                     onChange={handleChange}
                     className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -305,6 +387,7 @@ const Cadastro = () => {
                 checked={acceptTerms}
                 onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
                 className="mt-0.5"
+                disabled={isLoading}
               />
               <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
                 Li e aceito os{" "}
@@ -325,7 +408,14 @@ const Cadastro = () => {
               className="w-full mt-4"
               disabled={isLoading}
             >
-              {isLoading ? "Criando conta..." : "Criar Conta Gratuita"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Criando conta...
+                </>
+              ) : (
+                "Criar Conta Gratuita"
+              )}
             </Button>
           </form>
 
