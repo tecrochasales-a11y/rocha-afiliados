@@ -1,11 +1,10 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   Shield, 
   LogOut, 
   Copy, 
-  TrendingUp, 
   Users, 
   DollarSign, 
   Clock,
@@ -16,9 +15,12 @@ import {
   Menu,
   X,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
   TableBody,
@@ -33,44 +35,245 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-// Mock data
-const mockAffiliate = {
-  name: "João Silva",
-  email: "joao@email.com",
-  balance: 2850.00,
-  pendingBalance: 1200.00,
-  referralCode: "JOAO2024",
-};
+interface Lead {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  status: string;
+  sale_value: number | null;
+  created_at: string;
+  product_id: string | null;
+}
 
-const mockStats = {
-  totalLeads: 127,
-  convertedLeads: 45,
-  pendingLeads: 82,
-  totalEarned: 15750.00,
-  pendingEarnings: 3200.00,
-};
-
-const mockLeads = [
-  { id: 1, name: "Maria Santos", product: "Plano de Saúde - Unimed", date: "2024-01-15", status: "converted", value: 350.00 },
-  { id: 2, name: "Pedro Oliveira", product: "Seguro de Vida", date: "2024-01-14", status: "pending", value: 280.00 },
-  { id: 3, name: "Ana Costa", product: "Plano de Saúde - Bradesco", date: "2024-01-13", status: "converted", value: 420.00 },
-  { id: 4, name: "Lucas Lima", product: "Seguro Auto", date: "2024-01-12", status: "lost", value: 0 },
-  { id: 5, name: "Carla Ferreira", product: "Plano de Saúde - SulAmérica", date: "2024-01-11", status: "pending", value: 380.00 },
-];
+interface Stats {
+  totalLeads: number;
+  convertedLeads: number;
+  pendingLeads: number;
+  totalEarned: number;
+  pendingEarnings: number;
+}
 
 const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalLeads: 0,
+    convertedLeads: 0,
+    pendingLeads: 0,
+    totalEarned: 0,
+    pendingEarnings: 0,
+  });
+  const [balance, setBalance] = useState(0);
+  const [pendingBalance, setPendingBalance] = useState(0);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user, profile, signOut, isLoading } = useAuth();
 
-  const referralLink = `https://rochasalesseguros.com.br/ref/${mockAffiliate.referralCode}`;
+  const referralLink = profile?.tracking_code 
+    ? `${window.location.origin}/ref/${profile.tracking_code}`
+    : "";
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/login");
+      return;
+    }
+
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user, isLoading, navigate]);
+
+  const fetchDashboardData = async () => {
+    if (!user) return;
+
+    setIsLoadingData(true);
+
+    try {
+      // Fetch leads
+      const { data: leadsData, error: leadsError } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("affiliate_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (leadsError) {
+        console.error("Error fetching leads:", leadsError);
+      } else {
+        setLeads(leadsData || []);
+      }
+
+      // Calculate stats
+      const { data: allLeads } = await supabase
+        .from("leads")
+        .select("status, sale_value")
+        .eq("affiliate_id", user.id);
+
+      if (allLeads) {
+        const totalLeads = allLeads.length;
+        const convertedLeads = allLeads.filter(l => l.status === "converted").length;
+        const pendingLeads = allLeads.filter(l => l.status === "pending").length;
+
+        setStats({
+          totalLeads,
+          convertedLeads,
+          pendingLeads,
+          totalEarned: 0,
+          pendingEarnings: 0,
+        });
+      }
+
+      // Fetch commissions
+      const { data: commissionsData } = await supabase
+        .from("commissions")
+        .select("amount, status")
+        .eq("affiliate_id", user.id);
+
+      if (commissionsData) {
+        const paidCommissions = commissionsData
+          .filter(c => c.status === "paid")
+          .reduce((sum, c) => sum + Number(c.amount), 0);
+        
+        const pendingCommissions = commissionsData
+          .filter(c => c.status === "pending")
+          .reduce((sum, c) => sum + Number(c.amount), 0);
+
+        setStats(prev => ({
+          ...prev,
+          totalEarned: paidCommissions,
+          pendingEarnings: pendingCommissions,
+        }));
+      }
+
+      // Fetch balance (paid commissions - paid withdrawals)
+      const { data: withdrawalsData } = await supabase
+        .from("withdrawals")
+        .select("amount, status")
+        .eq("affiliate_id", user.id);
+
+      if (commissionsData && withdrawalsData) {
+        const totalPaidCommissions = commissionsData
+          .filter(c => c.status === "paid")
+          .reduce((sum, c) => sum + Number(c.amount), 0);
+        
+        const totalPaidWithdrawals = withdrawalsData
+          .filter(w => w.status === "paid")
+          .reduce((sum, w) => sum + Number(w.amount), 0);
+
+        const pendingWithdrawals = withdrawalsData
+          .filter(w => w.status === "pending")
+          .reduce((sum, w) => sum + Number(w.amount), 0);
+
+        setBalance(totalPaidCommissions - totalPaidWithdrawals - pendingWithdrawals);
+        
+        const pendingCommissions = commissionsData
+          .filter(c => c.status === "pending")
+          .reduce((sum, c) => sum + Number(c.amount), 0);
+        setPendingBalance(pendingCommissions);
+      }
+
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
   const copyReferralLink = () => {
-    navigator.clipboard.writeText(referralLink);
-    toast({
-      title: "Link copiado!",
-      description: "Seu link de indicação foi copiado para a área de transferência.",
-    });
+    if (referralLink) {
+      navigator.clipboard.writeText(referralLink);
+      toast({
+        title: "Link copiado!",
+        description: "Seu link de indicação foi copiado para a área de transferência.",
+      });
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!user || !profile) return;
+
+    const amount = parseFloat(withdrawAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: "Valor inválido",
+        description: "Digite um valor válido para saque.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (amount > balance) {
+      toast({
+        title: "Saldo insuficiente",
+        description: "Você não tem saldo suficiente para este saque.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!profile.pix_key) {
+      toast({
+        title: "Chave PIX não cadastrada",
+        description: "Cadastre uma chave PIX no seu perfil para solicitar saque.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsWithdrawing(true);
+
+    try {
+      const { error } = await supabase.from("withdrawals").insert({
+        affiliate_id: user.id,
+        amount,
+        pix_key: profile.pix_key,
+        status: "pending",
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Saque solicitado!",
+        description: `Solicitação de R$ ${amount.toFixed(2)} enviada para análise.`,
+      });
+
+      setWithdrawAmount("");
+      setIsDialogOpen(false);
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error requesting withdrawal:", error);
+      toast({
+        title: "Erro ao solicitar saque",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
   };
 
   const getStatusBadge = (status: string) => {
@@ -89,6 +292,20 @@ const Dashboard = () => {
             Pendente
           </span>
         );
+      case "contacted":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+            <Clock className="w-3 h-3" />
+            Contatado
+          </span>
+        );
+      case "qualified":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500">
+            <CheckCircle className="w-3 h-3" />
+            Qualificado
+          </span>
+        );
       case "lost":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
@@ -100,6 +317,20 @@ const Dashboard = () => {
         return null;
     }
   };
+
+  if (isLoading || isLoadingData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const displayName = profile?.full_name || user?.email || "Afiliado";
+  const firstName = displayName.split(" ")[0];
 
   return (
     <div className="min-h-screen bg-background">
@@ -126,9 +357,9 @@ const Dashboard = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-2">
                     <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
-                      {mockAffiliate.name.charAt(0)}
+                      {firstName.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium">{mockAffiliate.name}</span>
+                    <span className="text-sm font-medium">{displayName}</span>
                     <ChevronDown className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -143,11 +374,9 @@ const Dashboard = () => {
                       Financeiro
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">
-                    <Link to="/" className="flex items-center gap-2 w-full">
-                      <LogOut className="w-4 h-4" />
-                      Sair
-                    </Link>
+                  <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sair
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -169,11 +398,11 @@ const Dashboard = () => {
             <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
               <div className="flex items-center gap-3 pb-4 border-b border-border">
                 <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                  {mockAffiliate.name.charAt(0)}
+                  {firstName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">{mockAffiliate.name}</p>
-                  <p className="text-sm text-muted-foreground">{mockAffiliate.email}</p>
+                  <p className="font-medium text-foreground">{displayName}</p>
+                  <p className="text-sm text-muted-foreground">{profile?.email || user?.email}</p>
                 </div>
               </div>
               <Link to="/perfil" className="text-sm font-medium text-foreground py-2" onClick={() => setIsMobileMenuOpen(false)}>
@@ -182,9 +411,9 @@ const Dashboard = () => {
               <Link to="/financeiro" className="text-sm font-medium text-foreground py-2" onClick={() => setIsMobileMenuOpen(false)}>
                 Financeiro
               </Link>
-              <Link to="/" className="text-sm font-medium text-destructive py-2" onClick={() => setIsMobileMenuOpen(false)}>
+              <button onClick={handleLogout} className="text-sm font-medium text-destructive py-2 text-left">
                 Sair
-              </Link>
+              </button>
             </div>
           </div>
         )}
@@ -196,7 +425,7 @@ const Dashboard = () => {
           {/* Welcome Section */}
           <div className="mb-8">
             <h1 className="font-heading text-2xl md:text-3xl font-bold text-foreground mb-2">
-              Olá, {mockAffiliate.name.split(" ")[0]}! 👋
+              Olá, {firstName}! 👋
             </h1>
             <p className="text-muted-foreground">
               Acompanhe suas indicações e ganhos em tempo real
@@ -219,10 +448,10 @@ const Dashboard = () => {
                 <div className="flex-1 bg-primary-foreground/10 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3">
                   <ExternalLink className="w-5 h-5 text-primary-foreground/70 flex-shrink-0" />
                   <span className="text-primary-foreground text-sm truncate">
-                    {referralLink}
+                    {referralLink || "Gerando link..."}
                   </span>
                 </div>
-                <Button onClick={copyReferralLink} variant="hero" className="flex-shrink-0">
+                <Button onClick={copyReferralLink} variant="hero" className="flex-shrink-0" disabled={!referralLink}>
                   <Copy className="w-4 h-4" />
                   Copiar Link
                 </Button>
@@ -239,7 +468,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-1">Total de Leads</p>
-              <p className="text-2xl font-heading font-bold text-foreground">{mockStats.totalLeads}</p>
+              <p className="text-2xl font-heading font-bold text-foreground">{stats.totalLeads}</p>
             </div>
 
             <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
@@ -249,7 +478,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-1">Convertidos</p>
-              <p className="text-2xl font-heading font-bold text-foreground">{mockStats.convertedLeads}</p>
+              <p className="text-2xl font-heading font-bold text-foreground">{stats.convertedLeads}</p>
             </div>
 
             <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
@@ -260,7 +489,7 @@ const Dashboard = () => {
               </div>
               <p className="text-sm text-muted-foreground mb-1">Total Recebido</p>
               <p className="text-2xl font-heading font-bold text-foreground">
-                R$ {mockStats.totalEarned.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R$ {stats.totalEarned.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
             </div>
 
@@ -272,7 +501,7 @@ const Dashboard = () => {
               </div>
               <p className="text-sm text-muted-foreground mb-1">A Receber</p>
               <p className="text-2xl font-heading font-bold text-foreground">
-                R$ {mockStats.pendingEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R$ {stats.pendingEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
             </div>
           </div>
@@ -285,11 +514,59 @@ const Dashboard = () => {
                 <Wallet className="w-5 h-5 text-secondary" />
               </div>
               <p className="text-3xl font-heading font-bold text-foreground mb-4">
-                R$ {mockAffiliate.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
-              <Button variant="hero" className="w-full">
-                Solicitar Saque
-              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="hero" className="w-full" disabled={balance <= 0}>
+                    Solicitar Saque
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Solicitar Saque</DialogTitle>
+                    <DialogDescription>
+                      Saldo disponível: R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="amount">Valor do saque</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        placeholder="0,00"
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        min="0"
+                        max={balance}
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Chave PIX</Label>
+                      <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                        {profile?.pix_key || "Não cadastrada"}
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleWithdraw} disabled={isWithdrawing}>
+                      {isWithdrawing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Processando...
+                        </>
+                      ) : (
+                        "Confirmar Saque"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <div className="bg-card rounded-2xl p-6 border border-border shadow-soft">
@@ -298,7 +575,7 @@ const Dashboard = () => {
                 <Clock className="w-5 h-5 text-accent" />
               </div>
               <p className="text-3xl font-heading font-bold text-foreground mb-4">
-                R$ {mockAffiliate.pendingBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R$ {pendingBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
               <p className="text-sm text-muted-foreground">
                 Aguardando efetivação dos contratos
@@ -314,35 +591,43 @@ const Dashboard = () => {
               </h3>
             </div>
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Produto</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Valor Previsto</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockLeads.map((lead) => (
-                    <TableRow key={lead.id}>
-                      <TableCell className="font-medium">{lead.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{lead.product}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(lead.date).toLocaleDateString("pt-BR")}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {lead.value > 0 
-                          ? `R$ ${lead.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                          : "-"
-                        }
-                      </TableCell>
+              {leads.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Você ainda não tem indicações.</p>
+                  <p className="text-sm mt-2">Compartilhe seu link para começar a ganhar!</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Valor Previsto</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {leads.map((lead) => (
+                      <TableRow key={lead.id}>
+                        <TableCell className="font-medium">{lead.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{lead.email}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(lead.created_at).toLocaleDateString("pt-BR")}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {lead.sale_value 
+                            ? `R$ ${Number(lead.sale_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                            : "-"
+                          }
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </div>
         </div>
