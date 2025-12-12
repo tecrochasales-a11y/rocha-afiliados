@@ -54,7 +54,7 @@ const benefits = [
 
 const BenefitsSection = () => {
   return (
-    <section className="py-20 md:py-28 bg-muted/50">
+    <section id="beneficios" className="py-20 md:py-28 bg-muted/50 scroll-mt-20">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
