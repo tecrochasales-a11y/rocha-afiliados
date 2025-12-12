@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Shield, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -6,8 +6,29 @@ import { useState } from "react";
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isLandingPage = location.pathname === "/";
+
+  const scrollToSection = (sectionId: string) => {
+    setIsMenuOpen(false);
+    
+    if (!isLandingPage) {
+      navigate("/");
+      // Wait for navigation then scroll
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    } else {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
@@ -30,24 +51,24 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link 
-              to="/" 
+            <button 
+              onClick={() => scrollToSection("como-funciona")}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Como Funciona
-            </Link>
-            <Link 
-              to="/" 
+            </button>
+            <button 
+              onClick={() => scrollToSection("beneficios")}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Benefícios
-            </Link>
-            <Link 
-              to="/" 
+            </button>
+            <button 
+              onClick={() => scrollToSection("produtos")}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Produtos
-            </Link>
+            </button>
           </nav>
 
           {/* CTA Buttons */}
@@ -78,27 +99,24 @@ const Header = () => {
       {isMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-card border-b border-border animate-slide-up">
           <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
-            <Link 
-              to="/" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={() => setIsMenuOpen(false)}
+            <button 
+              onClick={() => scrollToSection("como-funciona")}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2 text-left"
             >
               Como Funciona
-            </Link>
-            <Link 
-              to="/" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={() => setIsMenuOpen(false)}
+            </button>
+            <button 
+              onClick={() => scrollToSection("beneficios")}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2 text-left"
             >
               Benefícios
-            </Link>
-            <Link 
-              to="/" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={() => setIsMenuOpen(false)}
+            </button>
+            <button 
+              onClick={() => scrollToSection("produtos")}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2 text-left"
             >
               Produtos
-            </Link>
+            </button>
             <hr className="border-border" />
             <div className="flex flex-col gap-3">
               <Link to="/login" onClick={() => setIsMenuOpen(false)}>
