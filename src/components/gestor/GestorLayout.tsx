@@ -4,14 +4,11 @@ import {
   LayoutDashboard, 
   Users, 
   FileText, 
-  Wallet,
   LogOut,
   Menu,
   X,
   ChevronDown,
-  MapPin,
-  Megaphone,
-  Image
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,22 +19,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import NotificationBell from "@/components/NotificationBell";
 
-interface AdminLayoutProps {
+interface GestorLayoutProps {
   children: React.ReactNode;
 }
 
 const navItems = [
-  { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/admin/afiliados", label: "Afiliados", icon: Users },
-  { path: "/admin/leads", label: "Leads", icon: FileText },
-  { path: "/admin/saques", label: "Saques", icon: Wallet },
-  { path: "/admin/pdv", label: "PDVs", icon: MapPin },
-  { path: "/admin/campanhas", label: "Campanhas", icon: Megaphone },
-  { path: "/admin/assets", label: "Mídia", icon: Image },
+  { path: "/gestor", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/gestor/afiliados", label: "Afiliados", icon: Users },
+  { path: "/gestor/leads", label: "Leads", icon: FileText },
 ];
 
-export const AdminLayout = ({ children }: AdminLayoutProps) => {
+export const GestorLayout = ({ children }: GestorLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
@@ -48,7 +42,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     navigate("/");
   };
 
-  const displayName = profile?.full_name || "Admin";
+  const displayName = profile?.full_name || "Gestor";
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,11 +51,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center gap-3 px-6 border-b border-border">
-            <div className="w-10 h-10 bg-gradient-hero rounded-xl flex items-center justify-center">
-              <Shield className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent/70 rounded-xl flex items-center justify-center">
+              <Shield className="w-5 h-5 text-accent-foreground" />
             </div>
             <div>
-              <span className="font-heading font-bold text-foreground">Admin</span>
+              <span className="font-heading font-bold text-foreground">Gestor</span>
               <p className="text-xs text-muted-foreground">Rocha Sales</p>
             </div>
           </div>
@@ -76,7 +70,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                   to={item.path}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-accent text-accent-foreground"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
@@ -90,12 +84,12 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           {/* User */}
           <div className="p-4 border-t border-border">
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-bold">
                 {displayName.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
-                <p className="text-xs text-muted-foreground">Administrador</p>
+                <p className="text-xs text-muted-foreground">Gestor</p>
               </div>
             </div>
             <Button 
@@ -114,17 +108,18 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
         <div className="flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-hero rounded-xl flex items-center justify-center">
-              <Shield className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent/70 rounded-xl flex items-center justify-center">
+              <Shield className="w-5 h-5 text-accent-foreground" />
             </div>
-            <span className="font-heading font-bold text-foreground">Admin</span>
+            <span className="font-heading font-bold text-foreground">Gestor</span>
           </div>
 
           <div className="flex items-center gap-2">
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                  <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-bold">
                     {displayName.charAt(0).toUpperCase()}
                   </div>
                   <ChevronDown className="w-4 h-4" />
@@ -159,7 +154,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-accent text-accent-foreground"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >

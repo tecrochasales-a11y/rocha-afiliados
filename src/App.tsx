@@ -19,6 +19,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAfiliados from "./pages/admin/AdminAfiliados";
 import AdminLeads from "./pages/admin/AdminLeads";
 import AdminSaques from "./pages/admin/AdminSaques";
+import AdminPDV from "./pages/admin/AdminPDV";
+import AdminCampanhas from "./pages/admin/AdminCampanhas";
+import AdminAssets from "./pages/admin/AdminAssets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -99,6 +102,30 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <AdminSaques />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/pdv" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminPDV />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/campanhas" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminCampanhas />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/assets" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAssets />
                 </ProtectedRoute>
               } 
             />
