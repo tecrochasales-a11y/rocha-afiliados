@@ -35,6 +35,7 @@ const navItems = [
   { path: "/admin/pdv", label: "PDVs", icon: MapPin },
   { path: "/admin/campanhas", label: "Campanhas", icon: Megaphone },
   { path: "/admin/assets", label: "Mídia", icon: Image },
+  { path: "/admin/relatorios", label: "Relatórios", icon: FileText },
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {

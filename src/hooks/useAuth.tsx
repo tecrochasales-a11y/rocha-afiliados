@@ -24,6 +24,7 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   isAdmin: boolean;
+  isGestor: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, metadata: { full_name: string; phone?: string; cpf?: string; pix_key?: string }) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -38,6 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isGestor, setIsGestor] = useState(false);
   const { toast } = useToast();
 
   const fetchProfile = async (userId: string) => {
@@ -81,12 +83,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const checkGestorRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "gestor")
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error checking gestor role:", error);
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error("Error checking gestor role:", error);
+      return false;
+    }
+  };
+
   const refreshProfile = async () => {
     if (user) {
       const profileData = await fetchProfile(user.id);
       setProfile(profileData);
       const adminStatus = await checkAdminRole(user.id);
       setIsAdmin(adminStatus);
+      const gestorStatus = await checkGestorRole(user.id);
+      setIsGestor(gestorStatus);
     }
   };
 
@@ -104,11 +129,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setProfile(profileData);
             const adminStatus = await checkAdminRole(session.user.id);
             setIsAdmin(adminStatus);
+            const gestorStatus = await checkGestorRole(session.user.id);
+            setIsGestor(gestorStatus);
             setIsLoading(false);
           }, 0);
         } else {
           setProfile(null);
           setIsAdmin(false);
+          setIsGestor(false);
           setIsLoading(false);
         }
       }
@@ -125,6 +153,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(profileData);
           const adminStatus = await checkAdminRole(session.user.id);
           setIsAdmin(adminStatus);
+          const gestorStatus = await checkGestorRole(session.user.id);
+          setIsGestor(gestorStatus);
           setIsLoading(false);
         }, 0);
       } else {
@@ -191,6 +221,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setProfile(null);
     setIsAdmin(false);
+    setIsGestor(false);
   };
 
   return (
@@ -201,6 +232,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         profile,
         isLoading,
         isAdmin,
+        isGestor,
         signIn,
         signUp,
         signOut,

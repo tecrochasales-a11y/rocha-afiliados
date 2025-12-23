@@ -22,6 +22,10 @@ import AdminSaques from "./pages/admin/AdminSaques";
 import AdminPDV from "./pages/admin/AdminPDV";
 import AdminCampanhas from "./pages/admin/AdminCampanhas";
 import AdminAssets from "./pages/admin/AdminAssets";
+import AdminRelatorios from "./pages/admin/AdminRelatorios";
+import GestorDashboard from "./pages/gestor/GestorDashboard";
+import GestorAfiliados from "./pages/gestor/GestorAfiliados";
+import GestorLeads from "./pages/gestor/GestorLeads";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -126,6 +130,39 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <AdminAssets />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/relatorios" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminRelatorios />
+                </ProtectedRoute>
+              } 
+            />
+            {/* Gestor Routes */}
+            <Route 
+              path="/gestor" 
+              element={
+                <ProtectedRoute requireGestor>
+                  <GestorDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/gestor/afiliados" 
+              element={
+                <ProtectedRoute requireGestor>
+                  <GestorAfiliados />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/gestor/leads" 
+              element={
+                <ProtectedRoute requireGestor>
+                  <GestorLeads />
                 </ProtectedRoute>
               } 
             />
