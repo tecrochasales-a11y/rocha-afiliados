@@ -10,7 +10,6 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Bell,
   Wallet,
   Menu,
   X,
@@ -46,6 +45,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import QRCodeGenerator from "@/components/QRCodeGenerator";
+import NotificationBell from "@/components/NotificationBell";
 
 interface Lead {
   id: string;
@@ -350,9 +351,7 @@ const Dashboard = () => {
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="w-4 h-4" />
-              </Button>
+              <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-2">
@@ -455,6 +454,9 @@ const Dashboard = () => {
                   <Copy className="w-4 h-4" />
                   Copiar Link
                 </Button>
+                {referralLink && (
+                  <QRCodeGenerator referralLink={referralLink} affiliateName={profile?.full_name} />
+                )}
               </div>
             </div>
           </div>
