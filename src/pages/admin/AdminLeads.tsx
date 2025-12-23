@@ -8,7 +8,8 @@ import {
   XCircle,
   Clock,
   Phone,
-  Mail
+  Mail,
+  AlertTriangle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ interface Lead {
   created_at: string;
   tracking_code: string | null;
   notes: string | null;
+  rejection_reason: string | null;
   affiliate_id: string | null;
   affiliate_name?: string;
 }
@@ -63,6 +65,7 @@ const AdminLeads = () => {
   const [newStatus, setNewStatus] = useState("");
   const [saleValue, setSaleValue] = useState("");
   const [notes, setNotes] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
@@ -117,16 +120,37 @@ const AdminLeads = () => {
     setNewStatus(lead.status);
     setSaleValue(lead.sale_value?.toString() || "");
     setNotes(lead.notes || "");
+    setRejectionReason(lead.rejection_reason || "");
     setIsDialogOpen(true);
   };
 
   const handleUpdateLead = async () => {
     if (!selectedLead) return;
 
+    // Validação: se status for "lost", precisa de justificativa
+    if (newStatus === "lost" && !rejectionReason.trim()) {
+      toast({
+        title: "Justificativa obrigatória",
+        description: "Por favor, informe o motivo pelo qual o lead não fechou.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validação: se status for "converted", precisa de valor
+    if (newStatus === "converted" && !saleValue) {
+      toast({
+        title: "Valor obrigatório",
+        description: "Por favor, informe o valor da venda.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUpdating(true);
 
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         status: newStatus,
         notes,
       };
@@ -135,8 +159,12 @@ const AdminLeads = () => {
         updateData.sale_value = parseFloat(saleValue);
       }
 
-      if (newStatus === "converted" && !selectedLead.sale_value) {
+      if (newStatus === "converted" && selectedLead.status !== "converted") {
         updateData.converted_at = new Date().toISOString();
+      }
+
+      if (newStatus === "lost") {
+        updateData.rejection_reason = rejectionReason;
       }
 
       const { error } = await supabase
@@ -146,25 +174,57 @@ const AdminLeads = () => {
 
       if (error) throw error;
 
-      // If converted, create a commission
-      if (newStatus === "converted" && selectedLead.status !== "converted" && saleValue) {
-        const commissionAmount = parseFloat(saleValue) * 0.10; // 10% default
+      // Se convertido, usar a função de comissões parceladas (75% em 3x de 25%)
+      if (newStatus === "converted" && selectedLead.status !== "converted" && saleValue && selectedLead.affiliate_id) {
+        const saleValueNum = parseFloat(saleValue);
         
-        if (selectedLead.affiliate_id) {
-          await supabase.from("commissions").insert({
-            affiliate_id: selectedLead.affiliate_id,
-            lead_id: selectedLead.id,
-            amount: commissionAmount,
-            percentage: 10,
-            status: "pending",
-          });
-        }
-      }
+        // Chama a função do banco para criar as 3 parcelas
+        const { error: commissionError } = await supabase.rpc("create_installment_commissions", {
+          _lead_id: selectedLead.id,
+          _affiliate_id: selectedLead.affiliate_id,
+          _product_id: null,
+          _sale_value: saleValueNum,
+        });
 
-      toast({
-        title: "Lead atualizado!",
-        description: "As informações foram salvas com sucesso.",
-      });
+        if (commissionError) {
+          console.error("Error creating commissions:", commissionError);
+          throw commissionError;
+        }
+
+        // Criar notificação de sucesso para o afiliado
+        const totalCommission = saleValueNum * 0.75;
+        await supabase.rpc("create_lead_result_notification", {
+          _affiliate_id: selectedLead.affiliate_id,
+          _lead_name: selectedLead.name,
+          _converted: true,
+          _commission_amount: totalCommission,
+          _rejection_reason: null,
+        });
+
+        toast({
+          title: "Lead convertido!",
+          description: `Comissão de R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (75%) criada em 3 parcelas de 25%.`,
+        });
+      } else if (newStatus === "lost" && selectedLead.status !== "lost" && selectedLead.affiliate_id) {
+        // Criar notificação de lead perdido para o afiliado
+        await supabase.rpc("create_lead_result_notification", {
+          _affiliate_id: selectedLead.affiliate_id,
+          _lead_name: selectedLead.name,
+          _converted: false,
+          _commission_amount: null,
+          _rejection_reason: rejectionReason,
+        });
+
+        toast({
+          title: "Lead atualizado",
+          description: "O afiliado foi notificado sobre o resultado.",
+        });
+      } else {
+        toast({
+          title: "Lead atualizado!",
+          description: "As informações foram salvas com sucesso.",
+        });
+      }
 
       setIsDialogOpen(false);
       fetchLeads();
@@ -248,6 +308,21 @@ const AdminLeads = () => {
           </p>
         </div>
 
+        {/* Commission Info Banner */}
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Sistema de Comissões</p>
+              <p className="text-sm text-muted-foreground">
+                Ao converter um lead, o afiliado recebe <strong>75% do valor da venda</strong> dividido em 3 parcelas mensais de 25%.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1 max-w-md">
@@ -299,7 +374,16 @@ const AdminLeads = () => {
                 ) : (
                   filteredLeads.map((lead) => (
                     <TableRow key={lead.id}>
-                      <TableCell className="font-medium">{lead.name}</TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{lead.name}</p>
+                          {lead.status === "lost" && lead.rejection_reason && (
+                            <p className="text-xs text-destructive mt-1">
+                              Motivo: {lead.rejection_reason}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -343,7 +427,7 @@ const AdminLeads = () => {
 
         {/* Update Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Atualizar Lead</DialogTitle>
               <DialogDescription>
@@ -373,20 +457,48 @@ const AdminLeads = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Valor da Venda (R$)</Label>
-                  <Input
-                    type="number"
-                    placeholder="0,00"
-                    value={saleValue}
-                    onChange={(e) => setSaleValue(e.target.value)}
-                  />
-                </div>
+                {newStatus === "converted" && (
+                  <div className="space-y-2">
+                    <Label>Valor da Venda (R$) *</Label>
+                    <Input
+                      type="number"
+                      placeholder="0,00"
+                      value={saleValue}
+                      onChange={(e) => setSaleValue(e.target.value)}
+                    />
+                    {saleValue && (
+                      <div className="bg-secondary/10 rounded-lg p-3 mt-2">
+                        <p className="text-sm font-medium text-secondary">Prévia da Comissão (75%)</p>
+                        <p className="text-lg font-bold text-secondary">
+                          R$ {(parseFloat(saleValue) * 0.75).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          3 parcelas de R$ {(parseFloat(saleValue) * 0.25).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {newStatus === "lost" && (
+                  <div className="space-y-2">
+                    <Label>Motivo da Perda *</Label>
+                    <Textarea
+                      placeholder="Explique por que o lead não fechou..."
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      className="min-h-[80px]"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Esta informação será enviada ao afiliado.
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
-                  <Label>Observações</Label>
+                  <Label>Observações internas</Label>
                   <Textarea
-                    placeholder="Notas sobre o lead..."
+                    placeholder="Notas sobre o lead (não enviadas ao afiliado)..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                   />
