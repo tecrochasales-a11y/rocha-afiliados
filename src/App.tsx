@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import EsqueciSenha from "./pages/EsqueciSenha";
 import Perfil from "./pages/Perfil";
 import Financeiro from "./pages/Financeiro";
+import Notificacoes from "./pages/Notificacoes";
 import Termos from "./pages/Termos";
 import Privacidade from "./pages/Privacidade";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -57,6 +58,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Financeiro />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/notificacoes" 
+              element={
+                <ProtectedRoute>
+                  <Notificacoes />
                 </ProtectedRoute>
               } 
             />
