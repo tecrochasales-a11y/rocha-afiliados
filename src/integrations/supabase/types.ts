@@ -14,39 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      campaigns: {
+        Row: {
+          bonus_percentage: number
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean
+          name: string
+          start_date: string
+          target_affiliates: number | null
+          updated_at: string
+        }
+        Insert: {
+          bonus_percentage?: number
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          start_date: string
+          target_affiliates?: number | null
+          updated_at?: string
+        }
+        Update: {
+          bonus_percentage?: number
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          start_date?: string
+          target_affiliates?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       commissions: {
         Row: {
           affiliate_id: string
           amount: number
+          base_sale_value: number | null
           created_at: string
+          due_date: string | null
           id: string
+          installment_number: number | null
           lead_id: string | null
           paid_at: string | null
           percentage: number
           product_id: string | null
           status: string
+          total_installments: number | null
         }
         Insert: {
           affiliate_id: string
           amount: number
+          base_sale_value?: number | null
           created_at?: string
+          due_date?: string | null
           id?: string
+          installment_number?: number | null
           lead_id?: string | null
           paid_at?: string | null
           percentage: number
           product_id?: string | null
           status?: string
+          total_installments?: number | null
         }
         Update: {
           affiliate_id?: string
           amount?: number
+          base_sale_value?: number | null
           created_at?: string
+          due_date?: string | null
           id?: string
+          installment_number?: number | null
           lead_id?: string | null
           paid_at?: string | null
           percentage?: number
           product_id?: string | null
           status?: string
+          total_installments?: number | null
         }
         Relationships: [
           {
@@ -81,8 +132,10 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          pdv_id: string | null
           phone: string | null
           product_id: string | null
+          rejection_reason: string | null
           sale_value: number | null
           status: Database["public"]["Enums"]["lead_status"]
           tracking_code: string | null
@@ -96,8 +149,10 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          pdv_id?: string | null
           phone?: string | null
           product_id?: string | null
+          rejection_reason?: string | null
           sale_value?: number | null
           status?: Database["public"]["Enums"]["lead_status"]
           tracking_code?: string | null
@@ -111,8 +166,10 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          pdv_id?: string | null
           phone?: string | null
           product_id?: string | null
+          rejection_reason?: string | null
           sale_value?: number | null
           status?: Database["public"]["Enums"]["lead_status"]
           tracking_code?: string | null
@@ -127,10 +184,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_pdv_id_fkey"
+            columns: ["pdv_id"]
+            isOneToOne: false
+            referencedRelation: "pdv"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          reference_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          reference_id?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          reference_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdv: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          location: string | null
+          manager_id: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          manager_id?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          manager_id?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdv_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -176,6 +319,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          pdv_id: string | null
           phone: string | null
           pix_key: string | null
           tracking_code: string | null
@@ -188,6 +332,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          pdv_id?: string | null
           phone?: string | null
           pix_key?: string | null
           tracking_code?: string | null
@@ -200,12 +345,68 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          pdv_id?: string | null
           phone?: string | null
           pix_key?: string | null
           tracking_code?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_pdv_id_fkey"
+            columns: ["pdv_id"]
+            isOneToOne: false
+            referencedRelation: "pdv"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_assets: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          name: string
+          type: string
+          updated_at: string
+          updated_by: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          type: string
+          updated_at?: string
+          updated_by?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_assets_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
@@ -322,6 +523,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_installment_commissions: {
+        Args: {
+          _affiliate_id: string
+          _lead_id: string
+          _product_id: string
+          _sale_value: number
+        }
+        Returns: undefined
+      }
+      create_lead_result_notification: {
+        Args: {
+          _affiliate_id: string
+          _commission_amount?: number
+          _converted: boolean
+          _lead_name: string
+          _rejection_reason?: string
+        }
+        Returns: undefined
+      }
       generate_tracking_code: { Args: never; Returns: string }
       get_affiliate_balance: {
         Args: { _affiliate_id: string }

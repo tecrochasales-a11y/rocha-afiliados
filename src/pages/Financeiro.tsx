@@ -10,7 +10,8 @@ import {
   CheckCircle,
   XCircle,
   Wallet,
-  Calendar
+  Calendar,
+  CalendarClock
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +38,10 @@ interface Commission {
   status: string;
   created_at: string;
   paid_at: string | null;
+  installment_number: number | null;
+  total_installments: number | null;
+  due_date: string | null;
+  base_sale_value: number | null;
 }
 
 interface Withdrawal {
@@ -57,6 +62,7 @@ const Financeiro = () => {
   const [stats, setStats] = useState({
     totalEarned: 0,
     pendingEarnings: 0,
+    scheduledEarnings: 0,
     totalWithdrawn: 0,
     availableBalance: 0,
   });
@@ -117,6 +123,10 @@ const Financeiro = () => {
           .filter(c => c.status === "pending")
           .reduce((sum, c) => sum + Number(c.amount), 0);
 
+        const scheduledCommissions = commissionsData
+          .filter(c => c.status === "scheduled")
+          .reduce((sum, c) => sum + Number(c.amount), 0);
+
         const paidWithdrawals = withdrawalsData
           .filter(w => w.status === "paid")
           .reduce((sum, w) => sum + Number(w.amount), 0);
@@ -128,6 +138,7 @@ const Financeiro = () => {
         setStats({
           totalEarned: paidCommissions,
           pendingEarnings: pendingCommissions,
+          scheduledEarnings: scheduledCommissions,
           totalWithdrawn: paidWithdrawals,
           availableBalance: paidCommissions - paidWithdrawals - pendingWithdrawals,
         });
@@ -154,6 +165,13 @@ const Financeiro = () => {
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
             <Clock className="w-3 h-3" />
             Pendente
+          </span>
+        );
+      case "scheduled":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500">
+            <CalendarClock className="w-3 h-3" />
+            Agendado
           </span>
         );
       default:
@@ -237,8 +255,24 @@ const Financeiro = () => {
             </p>
           </div>
 
+          {/* Commission Info Banner */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-8">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <DollarSign className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Sistema de Comissões</p>
+                <p className="text-sm text-muted-foreground">
+                  Você recebe <strong>75% do valor de cada venda</strong> dividido em 3 parcelas mensais de 25%.
+                  As parcelas são liberadas automaticamente a cada 30 dias.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
@@ -265,6 +299,18 @@ const Financeiro = () => {
 
             <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
               <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                  <CalendarClock className="w-5 h-5" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mb-1">Agendado</p>
+              <p className="text-2xl font-heading font-bold text-foreground">
+                R$ {stats.scheduledEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
+              <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center">
                   <TrendingDown className="w-5 h-5" />
                 </div>
@@ -275,7 +321,7 @@ const Financeiro = () => {
               </p>
             </div>
 
-            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft col-span-2 lg:col-span-1">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <Wallet className="w-5 h-5" />
@@ -322,9 +368,11 @@ const Financeiro = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Data</TableHead>
+                        <TableHead>Parcela</TableHead>
                         <TableHead>Valor</TableHead>
                         <TableHead>Percentual</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Vencimento</TableHead>
                         <TableHead>Data Pagamento</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -334,6 +382,15 @@ const Financeiro = () => {
                           <TableCell className="text-muted-foreground">
                             {new Date(commission.created_at).toLocaleDateString("pt-BR")}
                           </TableCell>
+                          <TableCell>
+                            {commission.total_installments && commission.total_installments > 1 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted text-xs font-medium">
+                                {commission.installment_number}/{commission.total_installments}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
                           <TableCell className="font-medium">
                             R$ {Number(commission.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                           </TableCell>
@@ -341,6 +398,12 @@ const Financeiro = () => {
                             {Number(commission.percentage).toFixed(1)}%
                           </TableCell>
                           <TableCell>{getCommissionStatusBadge(commission.status)}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {commission.due_date 
+                              ? new Date(commission.due_date).toLocaleDateString("pt-BR")
+                              : "-"
+                            }
+                          </TableCell>
                           <TableCell className="text-muted-foreground">
                             {commission.paid_at 
                               ? new Date(commission.paid_at).toLocaleDateString("pt-BR")
