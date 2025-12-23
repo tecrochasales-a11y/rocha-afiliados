@@ -15,6 +15,7 @@ import Financeiro from "./pages/Financeiro";
 import Notificacoes from "./pages/Notificacoes";
 import Termos from "./pages/Termos";
 import Privacidade from "./pages/Privacidade";
+import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAfiliados from "./pages/admin/AdminAfiliados";
 import AdminLeads from "./pages/admin/AdminLeads";
@@ -79,6 +80,7 @@ const App = () => (
               } 
             />
             {/* Admin Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route 
               path="/admin" 
               element={
