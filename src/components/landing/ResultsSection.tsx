@@ -1,38 +1,40 @@
-import { TrendingUp, DollarSign, Users, Target, ArrowRight } from "lucide-react";
+import { TrendingUp, DollarSign, Users, Target, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-
-const earningExamples = [
-  {
-    title: "Iniciante",
-    leads: "5 indicações/mês",
-    conversions: "2 vendas",
-    earning: "R$ 600",
-    period: "/mês",
-    description: "Indicando para amigos e família próxima",
-    highlight: false,
-  },
-  {
-    title: "Intermediário",
-    leads: "15 indicações/mês",
-    conversions: "6 vendas",
-    earning: "R$ 1.800",
-    period: "/mês",
-    description: "Expandindo para conhecidos e redes sociais",
-    highlight: true,
-  },
-  {
-    title: "Avançado",
-    leads: "40 indicações/mês",
-    conversions: "16 vendas",
-    earning: "R$ 4.800",
-    period: "/mês",
-    description: "Estratégia ativa de captação de leads",
-    highlight: false,
-  },
-];
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const ResultsSection = () => {
+  const { content, isLoading } = useSiteContent("results");
+
+  if (isLoading) {
+    return (
+      <section className="py-20 md:py-28 bg-background">
+        <div className="container mx-auto px-4 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </section>
+    );
+  }
+
+  const earningExamples = content.length > 0 
+    ? content.map(item => {
+        const extraData = item.extra_data as Record<string, string | boolean>;
+        return {
+          title: item.title || "",
+          leads: extraData?.leads as string || "",
+          conversions: extraData?.conversions as string || "",
+          earning: item.value || "",
+          period: extraData?.period as string || "",
+          description: item.description || "",
+          highlight: extraData?.highlight === true,
+        };
+      })
+    : [
+        { title: "Iniciante", leads: "5 indicações/mês", conversions: "2 vendas", earning: "R$ 600", period: "/mês", description: "Indicando para amigos e família", highlight: false },
+        { title: "Intermediário", leads: "15 indicações/mês", conversions: "6 vendas", earning: "R$ 1.800", period: "/mês", description: "Expandindo para redes sociais", highlight: true },
+        { title: "Avançado", leads: "40 indicações/mês", conversions: "16 vendas", earning: "R$ 4.800", period: "/mês", description: "Estratégia ativa de captação", highlight: false },
+      ];
+
   return (
     <section className="py-20 md:py-28 bg-background">
       <div className="container mx-auto px-4">
