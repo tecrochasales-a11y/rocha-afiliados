@@ -14,6 +14,7 @@ interface Testimonial {
   period: string;
   stars: number;
   video_url: string | null;
+  video_thumbnail: string | null;
   display_order: number;
 }
 
@@ -22,6 +23,7 @@ interface VideoAsset {
   name: string;
   url: string;
   description: string | null;
+  thumbnail_url: string | null;
 }
 
 // Convert various video URLs to embeddable format
@@ -52,6 +54,24 @@ const getEmbedUrl = (url: string): string | null => {
   }
   
   return url;
+};
+
+// Get thumbnail URL for videos
+const getThumbnailUrl = (url: string, customThumbnail?: string | null): string | null => {
+  // Use custom thumbnail if provided
+  if (customThumbnail) return customThumbnail;
+  
+  if (!url) return null;
+  
+  // YouTube - extract video ID and get thumbnail
+  const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+  if (youtubeMatch) {
+    return `https://img.youtube.com/vi/${youtubeMatch[1]}/hqdefault.jpg`;
+  }
+  
+  // Vimeo - we can't get thumbnail without API, return null
+  // For Google Drive and others, return null (no auto-thumbnail)
+  return null;
 };
 
 const SuccessStoriesSection = () => {
@@ -146,6 +166,7 @@ const SuccessStoriesSection = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videoAssets.map((video) => {
                 const embedUrl = getEmbedUrl(video.url);
+                const thumbnailUrl = getThumbnailUrl(video.url, video.thumbnail_url);
                 return (
                   <div 
                     key={video.id}
@@ -164,16 +185,24 @@ const SuccessStoriesSection = () => {
                         />
                       ) : (
                         <>
-                          <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                          {/* Thumbnail image */}
+                          {thumbnailUrl && (
+                            <img 
+                              src={thumbnailUrl} 
+                              alt={video.name}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
                               <Play className="w-7 h-7 text-secondary-foreground ml-1" />
                             </div>
                           </div>
                           <div className="absolute bottom-4 left-4 right-4">
-                            <p className="text-primary-foreground font-semibold">{video.name}</p>
+                            <p className="text-primary-foreground font-semibold drop-shadow-lg">{video.name}</p>
                             {video.description && (
-                              <p className="text-primary-foreground/70 text-sm">{video.description}</p>
+                              <p className="text-primary-foreground/70 text-sm drop-shadow-lg">{video.description}</p>
                             )}
                           </div>
                         </>
@@ -192,6 +221,7 @@ const SuccessStoriesSection = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videoTestimonials.map((testimonial) => {
                 const embedUrl = getEmbedUrl(testimonial.video_url || '');
+                const thumbnailUrl = getThumbnailUrl(testimonial.video_url || '', testimonial.video_thumbnail);
                 return (
                   <div 
                     key={testimonial.id}
@@ -210,15 +240,23 @@ const SuccessStoriesSection = () => {
                         />
                       ) : (
                         <>
-                          <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                          {/* Thumbnail image */}
+                          {thumbnailUrl && (
+                            <img 
+                              src={thumbnailUrl} 
+                              alt={testimonial.name}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
                               <Play className="w-7 h-7 text-secondary-foreground ml-1" />
                             </div>
                           </div>
                           <div className="absolute bottom-4 left-4 right-4">
-                            <p className="text-primary-foreground font-semibold">{testimonial.name}</p>
-                            <p className="text-primary-foreground/70 text-sm">{testimonial.role}</p>
+                            <p className="text-primary-foreground font-semibold drop-shadow-lg">{testimonial.name}</p>
+                            <p className="text-primary-foreground/70 text-sm drop-shadow-lg">{testimonial.role}</p>
                           </div>
                         </>
                       )}

@@ -42,6 +42,7 @@ interface SiteAsset {
   name: string;
   url: string;
   description: string | null;
+  thumbnail_url: string | null;
   is_active: boolean;
   display_order: number;
   created_at: string;
@@ -68,7 +69,10 @@ const AdminAssets = () => {
     url: "",
     description: "",
     display_order: "0",
+    thumbnail_url: "",
   });
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -117,6 +121,7 @@ const AdminAssets = () => {
       url: "",
       description: "",
       display_order: "0",
+      thumbnail_url: "",
     });
     setIsDialogOpen(true);
   };
@@ -129,8 +134,66 @@ const AdminAssets = () => {
       url: asset.url,
       description: asset.description || "",
       display_order: asset.display_order.toString(),
+      thumbnail_url: asset.thumbnail_url || "",
     });
     setIsDialogOpen(true);
+  };
+
+  const handleThumbnailUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O tamanho máximo para thumbnail é 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingThumbnail(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `thumbnail-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `thumbnails/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from("site-assets")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from("site-assets")
+        .getPublicUrl(filePath);
+
+      setFormData({
+        ...formData,
+        thumbnail_url: publicUrlData.publicUrl,
+      });
+
+      toast({
+        title: "Thumbnail enviada!",
+        description: "A imagem foi carregada com sucesso.",
+      });
+    } catch (error: any) {
+      console.error("Error uploading thumbnail:", error);
+      toast({
+        title: "Erro no upload",
+        description: error.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingThumbnail(false);
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = "";
+      }
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,6 +288,7 @@ const AdminAssets = () => {
         url: formData.url,
         description: formData.description || null,
         display_order: parseInt(formData.display_order) || 0,
+        thumbnail_url: formData.thumbnail_url || null,
       };
 
       if (editingAsset) {
@@ -397,9 +461,17 @@ const AdminAssets = () => {
                 {/* Preview */}
                 <div className="aspect-video bg-muted relative overflow-hidden">
                   {asset.type === "video" ? (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Video className="w-12 h-12 text-muted-foreground/50" />
-                    </div>
+                    asset.thumbnail_url ? (
+                      <img
+                        src={asset.thumbnail_url}
+                        alt={asset.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Video className="w-12 h-12 text-muted-foreground/50" />
+                      </div>
+                    )
                   ) : (
                     <img
                       src={asset.url}
@@ -584,6 +656,51 @@ const AdminAssets = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
+
+              {/* Thumbnail upload for videos */}
+              {formData.type === "video" && (
+                <div className="space-y-2">
+                  <Label>Thumbnail do Vídeo</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Para YouTube, a thumbnail é extraída automaticamente. Para outros vídeos, faça upload de uma imagem.
+                  </p>
+                  <div className="flex items-center gap-4">
+                    {formData.thumbnail_url && (
+                      <img 
+                        src={formData.thumbnail_url} 
+                        alt="Thumbnail" 
+                        className="w-24 h-16 object-cover rounded-lg border"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <input
+                        ref={thumbnailInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleThumbnailUpload}
+                        className="hidden"
+                        id="thumbnail-upload"
+                      />
+                      <label
+                        htmlFor="thumbnail-upload"
+                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
+                      >
+                        {isUploadingThumbnail ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            {formData.thumbnail_url ? "Trocar" : "Upload Thumbnail"}
+                          </>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="order">Ordem de Exibição</Label>

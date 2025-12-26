@@ -369,6 +369,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          thumbnail_url: string | null
           type: string
           updated_at: string
           updated_by: string | null
@@ -381,6 +382,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          thumbnail_url?: string | null
           type: string
           updated_at?: string
           updated_by?: string | null
@@ -393,6 +395,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          thumbnail_url?: string | null
           type?: string
           updated_at?: string
           updated_by?: string | null
@@ -468,6 +471,7 @@ export type Database = {
           role: string
           stars: number
           updated_at: string
+          video_thumbnail: string | null
           video_url: string | null
         }
         Insert: {
@@ -484,6 +488,7 @@ export type Database = {
           role: string
           stars?: number
           updated_at?: string
+          video_thumbnail?: string | null
           video_url?: string | null
         }
         Update: {
@@ -500,6 +505,7 @@ export type Database = {
           role?: string
           stars?: number
           updated_at?: string
+          video_thumbnail?: string | null
           video_url?: string | null
         }
         Relationships: []
