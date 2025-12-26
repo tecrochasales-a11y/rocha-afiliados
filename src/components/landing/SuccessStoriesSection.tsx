@@ -27,60 +27,89 @@ interface VideoAsset {
 }
 
 // Convert various video URLs to embeddable format
+const getYouTubeVideoId = (rawUrl: string): string | null => {
+  if (!rawUrl) return null;
+
+  // Try URL parsing first (handles params like ?v=...&t=..., youtu.be/?si=..., shorts, etc.)
+  try {
+    const u = new URL(rawUrl);
+    const host = u.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      return id || null;
+    }
+
+    if (host.endsWith("youtube.com")) {
+      // watch?v=
+      const v = u.searchParams.get("v");
+      if (v) return v;
+
+      // /embed/{id}, /shorts/{id}, /v/{id}
+      const parts = u.pathname.split("/").filter(Boolean);
+      const idx = parts.findIndex((p) => ["embed", "shorts", "v"].includes(p));
+      if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+
+      // /watch (sometimes without v in searchParams in malformed links)
+      if (parts[0] === "watch" && parts[1]) return parts[1];
+    }
+  } catch {
+    // ignore
+  }
+
+  // Regex fallback
+  const m = rawUrl.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/
+  );
+  return m?.[1] ?? null;
+};
+
 const getEmbedUrl = (url: string): string | null => {
   if (!url) return null;
-  
+
   // YouTube
-  const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-  if (youtubeMatch) {
-    return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
-  }
-  
+  const yt = getYouTubeVideoId(url);
+  if (yt) return `https://www.youtube.com/embed/${yt}`;
+
   // Vimeo
   const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   if (vimeoMatch) {
     return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
   }
-  
+
   // Google Drive - convert to preview format
   const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (driveMatch) {
     return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
   }
-  
+
   // If already an embed URL or direct video, return as-is
-  if (url.includes('embed') || url.includes('preview') || url.endsWith('.mp4')) {
+  if (url.includes("embed") || url.includes("preview") || url.endsWith(".mp4")) {
     return url;
   }
-  
+
   return url;
 };
 
-// Get thumbnail URL for videos
-const getThumbnailUrl = (url: string, customThumbnail?: string | null): string | null => {
-  // Use custom thumbnail if provided
-  if (customThumbnail) return customThumbnail;
-  
-  if (!url) return null;
-  
-  // YouTube - extract video ID and get thumbnail (supports multiple URL formats)
-  const youtubePatterns = [
-    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/,
-    /(?:youtu\.be\/)([a-zA-Z0-9_-]+)/,
-    /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]+)/,
-  ];
-  
-  for (const pattern of youtubePatterns) {
-    const match = url.match(pattern);
-    if (match && match[1]) {
-      return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
-    }
+// Get thumbnail candidates for videos (tries multiple YouTube sizes)
+const getThumbnailCandidates = (url: string, customThumbnail?: string | null): string[] => {
+  if (customThumbnail) return [customThumbnail];
+  if (!url) return [];
+
+  const yt = getYouTubeVideoId(url);
+  if (yt) {
+    // Order matters: try best quality first, fallback down.
+    return [
+      `https://i.ytimg.com/vi/${yt}/maxresdefault.jpg`,
+      `https://i.ytimg.com/vi/${yt}/sddefault.jpg`,
+      `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`,
+      `https://i.ytimg.com/vi/${yt}/mqdefault.jpg`,
+      `https://i.ytimg.com/vi/${yt}/default.jpg`,
+    ];
   }
-  
-  // Vimeo - we can't get thumbnail without API, return null
-  // For Google Drive and others, return null (no auto-thumbnail)
-  return null;
+
+  // Vimeo/Drive/others: no auto thumbnail without an API
+  return [];
 };
 
 const SuccessStoriesSection = () => {
@@ -175,7 +204,8 @@ const SuccessStoriesSection = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videoAssets.map((video) => {
                 const embedUrl = getEmbedUrl(video.url);
-                const thumbnailUrl = getThumbnailUrl(video.url, video.thumbnail_url);
+                const thumbnailCandidates = getThumbnailCandidates(video.url, video.thumbnail_url);
+                const thumbnailUrl = thumbnailCandidates[0] || null;
                 return (
                   <div 
                     key={video.id}
@@ -194,26 +224,43 @@ const SuccessStoriesSection = () => {
                         />
                       ) : (
                         <>
-                          {/* Thumbnail image or dark placeholder */}
+                          {/* Thumbnail image or themed placeholder */}
                           {thumbnailUrl ? (
                             <img 
                               src={thumbnailUrl} 
                               alt={video.name}
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
                               className="absolute inset-0 w-full h-full object-cover"
+                              data-thumb-idx={0}
+                              data-thumb-candidates={thumbnailCandidates.join("|")}
+                              onError={(e) => {
+                                const el = e.currentTarget;
+                                const candidates = (el.dataset.thumbCandidates || "").split("|").filter(Boolean);
+                                const idx = Number(el.dataset.thumbIdx || "0");
+                                const next = candidates[idx + 1];
+                                if (next) {
+                                  el.dataset.thumbIdx = String(idx + 1);
+                                  el.src = next;
+                                }
+                              }}
                             />
                           ) : (
                             <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/70" />
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                          {/* Readability overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/40 to-transparent" />
+
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
                               <Play className="w-7 h-7 text-secondary-foreground ml-1" />
                             </div>
                           </div>
                           <div className="absolute bottom-4 left-4 right-4">
-                            <p className="text-white font-semibold drop-shadow-lg">{video.name}</p>
+                            <p className="text-primary-foreground font-semibold drop-shadow-lg">{video.name}</p>
                             {video.description && (
-                              <p className="text-white/80 text-sm drop-shadow-lg">{video.description}</p>
+                              <p className="text-primary-foreground/80 text-sm drop-shadow-lg">{video.description}</p>
                             )}
                           </div>
                         </>
@@ -231,8 +278,12 @@ const SuccessStoriesSection = () => {
           <div className="mb-16">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videoTestimonials.map((testimonial) => {
-                const embedUrl = getEmbedUrl(testimonial.video_url || '');
-                const thumbnailUrl = getThumbnailUrl(testimonial.video_url || '', testimonial.video_thumbnail);
+                const embedUrl = getEmbedUrl(testimonial.video_url || "");
+                const thumbnailCandidates = getThumbnailCandidates(
+                  testimonial.video_url || "",
+                  testimonial.video_thumbnail
+                );
+                const thumbnailUrl = thumbnailCandidates[0] || null;
                 return (
                   <div 
                     key={testimonial.id}
@@ -251,25 +302,42 @@ const SuccessStoriesSection = () => {
                         />
                       ) : (
                         <>
-                          {/* Thumbnail image or dark placeholder */}
+                          {/* Thumbnail image or themed placeholder */}
                           {thumbnailUrl ? (
                             <img 
                               src={thumbnailUrl} 
                               alt={testimonial.name}
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
                               className="absolute inset-0 w-full h-full object-cover"
+                              data-thumb-idx={0}
+                              data-thumb-candidates={thumbnailCandidates.join("|")}
+                              onError={(e) => {
+                                const el = e.currentTarget;
+                                const candidates = (el.dataset.thumbCandidates || "").split("|").filter(Boolean);
+                                const idx = Number(el.dataset.thumbIdx || "0");
+                                const next = candidates[idx + 1];
+                                if (next) {
+                                  el.dataset.thumbIdx = String(idx + 1);
+                                  el.src = next;
+                                }
+                              }}
                             />
                           ) : (
                             <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/70" />
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                          {/* Readability overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/40 to-transparent" />
+
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
                               <Play className="w-7 h-7 text-secondary-foreground ml-1" />
                             </div>
                           </div>
                           <div className="absolute bottom-4 left-4 right-4">
-                            <p className="text-white font-semibold drop-shadow-lg">{testimonial.name}</p>
-                            <p className="text-white/80 text-sm drop-shadow-lg">{testimonial.role}</p>
+                            <p className="text-primary-foreground font-semibold drop-shadow-lg">{testimonial.name}</p>
+                            <p className="text-primary-foreground/80 text-sm drop-shadow-lg">{testimonial.role}</p>
                           </div>
                         </>
                       )}
