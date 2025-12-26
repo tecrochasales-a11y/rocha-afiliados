@@ -1,19 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, User, Mail, Phone, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
+import { Shield, CheckCircle, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { z } from "zod";
-
-const leadSchema = z.object({
-  name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  email: z.string().email("E-mail inválido"),
-  phone: z.string().optional(),
-});
+import { FormProgressBar } from "@/components/lead-form/FormProgressBar";
+import { DynamicFormStep, FormQuestion, FormOption } from "@/components/lead-form/DynamicFormStep";
 
 const Indicacao = () => {
   const { trackingCode } = useParams<{ trackingCode: string }>();
@@ -22,110 +15,152 @@ const Indicacao = () => {
   
   const [affiliateName, setAffiliateName] = useState<string | null>(null);
   const [affiliateId, setAffiliateId] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<FormQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-  });
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
-    const fetchAffiliate = async () => {
+    const fetchData = async () => {
       if (!trackingCode) {
         navigate("/");
         return;
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .eq("tracking_code", trackingCode)
-        .single();
+      try {
+        const [affiliateRes, questionsRes] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("id, full_name")
+            .eq("tracking_code", trackingCode)
+            .single(),
+          supabase
+            .from("lead_form_questions")
+            .select("*")
+            .eq("is_active", true)
+            .order("display_order", { ascending: true }),
+        ]);
 
-      if (error || !data) {
-        toast({
-          title: "Link inválido",
-          description: "Este link de indicação não é válido.",
-          variant: "destructive",
-        });
+        if (affiliateRes.error || !affiliateRes.data) {
+          toast({
+            title: "Link inválido",
+            description: "Este link de indicação não é válido.",
+            variant: "destructive",
+          });
+          navigate("/");
+          return;
+        }
+
+        setAffiliateName(affiliateRes.data.full_name);
+        setAffiliateId(affiliateRes.data.id);
+        
+        const formattedQuestions = (questionsRes.data || []).map((q) => ({
+          ...q,
+          options: (q.options as unknown as FormOption[]) || [],
+        })) as FormQuestion[];
+        
+        setQuestions(formattedQuestions);
+      } catch (error) {
+        console.error("Error fetching data:", error);
         navigate("/");
-        return;
+      } finally {
+        setIsLoading(false);
       }
-
-      setAffiliateName(data.full_name);
-      setAffiliateId(data.id);
-      setIsLoading(false);
     };
 
-    fetchAffiliate();
+    fetchData();
   }, [trackingCode, navigate, toast]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+  const handleChange = (fieldKey: string, value: unknown) => {
+    setFormValues((prev) => ({ ...prev, [fieldKey]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      leadSchema.parse(formData);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Erro de validação",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
+  const validateCurrentStep = (): boolean => {
+    const currentQuestion = questions[currentStep - 1];
+    if (!currentQuestion?.is_required) return true;
 
-    if (!affiliateId) return;
+    const value = formValues[currentQuestion.field_key];
+    
+    if (currentQuestion.type === "contact") {
+      const contact = value as Record<string, string> | undefined;
+      if (!contact?.name || !contact?.email) {
+        toast({ title: "Preencha nome e email", variant: "destructive" });
+        return false;
+      }
+    } else if (currentQuestion.type === "confirmation") {
+      const confirm = value as Record<string, string> | undefined;
+      if (confirm?.terms !== "true") {
+        toast({ title: "Aceite os termos para continuar", variant: "destructive" });
+        return false;
+      }
+    } else if (currentQuestion.type === "multi_select") {
+      if (!Array.isArray(value) || value.length === 0) {
+        toast({ title: "Selecione ao menos uma opção", variant: "destructive" });
+        return false;
+      }
+    } else if (!value) {
+      toast({ title: "Selecione uma opção", variant: "destructive" });
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!validateCurrentStep()) return;
+    if (currentStep < questions.length) {
+      setCurrentStep((s) => s + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep((s) => s - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!validateCurrentStep() || !affiliateId || !affiliateName) return;
+
+    const contactInfo = formValues.contact_info as Record<string, string> | undefined;
+    const confirmInfo = formValues.confirmation as Record<string, string> | undefined;
+
+    if (!contactInfo?.name || !contactInfo?.email) {
+      toast({ title: "Dados de contato incompletos", variant: "destructive" });
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from("leads")
-        .insert({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          affiliate_id: affiliateId,
-          tracking_code: trackingCode,
-          status: "pending",
-        });
+      const payload = {
+        tracking_code: trackingCode,
+        affiliate_id: affiliateId,
+        affiliate_name: affiliateName,
+        form_responses: formValues,
+        contact: {
+          name: contactInfo.name,
+          email: contactInfo.email,
+          phone: contactInfo.phone,
+        },
+        accepts_whatsapp: confirmInfo?.whatsapp === "true",
+      };
 
-      if (error) {
-        if (error.code === "23505") {
-          toast({
-            title: "E-mail já cadastrado",
-            description: "Este e-mail já foi registrado como lead.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
-        return;
-      }
+      const { data, error } = await supabase.functions.invoke("submit-lead", {
+        body: payload,
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setIsSubmitted(true);
-      toast({
-        title: "Sucesso!",
-        description: "Seus dados foram enviados. Em breve entraremos em contato.",
-      });
-    } catch (error) {
+      toast({ title: "Sucesso!", description: "Seus dados foram enviados." });
+    } catch (error: unknown) {
       console.error("Error submitting lead:", error);
-      toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao enviar seus dados. Tente novamente.",
-        variant: "destructive",
-      });
+      const message = error instanceof Error ? error.message : "Ocorreu um erro. Tente novamente.";
+      toast({ title: "Erro", description: message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -149,7 +184,7 @@ const Indicacao = () => {
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Obrigado!</h2>
             <p className="text-muted-foreground mb-6">
-              Recebemos seus dados com sucesso. Nossa equipe entrará em contato em breve para apresentar as melhores opções para você.
+              Recebemos seus dados com sucesso. Nossa equipe entrará em contato em breve.
             </p>
             <Link to="/">
               <Button variant="outline">
@@ -163,97 +198,70 @@ const Indicacao = () => {
     );
   }
 
+  const currentQuestion = questions[currentStep - 1];
+  const isLastStep = currentStep === questions.length;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[url('/einstein-background.png')] bg-cover bg-center opacity-10" />
       
-      <Card className="w-full max-w-md relative z-10">
-        <CardHeader className="text-center">
+      <Card className="w-full max-w-lg relative z-10">
+        <CardHeader className="text-center pb-2">
           <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Shield className="w-7 h-7 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Rocha Sales Seguros</CardTitle>
+          <CardTitle className="text-xl">Rocha Sales Seguros</CardTitle>
           <CardDescription>
-            Você foi indicado por <span className="font-semibold text-primary">{affiliateName}</span>
+            Indicado por <span className="font-semibold text-primary">{affiliateName}</span>
           </CardDescription>
         </CardHeader>
         
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="Seu nome completo"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
+        <CardContent className="space-y-6">
+          <FormProgressBar currentStep={currentStep} totalSteps={questions.length} />
 
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
+          <div className="min-h-[280px]">
+            {currentQuestion && (
+              <DynamicFormStep
+                question={currentQuestion}
+                value={formValues[currentQuestion.field_key] as string | string[] | Record<string, string>}
+                onChange={handleChange}
+                allValues={formValues}
+              />
+            )}
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone (opcional)</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  name="phone"
-                  placeholder="(11) 99999-9999"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-600/90"
-              disabled={isSubmitting}
+          <div className="flex justify-between pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={currentStep === 1}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                "Quero ser contatado"
-              )}
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Anterior
             </Button>
-
-            <p className="text-xs text-center text-muted-foreground">
-              Ao enviar, você concorda com nossos{" "}
-              <Link to="/termos" className="text-primary hover:underline">
-                Termos de Uso
-              </Link>{" "}
-              e{" "}
-              <Link to="/privacidade" className="text-primary hover:underline">
-                Política de Privacidade
-              </Link>
-            </p>
-          </form>
+            
+            {isLastStep ? (
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-primary to-emerald-600"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  "Enviar"
+                )}
+              </Button>
+            ) : (
+              <Button onClick={handleNext}>
+                Próximo
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
