@@ -408,6 +408,57 @@ export type Database = {
           },
         ]
       }
+      testimonials: {
+        Row: {
+          avatar_initials: string | null
+          avatar_url: string | null
+          content: string
+          created_at: string
+          display_order: number
+          earnings: string
+          id: string
+          is_active: boolean
+          name: string
+          period: string
+          role: string
+          stars: number
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          avatar_initials?: string | null
+          avatar_url?: string | null
+          content: string
+          created_at?: string
+          display_order?: number
+          earnings: string
+          id?: string
+          is_active?: boolean
+          name: string
+          period: string
+          role: string
+          stars?: number
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          avatar_initials?: string | null
+          avatar_url?: string | null
+          content?: string
+          created_at?: string
+          display_order?: number
+          earnings?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          period?: string
+          role?: string
+          stars?: number
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           affiliate_id: string

@@ -1,82 +1,50 @@
-import { Star, Play, Quote, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { Star, Play, Quote, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Testimonial {
-  id: number;
+  id: string;
   name: string;
   role: string;
-  avatar: string;
-  photo?: string;
+  avatar_initials: string | null;
+  avatar_url: string | null;
   content: string;
   earnings: string;
   period: string;
   stars: number;
-  videoUrl?: string;
-  videoThumbnail?: string;
+  video_url: string | null;
+  display_order: number;
 }
 
-const testimonials: Testimonial[] = [
-  {
-    id: 1,
-    name: "Carlos Silva",
-    role: "Afiliado desde 2022",
-    avatar: "CS",
-    content: "Em apenas 6 meses, consegui uma renda extra significativa indicando planos de saúde para amigos e conhecidos. O sistema é muito transparente e os pagamentos sempre chegam no prazo.",
-    earnings: "R$ 15.000+",
-    period: "em 6 meses",
-    stars: 5,
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-  },
-  {
-    id: 2,
-    name: "Ana Rodrigues",
-    role: "Afiliada desde 2021",
-    avatar: "AR",
-    content: "A melhor decisão que tomei foi me tornar afiliada. Trabalho no meu tempo, sem pressão, e ainda consigo ajudar pessoas a encontrarem o plano ideal. As comissões são muito justas!",
-    earnings: "R$ 42.000+",
-    period: "em 1 ano",
-    stars: 5,
-  },
-  {
-    id: 3,
-    name: "Pedro Santos",
-    role: "Afiliado desde 2023",
-    avatar: "PS",
-    content: "O dashboard é incrível! Consigo acompanhar cada lead em tempo real. O suporte é excepcional e sempre me ajudam quando preciso. Recomendo para quem quer uma renda extra séria.",
-    earnings: "R$ 8.500+",
-    period: "em 3 meses",
-    stars: 5,
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-  },
-  {
-    id: 4,
-    name: "Mariana Costa",
-    role: "Afiliada desde 2022",
-    avatar: "MC",
-    content: "Comecei sem experiência nenhuma em vendas. Hoje já indiquei mais de 50 pessoas e todas ficaram satisfeitas. A Rocha Sales oferece todo suporte necessário.",
-    earnings: "R$ 28.000+",
-    period: "em 10 meses",
-    stars: 5,
-  },
-  {
-    id: 5,
-    name: "Roberto Almeida",
-    role: "Afiliado desde 2021",
-    avatar: "RA",
-    content: "Já trabalhei com outros programas de afiliados, mas nenhum é tão transparente quanto este. Os percentuais são claros e os pagamentos são rápidos via PIX.",
-    earnings: "R$ 67.000+",
-    period: "em 2 anos",
-    stars: 5,
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-  },
-];
-
 const SuccessStoriesSection = () => {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const videoTestimonials = testimonials.filter(t => t.videoUrl);
+  useEffect(() => {
+    fetchTestimonials();
+  }, []);
+
+  const fetchTestimonials = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("testimonials")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      setTestimonials(data || []);
+    } catch (error) {
+      console.error("Error fetching testimonials:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const videoTestimonials = testimonials.filter(t => t.video_url);
   const featuredTestimonials = testimonials.slice(0, 3);
 
   const nextSlide = () => {
@@ -86,6 +54,20 @@ const SuccessStoriesSection = () => {
   const prevSlide = () => {
     setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
+
+  if (isLoading) {
+    return (
+      <section className="py-20 md:py-28 bg-muted/50">
+        <div className="container mx-auto px-4 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </section>
+    );
+  }
+
+  if (testimonials.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-20 md:py-28 bg-muted/50">
@@ -121,11 +103,11 @@ const SuccessStoriesSection = () => {
                   {/* Video Thumbnail */}
                   <div 
                     className="relative aspect-video bg-muted cursor-pointer overflow-hidden"
-                    onClick={() => setActiveVideo(testimonial.videoUrl || null)}
+                    onClick={() => setActiveVideo(testimonial.video_url)}
                   >
-                    {activeVideo === testimonial.videoUrl ? (
+                    {activeVideo === testimonial.video_url ? (
                       <iframe
-                        src={`${testimonial.videoUrl}?autoplay=1`}
+                        src={`${testimonial.video_url}?autoplay=1`}
                         className="absolute inset-0 w-full h-full"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
@@ -167,126 +149,146 @@ const SuccessStoriesSection = () => {
         )}
 
         {/* Written Testimonials - Featured */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {featuredTestimonials.map((testimonial) => (
-            <div 
-              key={testimonial.id}
-              className="bg-card rounded-2xl p-8 shadow-soft hover:shadow-medium transition-all duration-300 border border-border relative group"
-            >
-              {/* Quote Icon */}
-              <div className="absolute -top-4 right-8 w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
-                <Quote className="w-4 h-4 text-secondary-foreground" />
-              </div>
-
-              {/* Earnings Badge */}
-              <div className="absolute top-4 right-4 bg-secondary/10 px-3 py-1 rounded-full">
-                <span className="text-sm font-bold text-secondary">{testimonial.earnings}</span>
-              </div>
-
-              {/* Stars */}
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(testimonial.stars)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 fill-accent text-accent" />
-                ))}
-              </div>
-
-              {/* Content */}
-              <p className="text-foreground mb-6 leading-relaxed">
-                "{testimonial.content}"
-              </p>
-
-              {/* Author */}
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-heading font-bold text-lg">
-                  {testimonial.avatar}
-                </div>
-                <div>
-                  <p className="font-heading font-semibold text-foreground">
-                    {testimonial.name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {testimonial.role}
-                  </p>
-                  <p className="text-xs text-secondary font-medium">
-                    {testimonial.earnings} {testimonial.period}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Carousel for More Testimonials */}
-        <div className="bg-card rounded-2xl p-8 shadow-soft border border-border">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-heading text-xl font-semibold text-foreground">
-              Mais Depoimentos
-            </h3>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={prevSlide}
-                className="rounded-full"
+        {featuredTestimonials.length > 0 && (
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
+            {featuredTestimonials.map((testimonial) => (
+              <div 
+                key={testimonial.id}
+                className="bg-card rounded-2xl p-8 shadow-soft hover:shadow-medium transition-all duration-300 border border-border relative group"
               >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={nextSlide}
-                className="rounded-full"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+                {/* Quote Icon */}
+                <div className="absolute -top-4 right-8 w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
+                  <Quote className="w-4 h-4 text-secondary-foreground" />
+                </div>
 
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-heading font-bold text-xl shrink-0">
-              {testimonials[currentIndex].avatar}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <p className="font-heading font-semibold text-foreground">
-                  {testimonials[currentIndex].name}
-                </p>
-                <span className="text-muted-foreground">•</span>
-                <p className="text-sm text-muted-foreground">
-                  {testimonials[currentIndex].role}
-                </p>
-              </div>
-              <p className="text-foreground leading-relaxed mb-2">
-                "{testimonials[currentIndex].content}"
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  {[...Array(testimonials[currentIndex].stars)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-accent text-accent" />
+                {/* Earnings Badge */}
+                <div className="absolute top-4 right-4 bg-secondary/10 px-3 py-1 rounded-full">
+                  <span className="text-sm font-bold text-secondary">{testimonial.earnings}</span>
+                </div>
+
+                {/* Stars */}
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(testimonial.stars)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 fill-accent text-accent" />
                   ))}
                 </div>
-                <span className="font-bold text-secondary">
-                  {testimonials[currentIndex].earnings} {testimonials[currentIndex].period}
-                </span>
-              </div>
-            </div>
-          </div>
 
-          {/* Dots */}
-          <div className="flex items-center justify-center gap-2 mt-6">
-            {testimonials.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIndex(index)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === currentIndex 
-                    ? "w-6 bg-secondary" 
-                    : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                }`}
-              />
+                {/* Content */}
+                <p className="text-foreground mb-6 leading-relaxed">
+                  "{testimonial.content}"
+                </p>
+
+                {/* Author */}
+                <div className="flex items-center gap-4">
+                  {testimonial.avatar_url ? (
+                    <img 
+                      src={testimonial.avatar_url} 
+                      alt={testimonial.name}
+                      className="w-14 h-14 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-heading font-bold text-lg">
+                      {testimonial.avatar_initials || testimonial.name.substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-heading font-semibold text-foreground">
+                      {testimonial.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {testimonial.role}
+                    </p>
+                    <p className="text-xs text-secondary font-medium">
+                      {testimonial.earnings} {testimonial.period}
+                    </p>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-        </div>
+        )}
+
+        {/* Carousel for More Testimonials */}
+        {testimonials.length > 0 && (
+          <div className="bg-card rounded-2xl p-8 shadow-soft border border-border">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-heading text-xl font-semibold text-foreground">
+                Mais Depoimentos
+              </h3>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={prevSlide}
+                  className="rounded-full"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={nextSlide}
+                  className="rounded-full"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              {testimonials[currentIndex]?.avatar_url ? (
+                <img 
+                  src={testimonials[currentIndex].avatar_url} 
+                  alt={testimonials[currentIndex].name}
+                  className="w-16 h-16 rounded-full object-cover shrink-0"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-heading font-bold text-xl shrink-0">
+                  {testimonials[currentIndex]?.avatar_initials || testimonials[currentIndex]?.name.substring(0, 2).toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="font-heading font-semibold text-foreground">
+                    {testimonials[currentIndex]?.name}
+                  </p>
+                  <span className="text-muted-foreground">•</span>
+                  <p className="text-sm text-muted-foreground">
+                    {testimonials[currentIndex]?.role}
+                  </p>
+                </div>
+                <p className="text-foreground leading-relaxed mb-2">
+                  "{testimonials[currentIndex]?.content}"
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1">
+                    {[...Array(testimonials[currentIndex]?.stars || 5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-accent text-accent" />
+                    ))}
+                  </div>
+                  <span className="font-bold text-secondary">
+                    {testimonials[currentIndex]?.earnings} {testimonials[currentIndex]?.period}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dots */}
+            <div className="flex items-center justify-center gap-2 mt-6">
+              {testimonials.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentIndex 
+                      ? "w-6 bg-secondary" 
+                      : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,14 +1,39 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Shield, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   const isLandingPage = location.pathname === "/";
+
+  useEffect(() => {
+    fetchLogo();
+  }, []);
+
+  const fetchLogo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("site_assets")
+        .select("url")
+        .eq("type", "logo")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (!error && data) {
+        setLogoUrl(data.url);
+      }
+    } catch (error) {
+      // Use default logo icon if no logo found
+    }
+  };
 
   const scrollToSection = (sectionId: string) => {
     setIsMenuOpen(false);
@@ -36,17 +61,27 @@ const Header = () => {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-hero rounded-xl flex items-center justify-center shadow-soft group-hover:shadow-medium transition-all duration-300">
-              <Shield className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-heading font-bold text-lg md:text-xl text-foreground leading-tight">
-                Rocha Sales
-              </span>
-              <span className="text-xs text-muted-foreground font-medium">
-                SEGUROS
-              </span>
-            </div>
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt="Rocha Sales Seguros" 
+                className="h-10 md:h-12 w-auto object-contain"
+              />
+            ) : (
+              <>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-hero rounded-xl flex items-center justify-center shadow-soft group-hover:shadow-medium transition-all duration-300">
+                  <Shield className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-heading font-bold text-lg md:text-xl text-foreground leading-tight">
+                    Rocha Sales
+                  </span>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    SEGUROS
+                  </span>
+                </div>
+              </>
+            )}
           </Link>
 
           {/* Desktop Navigation */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SiteAsset {
   id: string;
@@ -69,6 +70,9 @@ const AdminAssets = () => {
     display_order: "0",
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -129,6 +133,70 @@ const AdminAssets = () => {
     setIsDialogOpen(true);
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O tamanho máximo é 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${formData.type}/${fileName}`;
+
+      // Upload to storage
+      const { data, error } = await supabase.storage
+        .from("site-assets")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("site-assets")
+        .getPublicUrl(filePath);
+
+      setFormData({
+        ...formData,
+        url: publicUrlData.publicUrl,
+        name: formData.name || file.name.replace(/\.[^/.]+$/, ""),
+      });
+
+      toast({
+        title: "Upload concluído!",
+        description: "O arquivo foi enviado com sucesso.",
+      });
+    } catch (error: any) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Erro no upload",
+        description: error.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.name.trim()) {
       toast({
@@ -142,7 +210,7 @@ const AdminAssets = () => {
     if (!formData.url.trim()) {
       toast({
         title: "URL obrigatória",
-        description: "Informe a URL do arquivo.",
+        description: "Faça upload de um arquivo ou informe a URL.",
         variant: "destructive",
       });
       return;
@@ -416,7 +484,7 @@ const AdminAssets = () => {
               <DialogDescription>
                 {editingAsset 
                   ? "Atualize as informações do arquivo"
-                  : "Cadastre um novo arquivo de mídia"
+                  : "Faça upload ou insira a URL de um arquivo de mídia"
                 }
               </DialogDescription>
             </DialogHeader>
@@ -451,18 +519,61 @@ const AdminAssets = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="url">URL do Arquivo *</Label>
-                <Input
-                  id="url"
-                  placeholder="https://..."
-                  value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Insira a URL de um arquivo hospedado externamente.
-                </p>
-              </div>
+              <Tabs defaultValue="upload" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="upload">Upload</TabsTrigger>
+                  <TabsTrigger value="url">URL Externa</TabsTrigger>
+                </TabsList>
+                <TabsContent value="upload" className="space-y-4">
+                  <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                          <p className="text-sm text-muted-foreground">Enviando...</p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-10 h-10 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            Clique para selecionar um arquivo
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Máximo 10MB • Imagens e vídeos
+                          </p>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                  {formData.url && (
+                    <p className="text-xs text-secondary truncate">
+                      ✓ Arquivo carregado: {formData.url.split('/').pop()}
+                    </p>
+                  )}
+                </TabsContent>
+                <TabsContent value="url" className="space-y-2">
+                  <Input
+                    id="url"
+                    placeholder="https://..."
+                    value={formData.url}
+                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Insira a URL de um arquivo hospedado externamente.
+                  </p>
+                </TabsContent>
+              </Tabs>
 
               <div className="space-y-2">
                 <Label htmlFor="description">Descrição</Label>
@@ -491,7 +602,7 @@ const AdminAssets = () => {
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
+              <Button onClick={handleSave} disabled={isSaving || isUploading}>
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />

@@ -26,6 +26,7 @@ import AdminCampanhas from "./pages/admin/AdminCampanhas";
 import AdminAssets from "./pages/admin/AdminAssets";
 import AdminRelatorios from "./pages/admin/AdminRelatorios";
 import AdminUsuarios from "./pages/admin/AdminUsuarios";
+import AdminTestimonials from "./pages/admin/AdminTestimonials";
 import GestorDashboard from "./pages/gestor/GestorDashboard";
 import GestorAfiliados from "./pages/gestor/GestorAfiliados";
 import GestorLeads from "./pages/gestor/GestorLeads";
@@ -153,6 +154,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <AdminUsuarios />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/depoimentos" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminTestimonials />
                 </ProtectedRoute>
               } 
             />
