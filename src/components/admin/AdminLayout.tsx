@@ -12,7 +12,8 @@ import {
   MapPin,
   Megaphone,
   Image,
-  UserCog
+  UserCog,
+  MessageSquareQuote
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +37,7 @@ const navItems = [
   { path: "/admin/pdv", label: "PDVs", icon: MapPin },
   { path: "/admin/campanhas", label: "Campanhas", icon: Megaphone },
   { path: "/admin/assets", label: "Mídia", icon: Image },
+  { path: "/admin/depoimentos", label: "Depoimentos", icon: MessageSquareQuote },
   { path: "/admin/relatorios", label: "Relatórios", icon: FileText },
   { path: "/admin/usuarios", label: "Usuários", icon: UserCog },
 ];
