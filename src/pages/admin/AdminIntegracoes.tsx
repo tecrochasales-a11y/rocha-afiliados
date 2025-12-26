@@ -415,26 +415,89 @@ const AdminIntegracoes = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* URLs para configurar no Google Cloud Console */}
+                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 space-y-3">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Configure estas URLs no Google Cloud Console:
+                  </p>
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs text-blue-600 dark:text-blue-400">Origens JavaScript autorizadas:</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <code className="text-xs bg-white dark:bg-blue-900/50 px-2 py-1 rounded border flex-1 break-all">
+                          {window.location.origin}
+                        </code>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(window.location.origin);
+                            toast({ title: "URL copiada!" });
+                          }}
+                        >
+                          Copiar
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-blue-600 dark:text-blue-400">URI de redirecionamento autorizado:</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <code className="text-xs bg-white dark:bg-blue-900/50 px-2 py-1 rounded border flex-1 break-all">
+                          https://txvtxckwpulumhpudjio.supabase.co/auth/v1/callback
+                        </code>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText("https://txvtxckwpulumhpudjio.supabase.co/auth/v1/callback");
+                            toast({ title: "URL copiada!" });
+                          }}
+                        >
+                          Copiar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="google-client-id">Client ID</Label>
+                  <Label htmlFor="google-client-id">Client ID (ID do cliente)</Label>
                   <Input
                     id="google-client-id"
                     value={googleClientId}
                     onChange={(e) => setGoogleClientId(e.target.value)}
                     placeholder="xxxxx.apps.googleusercontent.com"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Encontre em "ID do cliente" no Google Cloud Console
+                  </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="google-client-secret">Client Secret</Label>
+                  <Label htmlFor="google-client-secret">Client Secret (Chave secreta do cliente)</Label>
                   <SecretInput
                     id="google-client-secret"
                     value={googleClientSecret}
                     onChange={setGoogleClientSecret}
                     placeholder="GOCSPX-xxxxx"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Clique em "Add secret" no Google Cloud Console para gerar uma nova chave
+                  </p>
                 </div>
+                
+                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    <strong>Importante:</strong> Após salvar aqui, você também precisa configurar estas credenciais no backend do Lovable Cloud.
+                    Vá em <strong>Users → Auth Settings → Google Settings</strong>.
+                  </p>
+                </div>
+
                 <p className="text-xs text-muted-foreground">
-                  Configure no <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Cloud Console</a>
+                  <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    Abrir Google Cloud Console →
+                  </a>
                 </p>
               </CardContent>
             </Card>
