@@ -11,6 +11,7 @@ import SuccessStoriesSection from "@/components/landing/SuccessStoriesSection";
 import TrustSection from "@/components/landing/TrustSection";
 import CTASection from "@/components/landing/CTASection";
 import FAQSection from "@/components/landing/FAQSection";
+import BackToTop from "@/components/BackToTop";
 
 const Index = () => {
   return (
@@ -30,6 +31,7 @@ const Index = () => {
         <CTASection />
       </main>
       <Footer />
+      <BackToTop />
     </div>
   );
 };
