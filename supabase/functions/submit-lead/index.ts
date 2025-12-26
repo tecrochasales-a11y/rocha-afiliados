@@ -18,6 +18,113 @@ interface LeadFormData {
   accepts_whatsapp: boolean;
 }
 
+interface ServiceAccountCredentials {
+  client_email: string;
+  private_key: string;
+  token_uri: string;
+}
+
+// Function to create JWT for Google API authentication
+async function createGoogleJWT(credentials: ServiceAccountCredentials): Promise<string> {
+  const header = {
+    alg: "RS256",
+    typ: "JWT",
+  };
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: credentials.client_email,
+    scope: "https://www.googleapis.com/auth/spreadsheets",
+    aud: credentials.token_uri,
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const encoder = new TextEncoder();
+  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const unsignedToken = `${headerB64}.${payloadB64}`;
+
+  // Import private key
+  const pemContents = credentials.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\n/g, "");
+  
+  const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    cryptoKey,
+    encoder.encode(unsignedToken)
+  );
+
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+
+  return `${unsignedToken}.${signatureB64}`;
+}
+
+// Function to get Google access token
+async function getGoogleAccessToken(credentials: ServiceAccountCredentials): Promise<string> {
+  const jwt = await createGoogleJWT(credentials);
+  
+  const response = await fetch(credentials.token_uri, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to get access token: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
+
+// Function to append row to Google Sheets
+async function appendToGoogleSheets(
+  accessToken: string,
+  spreadsheetId: string,
+  values: string[]
+): Promise<void> {
+  const range = "Leads!A:Z";
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      values: [values],
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to append to Google Sheets: ${error}`);
+  }
+
+  console.log("Successfully appended to Google Sheets");
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -99,11 +206,16 @@ Deno.serve(async (req) => {
 
     console.log("Lead saved successfully:", insertedLead.id);
 
-    // Fetch CRM settings
+    // Fetch all integration settings
     const { data: settings, error: settingsError } = await supabase
       .from("app_settings")
       .select("key, value")
-      .in("key", ["painel_corretor_api_key", "painel_corretor_produto_id", "painel_corretor_etiquetas"]);
+      .in("key", [
+        "painel_corretor_api_key", 
+        "painel_corretor_produto_id", 
+        "painel_corretor_etiquetas",
+        "google_sheets_spreadsheet_id"
+      ]);
 
     if (settingsError) {
       console.error("Error fetching settings:", settingsError);
@@ -112,8 +224,66 @@ Deno.serve(async (req) => {
     const apiKey = settings?.find((s) => s.key === "painel_corretor_api_key")?.value;
     const produtoId = settings?.find((s) => s.key === "painel_corretor_produto_id")?.value;
     const etiquetasBase = settings?.find((s) => s.key === "painel_corretor_etiquetas")?.value || "";
+    const spreadsheetId = settings?.find((s) => s.key === "google_sheets_spreadsheet_id")?.value;
 
-    // If API key is configured, send to CRM
+    // Google Sheets Integration
+    const googleServiceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
+    if (googleServiceAccountJson && spreadsheetId) {
+      console.log("Sending lead to Google Sheets...");
+      try {
+        const credentials: ServiceAccountCredentials = JSON.parse(googleServiceAccountJson);
+        const accessToken = await getGoogleAccessToken(credentials);
+        
+        // Prepare row data matching your spreadsheet columns
+        const now = new Date().toISOString();
+        const phoneClean = contact.phone?.replace(/\D/g, "").replace(/^55/, "") || "";
+        
+        const rowValues = [
+          insertedLead.id, // id
+          now, // created_time
+          "", // ad_id
+          "", // ad_name
+          "", // adset_id
+          "", // adset_name
+          "", // campaign_id
+          "", // campaign_name
+          "", // form_id
+          "", // form_name
+          "", // is_organic
+          "Lovable", // platform
+          contact.name, // full_name
+          contact.email, // email
+          phoneClean, // phone_number
+          form_responses.has_health_plan as string || "", // você_já_tem_um_plano_de_saúde?
+          form_responses.company_type as string || "", // você_é_mei_ou_cnpj?
+          form_responses.monthly_income as string || "", // qual_a_sua_renda_mensal?
+          form_responses.health_plan_investment as string || "", // qual_valor_você_investe_em_plano_de_saúde_mensalmente?
+          form_responses.adjustment_month as string || "", // qual_o_mês_de_reajuste_do_seu_plano?
+          form_responses.insurance_provider as string || "", // qual__seguradora_do_seu_plano?
+          Array.isArray(form_responses.covered_ages) ? (form_responses.covered_ages as string[]).join(", ") : "", // quais_as_idades_das_pessoas_cobertas
+          form_responses.cnpj_or_region as string || "", // qual_o_seu_cnpj_ou_a_região
+          "", // row_number (will be auto-filled)
+          "", // enviado_crm
+          affiliate_name, // afiliado
+          tracking_code, // tracking_code
+        ];
+
+        await appendToGoogleSheets(accessToken, spreadsheetId, rowValues);
+        console.log("Lead sent to Google Sheets successfully");
+      } catch (sheetsError) {
+        console.error("Error sending to Google Sheets:", sheetsError);
+        // Don't fail the request if Google Sheets fails
+      }
+    } else {
+      if (!googleServiceAccountJson) {
+        console.log("Google Service Account not configured, skipping Sheets integration");
+      }
+      if (!spreadsheetId) {
+        console.log("Google Sheets Spreadsheet ID not configured, skipping Sheets integration");
+      }
+    }
+
+    // CRM Integration - If API key is configured, send to CRM
     if (apiKey && apiKey.length > 0) {
       console.log("Sending lead to Painel do Corretor...");
 
