@@ -20,6 +20,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAfiliados from "./pages/admin/AdminAfiliados";
 import AdminLeads from "./pages/admin/AdminLeads";
+import AdminComissoes from "./pages/admin/AdminComissoes";
 import AdminSaques from "./pages/admin/AdminSaques";
 import AdminPDV from "./pages/admin/AdminPDV";
 import AdminCampanhas from "./pages/admin/AdminCampanhas";
@@ -107,6 +108,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <AdminLeads />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/comissoes" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminComissoes />
                 </ProtectedRoute>
               } 
             />
