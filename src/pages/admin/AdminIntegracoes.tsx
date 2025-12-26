@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Eye, EyeOff, Link2, Key, Shield, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, Link2, Key, Shield, CheckCircle, XCircle, FileSpreadsheet } from "lucide-react";
 
 interface Setting {
   key: string;
@@ -27,6 +27,9 @@ const AdminIntegracoes = () => {
   const [crmApiKey, setCrmApiKey] = useState("");
   const [crmProdutoId, setCrmProdutoId] = useState("");
   const [crmEtiquetas, setCrmEtiquetas] = useState("");
+  
+  // Google Sheets Settings
+  const [googleSheetsSpreadsheetId, setGoogleSheetsSpreadsheetId] = useState("");
   
   // OAuth Settings
   const [googleClientId, setGoogleClientId] = useState("");
@@ -54,6 +57,9 @@ const AdminIntegracoes = () => {
       setCrmApiKey(settings.find(s => s.key === "painel_corretor_api_key")?.value || "");
       setCrmProdutoId(settings.find(s => s.key === "painel_corretor_produto_id")?.value || "");
       setCrmEtiquetas(settings.find(s => s.key === "painel_corretor_etiquetas")?.value || "");
+      
+      // Google Sheets
+      setGoogleSheetsSpreadsheetId(settings.find(s => s.key === "google_sheets_spreadsheet_id")?.value || "");
       
       // OAuth
       setGoogleClientId(settings.find(s => s.key === "google_client_id")?.value || "");
@@ -177,10 +183,14 @@ const AdminIntegracoes = () => {
         </div>
 
         <Tabs defaultValue="crm" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
             <TabsTrigger value="crm" className="flex items-center gap-2">
               <Link2 className="w-4 h-4" />
               CRM
+            </TabsTrigger>
+            <TabsTrigger value="sheets" className="flex items-center gap-2">
+              <FileSpreadsheet className="w-4 h-4" />
+              Google Sheets
             </TabsTrigger>
             <TabsTrigger value="oauth" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
@@ -254,6 +264,99 @@ const AdminIntegracoes = () => {
                 </div>
 
                 <Button onClick={handleSaveCRM} disabled={isSaving} className="w-full sm:w-auto">
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Salvar Configurações
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="sheets" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                      Google Sheets
+                    </CardTitle>
+                    <CardDescription>
+                      Backup automático de leads na sua planilha Google
+                    </CardDescription>
+                  </div>
+                  <Badge variant={googleSheetsSpreadsheetId ? "default" : "secondary"} className="flex items-center gap-1">
+                    {googleSheetsSpreadsheetId ? (
+                      <>
+                        <CheckCircle className="w-3 h-3" />
+                        Configurado
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-3 h-3" />
+                        Não configurado
+                      </>
+                    )}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    <strong>Credenciais configuradas!</strong> O JSON da Service Account está salvo de forma segura.
+                    Certifique-se de compartilhar a planilha com o e-mail da Service Account.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sheets-spreadsheet-id">ID da Planilha</Label>
+                  <Input
+                    id="sheets-spreadsheet-id"
+                    value={googleSheetsSpreadsheetId}
+                    onChange={(e) => setGoogleSheetsSpreadsheetId(e.target.value)}
+                    placeholder="18UeRDAYIjRyZy96_waC3Afs1kBmtPTP8I9iM-NHcarg"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    O ID está na URL da planilha: docs.google.com/spreadsheets/d/<strong>ID_AQUI</strong>/edit
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Nome da Aba</Label>
+                  <Input
+                    value="Leads"
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A aba "Leads" deve existir na planilha
+                  </p>
+                </div>
+
+                <Button 
+                  onClick={async () => {
+                    setIsSaving(true);
+                    try {
+                      await saveSetting("google_sheets_spreadsheet_id", googleSheetsSpreadsheetId, "ID da planilha Google Sheets", false);
+                      toast({ title: "Configurações do Google Sheets salvas!" });
+                    } catch (error) {
+                      console.error("Error saving Sheets settings:", error);
+                      toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }} 
+                  disabled={isSaving} 
+                  className="w-full sm:w-auto"
+                >
                   {isSaving ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
