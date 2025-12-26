@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_secret: boolean
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_secret?: boolean
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_secret?: boolean
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           bonus_percentage: number
@@ -123,13 +153,68 @@ export type Database = {
           },
         ]
       }
+      lead_form_questions: {
+        Row: {
+          conditional_field: string | null
+          conditional_value: string | null
+          created_at: string
+          display_order: number
+          field_key: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          options: Json | null
+          question: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          conditional_field?: string | null
+          conditional_value?: string | null
+          created_at?: string
+          display_order?: number
+          field_key: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          options?: Json | null
+          question: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          conditional_field?: string | null
+          conditional_value?: string | null
+          created_at?: string
+          display_order?: number
+          field_key?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          options?: Json | null
+          question?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
+          accepts_whatsapp: boolean | null
+          adjustment_month: string | null
           affiliate_id: string | null
+          cnpj_or_region: string | null
+          company_type: string | null
           converted_at: string | null
+          covered_ages: string | null
           created_at: string
           email: string
+          form_responses: Json | null
+          has_health_plan: string | null
+          health_plan_investment: string | null
           id: string
+          insurance_provider: string | null
+          monthly_income: string | null
           name: string
           notes: string | null
           payment_confirmed_at: string | null
@@ -140,16 +225,27 @@ export type Database = {
           product_id: string | null
           rejection_reason: string | null
           sale_value: number | null
+          source: string | null
           status: Database["public"]["Enums"]["lead_status"]
           tracking_code: string | null
           updated_at: string
         }
         Insert: {
+          accepts_whatsapp?: boolean | null
+          adjustment_month?: string | null
           affiliate_id?: string | null
+          cnpj_or_region?: string | null
+          company_type?: string | null
           converted_at?: string | null
+          covered_ages?: string | null
           created_at?: string
           email: string
+          form_responses?: Json | null
+          has_health_plan?: string | null
+          health_plan_investment?: string | null
           id?: string
+          insurance_provider?: string | null
+          monthly_income?: string | null
           name: string
           notes?: string | null
           payment_confirmed_at?: string | null
@@ -160,16 +256,27 @@ export type Database = {
           product_id?: string | null
           rejection_reason?: string | null
           sale_value?: number | null
+          source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           tracking_code?: string | null
           updated_at?: string
         }
         Update: {
+          accepts_whatsapp?: boolean | null
+          adjustment_month?: string | null
           affiliate_id?: string | null
+          cnpj_or_region?: string | null
+          company_type?: string | null
           converted_at?: string | null
+          covered_ages?: string | null
           created_at?: string
           email?: string
+          form_responses?: Json | null
+          has_health_plan?: string | null
+          health_plan_investment?: string | null
           id?: string
+          insurance_provider?: string | null
+          monthly_income?: string | null
           name?: string
           notes?: string | null
           payment_confirmed_at?: string | null
@@ -180,6 +287,7 @@ export type Database = {
           product_id?: string | null
           rejection_reason?: string | null
           sale_value?: number | null
+          source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           tracking_code?: string | null
           updated_at?: string

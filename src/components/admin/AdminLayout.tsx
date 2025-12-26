@@ -14,6 +14,7 @@ import {
   Image,
   UserCog,
   MessageSquareQuote,
+  ClipboardList,
   DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ const navItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { path: "/admin/afiliados", label: "Afiliados", icon: Users },
   { path: "/admin/leads", label: "Leads", icon: FileText },
+  { path: "/admin/formulario", label: "Formulário Leads", icon: ClipboardList },
   { path: "/admin/comissoes", label: "Comissões", icon: DollarSign },
   { path: "/admin/saques", label: "Saques", icon: Wallet },
   { path: "/admin/pdv", label: "PDVs", icon: MapPin },
