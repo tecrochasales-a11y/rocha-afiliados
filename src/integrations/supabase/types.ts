@@ -408,6 +408,51 @@ export type Database = {
           },
         ]
       }
+      site_content: {
+        Row: {
+          content_key: string
+          created_at: string
+          description: string | null
+          display_order: number | null
+          extra_data: Json | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          section: string
+          title: string | null
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          content_key: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          extra_data?: Json | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          section: string
+          title?: string | null
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          content_key?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          extra_data?: Json | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          section?: string
+          title?: string | null
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       testimonials: {
         Row: {
           avatar_initials: string | null

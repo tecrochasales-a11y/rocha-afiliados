@@ -38,6 +38,7 @@ const navItems = [
   { path: "/admin/campanhas", label: "Campanhas", icon: Megaphone },
   { path: "/admin/assets", label: "Mídia", icon: Image },
   { path: "/admin/depoimentos", label: "Depoimentos", icon: MessageSquareQuote },
+  { path: "/admin/conteudo", label: "Conteúdo", icon: FileText },
   { path: "/admin/relatorios", label: "Relatórios", icon: FileText },
   { path: "/admin/usuarios", label: "Usuários", icon: UserCog },
 ];
