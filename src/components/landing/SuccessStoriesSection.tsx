@@ -63,10 +63,19 @@ const getThumbnailUrl = (url: string, customThumbnail?: string | null): string |
   
   if (!url) return null;
   
-  // YouTube - extract video ID and get thumbnail
-  const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-  if (youtubeMatch) {
-    return `https://img.youtube.com/vi/${youtubeMatch[1]}/hqdefault.jpg`;
+  // YouTube - extract video ID and get thumbnail (supports multiple URL formats)
+  const youtubePatterns = [
+    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/,
+    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/,
+    /(?:youtu\.be\/)([a-zA-Z0-9_-]+)/,
+    /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]+)/,
+  ];
+  
+  for (const pattern of youtubePatterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+    }
   }
   
   // Vimeo - we can't get thumbnail without API, return null
