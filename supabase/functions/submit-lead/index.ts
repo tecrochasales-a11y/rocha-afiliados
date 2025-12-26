@@ -144,32 +144,30 @@ Deno.serve(async (req) => {
         `afiliado:${affiliate_name.replace(/\s+/g, "_").toLowerCase()}`,
       ];
 
+      // Build CRM payload using exact structure from n8n workflow
       const crmPayload = {
-        Nome: `Lead #${insertedLead.id.slice(0, 8)} - ${contact.name}`,
-        produtoId: produtoId || undefined,
+        id: insertedLead.id,
+        Nome: contact.name,
+        Cidade: form_responses.cnpj_or_region || "",
         Etiquetas: etiquetas,
         Observacao: observationLines.join("\n"),
         Contato: {
           Nome: contact.name,
           Email: contact.email,
-          Telefones: contact.phone ? [contact.phone] : [],
+          Telefones: contact.phone ? [contact.phone.replace(/\D/g, "").replace(/^55/, "")] : [],
         },
+        produtoId: produtoId || undefined,
       };
 
       console.log("CRM Payload:", JSON.stringify(crmPayload, null, 2));
 
       try {
-        // Use headers that mimic a real browser request to avoid Cloudflare blocking
+        // Use simple headers like n8n does - only ApiKey header
         const crmResponse = await fetch("https://api.paineldocorretor.net/api/crm/negocios", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "ApiKey": apiKey,
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Origin": "https://app.paineldocorretor.net",
-            "Referer": "https://app.paineldocorretor.net/",
           },
           body: JSON.stringify(crmPayload),
         });
