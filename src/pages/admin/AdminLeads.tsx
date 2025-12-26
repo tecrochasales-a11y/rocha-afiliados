@@ -9,11 +9,13 @@ import {
   Clock,
   Phone,
   Mail,
-  AlertTriangle
+  AlertTriangle,
+  CreditCard
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -53,6 +55,9 @@ interface Lead {
   rejection_reason: string | null;
   affiliate_id: string | null;
   affiliate_name?: string;
+  payment_status: string | null;
+  payment_confirmed_at: string | null;
+  payment_notes: string | null;
 }
 
 const AdminLeads = () => {
@@ -66,6 +71,8 @@ const AdminLeads = () => {
   const [saleValue, setSaleValue] = useState("");
   const [notes, setNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
@@ -121,6 +128,8 @@ const AdminLeads = () => {
     setSaleValue(lead.sale_value?.toString() || "");
     setNotes(lead.notes || "");
     setRejectionReason(lead.rejection_reason || "");
+    setPaymentStatus(lead.payment_status || "pending");
+    setPaymentNotes(lead.payment_notes || "");
     setIsDialogOpen(true);
   };
 
@@ -153,7 +162,14 @@ const AdminLeads = () => {
       const updateData: Record<string, unknown> = {
         status: newStatus,
         notes,
+        payment_status: paymentStatus,
+        payment_notes: paymentNotes,
       };
+
+      // Registrar data de confirmação de pagamento
+      if (paymentStatus === "paid" && selectedLead.payment_status !== "paid") {
+        updateData.payment_confirmed_at = new Date().toISOString();
+      }
 
       if (saleValue) {
         updateData.sale_value = parseFloat(saleValue);
@@ -358,7 +374,8 @@ const AdminLeads = () => {
                   <TableHead>Nome</TableHead>
                   <TableHead>Contato</TableHead>
                   <TableHead>Afiliado</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Status Lead</TableHead>
+                  <TableHead>Pagamento</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -367,7 +384,7 @@ const AdminLeads = () => {
               <TableBody>
                 {filteredLeads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       Nenhum lead encontrado
                     </TableCell>
                   </TableRow>
@@ -400,6 +417,28 @@ const AdminLeads = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground">{lead.affiliate_name}</TableCell>
                       <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                      <TableCell>
+                        {lead.status === "converted" ? (
+                          lead.payment_status === "paid" ? (
+                            <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20">
+                              <CreditCard className="w-3 h-3 mr-1" />
+                              Pago
+                            </Badge>
+                          ) : lead.payment_status === "cancelled" ? (
+                            <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Cancelado
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-accent/10 text-accent hover:bg-accent/20">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Aguardando
+                            </Badge>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {lead.sale_value
                           ? `R$ ${Number(lead.sale_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
@@ -458,26 +497,54 @@ const AdminLeads = () => {
                 </div>
 
                 {newStatus === "converted" && (
-                  <div className="space-y-2">
-                    <Label>Valor da Venda (R$) *</Label>
-                    <Input
-                      type="number"
-                      placeholder="0,00"
-                      value={saleValue}
-                      onChange={(e) => setSaleValue(e.target.value)}
-                    />
-                    {saleValue && (
-                      <div className="bg-secondary/10 rounded-lg p-3 mt-2">
-                        <p className="text-sm font-medium text-secondary">Prévia da Comissão (75%)</p>
-                        <p className="text-lg font-bold text-secondary">
-                          R$ {(parseFloat(saleValue) * 0.75).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          3 parcelas de R$ {(parseFloat(saleValue) * 0.25).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </p>
+                  <>
+                    <div className="space-y-2">
+                      <Label>Valor da Venda (R$) *</Label>
+                      <Input
+                        type="number"
+                        placeholder="0,00"
+                        value={saleValue}
+                        onChange={(e) => setSaleValue(e.target.value)}
+                      />
+                      {saleValue && (
+                        <div className="bg-secondary/10 rounded-lg p-3 mt-2">
+                          <p className="text-sm font-medium text-secondary">Prévia da Comissão (75%)</p>
+                          <p className="text-lg font-bold text-secondary">
+                            R$ {(parseFloat(saleValue) * 0.75).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            3 parcelas de R$ {(parseFloat(saleValue) * 0.25).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Status de Pagamento do Cliente</Label>
+                      <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Aguardando Pagamento</SelectItem>
+                          <SelectItem value="paid">Cliente Pagou</SelectItem>
+                          <SelectItem value="cancelled">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Informe se o cliente pagou a proposta
+                      </p>
+                    </div>
+
+                    {paymentStatus === "paid" && (
+                      <div className="bg-secondary/10 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-secondary">
+                          <CreditCard className="w-4 h-4" />
+                          <span className="text-sm font-medium">Pagamento confirmado</span>
+                        </div>
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
 
                 {newStatus === "lost" && (
