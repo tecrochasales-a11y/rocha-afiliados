@@ -159,13 +159,17 @@ Deno.serve(async (req) => {
       console.log("CRM Payload:", JSON.stringify(crmPayload, null, 2));
 
       try {
+        // Use headers that mimic a real browser request to avoid Cloudflare blocking
         const crmResponse = await fetch("https://api.paineldocorretor.net/api/crm/negocios", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "ApiKey": apiKey,
-            "User-Agent": "EinsteinSeguros/1.0",
-            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Origin": "https://app.paineldocorretor.net",
+            "Referer": "https://app.paineldocorretor.net/",
           },
           body: JSON.stringify(crmPayload),
         });
