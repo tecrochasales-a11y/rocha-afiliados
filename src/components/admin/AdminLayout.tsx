@@ -11,7 +11,8 @@ import {
   ChevronDown,
   MapPin,
   Megaphone,
-  Image
+  Image,
+  UserCog
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +37,7 @@ const navItems = [
   { path: "/admin/campanhas", label: "Campanhas", icon: Megaphone },
   { path: "/admin/assets", label: "Mídia", icon: Image },
   { path: "/admin/relatorios", label: "Relatórios", icon: FileText },
+  { path: "/admin/usuarios", label: "Usuários", icon: UserCog },
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
