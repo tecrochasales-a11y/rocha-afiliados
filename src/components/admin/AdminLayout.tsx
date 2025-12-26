@@ -15,7 +15,8 @@ import {
   UserCog,
   MessageSquareQuote,
   ClipboardList,
-  DollarSign
+  DollarSign,
+  Settings2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,6 +46,7 @@ const navItems = [
   { path: "/admin/conteudo", label: "Conteúdo", icon: FileText },
   { path: "/admin/relatorios", label: "Relatórios", icon: FileText },
   { path: "/admin/usuarios", label: "Usuários", icon: UserCog },
+  { path: "/admin/integracoes", label: "Integrações", icon: Settings2 },
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
