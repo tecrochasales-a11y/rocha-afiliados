@@ -163,7 +163,9 @@ Deno.serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ApiKey: apiKey,
+            "ApiKey": apiKey,
+            "User-Agent": "EinsteinSeguros/1.0",
+            "Accept": "application/json",
           },
           body: JSON.stringify(crmPayload),
         });
