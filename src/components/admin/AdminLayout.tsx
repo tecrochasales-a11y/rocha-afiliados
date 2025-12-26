@@ -13,7 +13,8 @@ import {
   Megaphone,
   Image,
   UserCog,
-  MessageSquareQuote
+  MessageSquareQuote,
+  DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +34,7 @@ const navItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { path: "/admin/afiliados", label: "Afiliados", icon: Users },
   { path: "/admin/leads", label: "Leads", icon: FileText },
+  { path: "/admin/comissoes", label: "Comissões", icon: DollarSign },
   { path: "/admin/saques", label: "Saques", icon: Wallet },
   { path: "/admin/pdv", label: "PDVs", icon: MapPin },
   { path: "/admin/campanhas", label: "Campanhas", icon: Megaphone },
