@@ -67,6 +67,13 @@ const getYouTubeVideoId = (rawUrl: string): string | null => {
 const getEmbedUrl = (url: string): string | null => {
   if (!url) return null;
 
+  // If the value is an <iframe ...> snippet, extract the src
+  if (url.includes("<iframe")) {
+    const m = url.match(/src=["']([^"']+)["']/i);
+    if (m?.[1]) return m[1];
+    return null;
+  }
+
   // YouTube
   const yt = getYouTubeVideoId(url);
   if (yt) return `https://www.youtube.com/embed/${yt}`;
@@ -91,15 +98,21 @@ const getEmbedUrl = (url: string): string | null => {
   return url;
 };
 
-// Get thumbnail candidates for videos (tries multiple YouTube sizes)
+// Get thumbnail candidates for videos (tries frame captures first, then standard YouTube thumbs)
 const getThumbnailCandidates = (url: string, customThumbnail?: string | null): string[] => {
-  if (customThumbnail) return [customThumbnail];
+  const custom = (customThumbnail || "").trim();
+  if (custom) return [custom];
   if (!url) return [];
 
   const yt = getYouTubeVideoId(url);
   if (yt) {
-    // Order matters: try best quality first, fallback down.
+    // YouTube also exposes a few frame captures (0-3). These often look like a real first frame.
+    // Then we fallback to the standard thumbs in multiple qualities.
     return [
+      `https://i.ytimg.com/vi/${yt}/0.jpg`,
+      `https://i.ytimg.com/vi/${yt}/1.jpg`,
+      `https://i.ytimg.com/vi/${yt}/2.jpg`,
+      `https://i.ytimg.com/vi/${yt}/3.jpg`,
       `https://i.ytimg.com/vi/${yt}/maxresdefault.jpg`,
       `https://i.ytimg.com/vi/${yt}/sddefault.jpg`,
       `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`,
@@ -118,10 +131,45 @@ const SuccessStoriesSection = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [oembedThumbnails, setOembedThumbnails] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  const fetchYouTubeOEmbedThumb = async (videoUrl: string): Promise<string | null> => {
+    try {
+      // oEmbed returns the canonical YouTube thumbnail for a given URL
+      const res = await fetch(
+        `https://www.youtube.com/oembed?url=${encodeURIComponent(videoUrl)}&format=json`
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as { thumbnail_url?: string };
+      return data.thumbnail_url || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const prefetchOembedThumbnails = async (videos: VideoAsset[]) => {
+    const youtubeVideos = videos.filter((v) => !!getYouTubeVideoId(v.url));
+    if (youtubeVideos.length === 0) return;
+
+    const entries = await Promise.all(
+      youtubeVideos.map(async (v) => {
+        const thumb = await fetchYouTubeOEmbedThumb(v.url);
+        return [v.id, thumb] as const;
+      })
+    );
+
+    setOembedThumbnails((prev) => {
+      const next = { ...prev };
+      for (const [id, thumb] of entries) {
+        if (thumb) next[id] = thumb;
+      }
+      return next;
+    });
+  };
 
   const fetchData = async () => {
     try {
@@ -141,9 +189,13 @@ const SuccessStoriesSection = () => {
 
       if (testimonialsRes.error) throw testimonialsRes.error;
       if (videosRes.error) throw videosRes.error;
-      
-      setTestimonials(testimonialsRes.data || []);
-      setVideoAssets(videosRes.data || []);
+
+      const vids = (videosRes.data || []) as VideoAsset[];
+      setTestimonials((testimonialsRes.data || []) as Testimonial[]);
+      setVideoAssets(vids);
+
+      // Fetch better YouTube thumbnails (prevents the generic gray placeholder)
+      void prefetchOembedThumbnails(vids);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -204,7 +256,8 @@ const SuccessStoriesSection = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videoAssets.map((video) => {
                 const embedUrl = getEmbedUrl(video.url);
-                const thumbnailCandidates = getThumbnailCandidates(video.url, video.thumbnail_url);
+                const preferredThumb = oembedThumbnails[video.id] || video.thumbnail_url;
+                const thumbnailCandidates = getThumbnailCandidates(video.url, preferredThumb);
                 const thumbnailUrl = thumbnailCandidates[0] || null;
                 return (
                   <div 
