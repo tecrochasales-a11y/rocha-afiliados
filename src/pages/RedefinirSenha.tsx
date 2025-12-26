@@ -29,37 +29,80 @@ const RedefinirSenha = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Listen for PASSWORD_RECOVERY event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth event:", event, session);
+      
+      if (event === "PASSWORD_RECOVERY") {
+        setIsValidSession(true);
+        setError(null);
+      } else if (event === "SIGNED_IN" && session) {
+        // User is signed in, they can update password
+        setIsValidSession(true);
+        setError(null);
+      }
+    });
+
     // Check if we have a valid recovery session
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Check URL for error parameters first
+      const urlParams = new URLSearchParams(window.location.search);
+      const errorCode = urlParams.get("error_code");
+      const errorDescription = urlParams.get("error_description");
       
+      if (errorCode || errorDescription) {
+        setError(decodeURIComponent(errorDescription || "Link de recuperação inválido ou expirado."));
+        setIsValidSession(false);
+        return;
+      }
+
       // Check URL for recovery token (Supabase adds #access_token=... to URL)
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const accessToken = hashParams.get("access_token");
       const type = hashParams.get("type");
+      const refreshToken = hashParams.get("refresh_token");
       
-      if (type === "recovery" && accessToken) {
-        // Set the session with the recovery token
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: hashParams.get("refresh_token") || "",
-        });
-        
-        if (error) {
+      if (type === "recovery" && accessToken && refreshToken) {
+        try {
+          // Set the session with the recovery token
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          
+          if (sessionError) {
+            console.error("Session error:", sessionError);
+            setError("Link de recuperação inválido ou expirado. Solicite um novo link.");
+            setIsValidSession(false);
+          } else {
+            setIsValidSession(true);
+          }
+        } catch (err) {
+          console.error("Error setting session:", err);
           setError("Link de recuperação inválido ou expirado. Solicite um novo link.");
           setIsValidSession(false);
-        } else {
-          setIsValidSession(true);
         }
-      } else if (session) {
-        setIsValidSession(true);
       } else {
-        setError("Link de recuperação inválido ou expirado. Solicite um novo link.");
-        setIsValidSession(false);
+        // Check if user already has a valid session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          setIsValidSession(true);
+        } else {
+          // No session and no tokens - show error
+          setError("Link de recuperação inválido ou expirado. Solicite um novo link.");
+          setIsValidSession(false);
+        }
       }
     };
     
-    checkSession();
+    // Small delay to allow auth state to be processed
+    const timer = setTimeout(checkSession, 100);
+    
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

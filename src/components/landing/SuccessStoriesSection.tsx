@@ -17,28 +17,77 @@ interface Testimonial {
   display_order: number;
 }
 
+interface VideoAsset {
+  id: string;
+  name: string;
+  url: string;
+  description: string | null;
+}
+
+// Convert various video URLs to embeddable format
+const getEmbedUrl = (url: string): string | null => {
+  if (!url) return null;
+  
+  // YouTube
+  const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+  if (youtubeMatch) {
+    return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+  }
+  
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vimeoMatch) {
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  }
+  
+  // Google Drive - convert to preview format
+  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch) {
+    return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+  }
+  
+  // If already an embed URL or direct video, return as-is
+  if (url.includes('embed') || url.includes('preview') || url.endsWith('.mp4')) {
+    return url;
+  }
+  
+  return url;
+};
+
 const SuccessStoriesSection = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [videoAssets, setVideoAssets] = useState<VideoAsset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    fetchTestimonials();
+    fetchData();
   }, []);
 
-  const fetchTestimonials = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from("testimonials")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
+      const [testimonialsRes, videosRes] = await Promise.all([
+        supabase
+          .from("testimonials")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("site_assets")
+          .select("*")
+          .eq("type", "video")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+      ]);
 
-      if (error) throw error;
-      setTestimonials(data || []);
+      if (testimonialsRes.error) throw testimonialsRes.error;
+      if (videosRes.error) throw videosRes.error;
+      
+      setTestimonials(testimonialsRes.data || []);
+      setVideoAssets(videosRes.data || []);
     } catch (error) {
-      console.error("Error fetching testimonials:", error);
+      console.error("Error fetching data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +114,7 @@ const SuccessStoriesSection = () => {
     );
   }
 
-  if (testimonials.length === 0) {
+  if (testimonials.length === 0 && videoAssets.length === 0) {
     return null;
   }
 
@@ -88,62 +137,109 @@ const SuccessStoriesSection = () => {
           </p>
         </div>
 
-        {/* Video Testimonials Row */}
-        {videoTestimonials.length > 0 && (
+        {/* Video Assets from site_assets */}
+        {videoAssets.length > 0 && (
           <div className="mb-16">
             <h3 className="font-heading text-xl font-semibold text-foreground mb-6 text-center">
               Depoimentos em Vídeo
             </h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              {videoTestimonials.map((testimonial) => (
-                <div 
-                  key={testimonial.id}
-                  className="bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-medium transition-all duration-300 border border-border group"
-                >
-                  {/* Video Thumbnail */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {videoAssets.map((video) => {
+                const embedUrl = getEmbedUrl(video.url);
+                return (
                   <div 
-                    className="relative aspect-video bg-muted cursor-pointer overflow-hidden"
-                    onClick={() => setActiveVideo(testimonial.video_url)}
+                    key={video.id}
+                    className="bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-medium transition-all duration-300 border border-border group"
                   >
-                    {activeVideo === testimonial.video_url ? (
-                      <iframe
-                        src={`${testimonial.video_url}?autoplay=1`}
-                        className="absolute inset-0 w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <>
-                        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
-                            <Play className="w-7 h-7 text-secondary-foreground ml-1" />
+                    <div 
+                      className="relative aspect-video bg-muted cursor-pointer overflow-hidden"
+                      onClick={() => setActiveVideo(video.id)}
+                    >
+                      {activeVideo === video.id && embedUrl ? (
+                        <iframe
+                          src={embedUrl}
+                          className="absolute inset-0 w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
+                              <Play className="w-7 h-7 text-secondary-foreground ml-1" />
+                            </div>
                           </div>
-                        </div>
-                        <div className="absolute bottom-4 left-4 right-4">
-                          <p className="text-primary-foreground font-semibold">{testimonial.name}</p>
-                          <p className="text-primary-foreground/70 text-sm">{testimonial.role}</p>
-                        </div>
-                      </>
-                    )}
+                          <div className="absolute bottom-4 left-4 right-4">
+                            <p className="text-primary-foreground font-semibold">{video.name}</p>
+                            {video.description && (
+                              <p className="text-primary-foreground/70 text-sm">{video.description}</p>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                  {/* Info */}
-                  <div className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        {[...Array(testimonial.stars)].map((_, i) => (
-                          <Star key={i} className="w-4 h-4 fill-accent text-accent" />
-                        ))}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-heading font-bold text-secondary">{testimonial.earnings}</p>
-                        <p className="text-xs text-muted-foreground">{testimonial.period}</p>
+        {/* Video Testimonials from testimonials table */}
+        {videoTestimonials.length > 0 && (
+          <div className="mb-16">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {videoTestimonials.map((testimonial) => {
+                const embedUrl = getEmbedUrl(testimonial.video_url || '');
+                return (
+                  <div 
+                    key={testimonial.id}
+                    className="bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-medium transition-all duration-300 border border-border group"
+                  >
+                    <div 
+                      className="relative aspect-video bg-muted cursor-pointer overflow-hidden"
+                      onClick={() => setActiveVideo(testimonial.id)}
+                    >
+                      {activeVideo === testimonial.id && embedUrl ? (
+                        <iframe
+                          src={embedUrl}
+                          className="absolute inset-0 w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
+                              <Play className="w-7 h-7 text-secondary-foreground ml-1" />
+                            </div>
+                          </div>
+                          <div className="absolute bottom-4 left-4 right-4">
+                            <p className="text-primary-foreground font-semibold">{testimonial.name}</p>
+                            <p className="text-primary-foreground/70 text-sm">{testimonial.role}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          {[...Array(testimonial.stars)].map((_, i) => (
+                            <Star key={i} className="w-4 h-4 fill-accent text-accent" />
+                          ))}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-heading font-bold text-secondary">{testimonial.earnings}</p>
+                          <p className="text-xs text-muted-foreground">{testimonial.period}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
