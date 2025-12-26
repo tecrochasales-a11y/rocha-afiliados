@@ -24,6 +24,7 @@ import AdminPDV from "./pages/admin/AdminPDV";
 import AdminCampanhas from "./pages/admin/AdminCampanhas";
 import AdminAssets from "./pages/admin/AdminAssets";
 import AdminRelatorios from "./pages/admin/AdminRelatorios";
+import AdminUsuarios from "./pages/admin/AdminUsuarios";
 import GestorDashboard from "./pages/gestor/GestorDashboard";
 import GestorAfiliados from "./pages/gestor/GestorAfiliados";
 import GestorLeads from "./pages/gestor/GestorLeads";
@@ -142,6 +143,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <AdminRelatorios />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/usuarios" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminUsuarios />
                 </ProtectedRoute>
               } 
             />
