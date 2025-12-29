@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Eye, EyeOff, Link2, Key, Shield, CheckCircle, XCircle, FileSpreadsheet, Webhook } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, Link2, Key, Shield, CheckCircle, XCircle, FileSpreadsheet, Webhook, Send, RefreshCw } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 interface Setting {
   key: string;
@@ -21,6 +22,8 @@ const AdminIntegracoes = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [isReprocessing, setIsReprocessing] = useState(false);
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   
   // CRM Settings
@@ -301,34 +304,194 @@ const AdminIntegracoes = () => {
                   </a>
                 </div>
 
-                <Button 
-                  onClick={async () => {
-                    setIsSaving(true);
-                    try {
-                      await saveSetting("n8n_webhook_url", n8nWebhookUrl, "URL do webhook n8n para integração de leads", false);
-                      toast({ title: "Configurações do n8n salvas!" });
-                    } catch (error) {
-                      console.error("Error saving n8n settings:", error);
-                      toast({ title: "Erro ao salvar configurações", variant: "destructive" });
-                    } finally {
-                      setIsSaving(false);
-                    }
-                  }} 
-                  disabled={isSaving} 
-                  className="w-full sm:w-auto"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Salvar Configurações
-                    </>
-                  )}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    onClick={async () => {
+                      setIsSaving(true);
+                      try {
+                        await saveSetting("n8n_webhook_url", n8nWebhookUrl, "URL do webhook n8n para integração de leads", false);
+                        toast({ title: "Configurações do n8n salvas!" });
+                      } catch (error) {
+                        console.error("Error saving n8n settings:", error);
+                        toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+                      } finally {
+                        setIsSaving(false);
+                      }
+                    }} 
+                    disabled={isSaving} 
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Salvar Configurações
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Ações</h4>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant="outline"
+                      onClick={async () => {
+                        if (!n8nWebhookUrl) {
+                          toast({ title: "Configure a URL do webhook primeiro", variant: "destructive" });
+                          return;
+                        }
+                        setIsTesting(true);
+                        try {
+                          const testPayload = {
+                            lead_id: "test-" + Date.now(),
+                            created_at: new Date().toISOString(),
+                            name: "Lead de Teste",
+                            email: "teste@exemplo.com",
+                            phone: "11999999999",
+                            affiliate_name: "Afiliado Teste",
+                            tracking_code: "TEST123",
+                            accepts_whatsapp: true,
+                            form_responses: {
+                              company_type: "MEI",
+                              has_health_plan: "Sim",
+                              monthly_income: "R$ 5.000 a R$ 10.000",
+                              test: true
+                            }
+                          };
+                          
+                          const response = await fetch(n8nWebhookUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(testPayload)
+                          });
+                          
+                          if (response.ok) {
+                            toast({ title: "Teste enviado com sucesso!", description: "Verifique seu workflow n8n" });
+                          } else {
+                            const errorText = await response.text();
+                            toast({ title: "Erro no teste", description: `Status: ${response.status} - ${errorText}`, variant: "destructive" });
+                          }
+                        } catch (error) {
+                          console.error("Test error:", error);
+                          toast({ title: "Erro ao enviar teste", description: String(error), variant: "destructive" });
+                        } finally {
+                          setIsTesting(false);
+                        }
+                      }} 
+                      disabled={isTesting || !n8nWebhookUrl}
+                    >
+                      {isTesting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" />
+                          Enviar Lead de Teste
+                        </>
+                      )}
+                    </Button>
+
+                    <Button 
+                      variant="outline"
+                      onClick={async () => {
+                        if (!n8nWebhookUrl) {
+                          toast({ title: "Configure a URL do webhook primeiro", variant: "destructive" });
+                          return;
+                        }
+                        setIsReprocessing(true);
+                        try {
+                          // Fetch all leads with affiliate info
+                          const { data: leads, error } = await supabase
+                            .from("leads")
+                            .select(`
+                              id, created_at, name, email, phone, accepts_whatsapp, 
+                              tracking_code, form_responses,
+                              profiles!leads_affiliate_id_fkey (full_name)
+                            `)
+                            .order("created_at", { ascending: false })
+                            .limit(100);
+
+                          if (error) throw error;
+
+                          if (!leads || leads.length === 0) {
+                            toast({ title: "Nenhum lead encontrado para reprocessar" });
+                            return;
+                          }
+
+                          let successCount = 0;
+                          let errorCount = 0;
+
+                          for (const lead of leads) {
+                            try {
+                              const payload = {
+                                lead_id: lead.id,
+                                created_at: lead.created_at,
+                                name: lead.name,
+                                email: lead.email,
+                                phone: lead.phone,
+                                affiliate_name: lead.profiles?.full_name || "Desconhecido",
+                                tracking_code: lead.tracking_code || "",
+                                accepts_whatsapp: lead.accepts_whatsapp || false,
+                                form_responses: lead.form_responses || {},
+                                reprocessed: true
+                              };
+
+                              const response = await fetch(n8nWebhookUrl, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(payload)
+                              });
+
+                              if (response.ok) {
+                                successCount++;
+                              } else {
+                                errorCount++;
+                              }
+                            } catch {
+                              errorCount++;
+                            }
+                          }
+
+                          toast({ 
+                            title: "Reprocessamento concluído!", 
+                            description: `${successCount} leads enviados com sucesso, ${errorCount} erros` 
+                          });
+                        } catch (error) {
+                          console.error("Reprocess error:", error);
+                          toast({ title: "Erro ao reprocessar leads", description: String(error), variant: "destructive" });
+                        } finally {
+                          setIsReprocessing(false);
+                        }
+                      }} 
+                      disabled={isReprocessing || !n8nWebhookUrl}
+                    >
+                      {isReprocessing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Reprocessando...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Reprocessar Leads Existentes
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    O teste envia um lead fictício. O reprocessamento envia os últimos 100 leads para o webhook.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
