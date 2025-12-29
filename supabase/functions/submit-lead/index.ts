@@ -125,6 +125,39 @@ async function appendToGoogleSheets(
   console.log("Successfully appended to Google Sheets");
 }
 
+// Function to send lead to n8n webhook
+async function sendToN8nWebhook(
+  webhookUrl: string,
+  leadData: {
+    lead_id: string;
+    created_at: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    affiliate_name: string;
+    tracking_code: string;
+    accepts_whatsapp: boolean;
+    form_responses: Record<string, unknown>;
+  }
+): Promise<void> {
+  console.log("Sending lead to n8n webhook:", webhookUrl);
+  
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(leadData),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to send to n8n webhook: ${response.status} - ${error}`);
+  }
+
+  console.log("Successfully sent lead to n8n webhook");
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -214,7 +247,8 @@ Deno.serve(async (req) => {
         "painel_corretor_api_key", 
         "painel_corretor_produto_id", 
         "painel_corretor_etiquetas",
-        "google_sheets_spreadsheet_id"
+        "google_sheets_spreadsheet_id",
+        "n8n_webhook_url"
       ]);
 
     if (settingsError) {
@@ -225,135 +259,161 @@ Deno.serve(async (req) => {
     const produtoId = settings?.find((s) => s.key === "painel_corretor_produto_id")?.value;
     const etiquetasBase = settings?.find((s) => s.key === "painel_corretor_etiquetas")?.value || "";
     const spreadsheetId = settings?.find((s) => s.key === "google_sheets_spreadsheet_id")?.value;
+    const n8nWebhookUrl = settings?.find((s) => s.key === "n8n_webhook_url")?.value;
 
-    // Google Sheets Integration
-    const googleServiceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
-    if (googleServiceAccountJson && spreadsheetId) {
-      console.log("Sending lead to Google Sheets...");
+    // n8n Webhook Integration (PREFERRED - centralizes all integrations)
+    if (n8nWebhookUrl && n8nWebhookUrl.length > 0) {
+      console.log("Sending lead to n8n webhook...");
       try {
-        const credentials: ServiceAccountCredentials = JSON.parse(googleServiceAccountJson);
-        const accessToken = await getGoogleAccessToken(credentials);
-        
-        // Prepare row data matching your spreadsheet columns
-        const now = new Date().toISOString();
-        const phoneClean = contact.phone?.replace(/\D/g, "").replace(/^55/, "") || "";
-        
-        const rowValues = [
-          insertedLead.id, // id
-          now, // created_time
-          "", // ad_id
-          "", // ad_name
-          "", // adset_id
-          "", // adset_name
-          "", // campaign_id
-          "", // campaign_name
-          "", // form_id
-          "", // form_name
-          "", // is_organic
-          "Lovable", // platform
-          contact.name, // full_name
-          contact.email, // email
-          phoneClean, // phone_number
-          form_responses.has_health_plan as string || "", // você_já_tem_um_plano_de_saúde?
-          form_responses.company_type as string || "", // você_é_mei_ou_cnpj?
-          form_responses.monthly_income as string || "", // qual_a_sua_renda_mensal?
-          form_responses.health_plan_investment as string || "", // qual_valor_você_investe_em_plano_de_saúde_mensalmente?
-          form_responses.adjustment_month as string || "", // qual_o_mês_de_reajuste_do_seu_plano?
-          form_responses.insurance_provider as string || "", // qual__seguradora_do_seu_plano?
-          Array.isArray(form_responses.covered_ages) ? (form_responses.covered_ages as string[]).join(", ") : "", // quais_as_idades_das_pessoas_cobertas
-          form_responses.cnpj_or_region as string || "", // qual_o_seu_cnpj_ou_a_região
-          "", // row_number (will be auto-filled)
-          "", // enviado_crm
-          affiliate_name, // afiliado
-          tracking_code, // tracking_code
+        await sendToN8nWebhook(n8nWebhookUrl, {
+          lead_id: insertedLead.id,
+          created_at: insertedLead.created_at,
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone || null,
+          affiliate_name: affiliate_name,
+          tracking_code: tracking_code,
+          accepts_whatsapp: accepts_whatsapp,
+          form_responses: form_responses,
+        });
+        console.log("Lead sent to n8n successfully - skipping direct integrations");
+      } catch (n8nError) {
+        console.error("Error sending to n8n webhook:", n8nError);
+        // Continue with direct integrations as fallback
+        console.log("Falling back to direct integrations...");
+      }
+    } else {
+      console.log("n8n webhook not configured, using direct integrations");
+
+      // Google Sheets Integration (only if n8n not configured)
+      const googleServiceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
+      if (googleServiceAccountJson && spreadsheetId) {
+        console.log("Sending lead to Google Sheets...");
+        try {
+          const credentials: ServiceAccountCredentials = JSON.parse(googleServiceAccountJson);
+          const accessToken = await getGoogleAccessToken(credentials);
+          
+          // Prepare row data matching your spreadsheet columns
+          const now = new Date().toISOString();
+          const phoneClean = contact.phone?.replace(/\D/g, "").replace(/^55/, "") || "";
+          
+          const rowValues = [
+            insertedLead.id, // id
+            now, // created_time
+            "", // ad_id
+            "", // ad_name
+            "", // adset_id
+            "", // adset_name
+            "", // campaign_id
+            "", // campaign_name
+            "", // form_id
+            "", // form_name
+            "", // is_organic
+            "Lovable", // platform
+            contact.name, // full_name
+            contact.email, // email
+            phoneClean, // phone_number
+            form_responses.has_health_plan as string || "", // você_já_tem_um_plano_de_saúde?
+            form_responses.company_type as string || "", // você_é_mei_ou_cnpj?
+            form_responses.monthly_income as string || "", // qual_a_sua_renda_mensal?
+            form_responses.health_plan_investment as string || "", // qual_valor_você_investe_em_plano_de_saúde_mensalmente?
+            form_responses.adjustment_month as string || "", // qual_o_mês_de_reajuste_do_seu_plano?
+            form_responses.insurance_provider as string || "", // qual__seguradora_do_seu_plano?
+            Array.isArray(form_responses.covered_ages) ? (form_responses.covered_ages as string[]).join(", ") : "", // quais_as_idades_das_pessoas_cobertas
+            form_responses.cnpj_or_region as string || "", // qual_o_seu_cnpj_ou_a_região
+            "", // row_number (will be auto-filled)
+            "", // enviado_crm
+            affiliate_name, // afiliado
+            tracking_code, // tracking_code
+          ];
+
+          await appendToGoogleSheets(accessToken, spreadsheetId, rowValues);
+          console.log("Lead sent to Google Sheets successfully");
+        } catch (sheetsError) {
+          console.error("Error sending to Google Sheets:", sheetsError);
+          // Don't fail the request if Google Sheets fails
+        }
+      } else {
+        if (!googleServiceAccountJson) {
+          console.log("Google Service Account not configured, skipping Sheets integration");
+        }
+        if (!spreadsheetId) {
+          console.log("Google Sheets Spreadsheet ID not configured, skipping Sheets integration");
+        }
+      }
+
+      // CRM Integration - If API key is configured, send to CRM
+      if (apiKey && apiKey.length > 0) {
+        console.log("Sending lead to Painel do Corretor...");
+
+        // Build observation text with all form responses
+        const observationLines = [
+          `Lead gerado via link de afiliado`,
+          `Afiliado: ${affiliate_name}`,
+          ``,
+          `--- Respostas do Formulário ---`,
         ];
 
-        await appendToGoogleSheets(accessToken, spreadsheetId, rowValues);
-        console.log("Lead sent to Google Sheets successfully");
-      } catch (sheetsError) {
-        console.error("Error sending to Google Sheets:", sheetsError);
-        // Don't fail the request if Google Sheets fails
-      }
-    } else {
-      if (!googleServiceAccountJson) {
-        console.log("Google Service Account not configured, skipping Sheets integration");
-      }
-      if (!spreadsheetId) {
-        console.log("Google Sheets Spreadsheet ID not configured, skipping Sheets integration");
-      }
-    }
-
-    // CRM Integration - If API key is configured, send to CRM
-    if (apiKey && apiKey.length > 0) {
-      console.log("Sending lead to Painel do Corretor...");
-
-      // Build observation text with all form responses
-      const observationLines = [
-        `Lead gerado via link de afiliado`,
-        `Afiliado: ${affiliate_name}`,
-        ``,
-        `--- Respostas do Formulário ---`,
-      ];
-
-      // Add each response to observation
-      Object.entries(form_responses).forEach(([key, value]) => {
-        if (key !== "contact_info" && key !== "confirmation" && value) {
-          const displayValue = Array.isArray(value) ? value.join(", ") : String(value);
-          observationLines.push(`${key}: ${displayValue}`);
-        }
-      });
-
-      if (accepts_whatsapp) {
-        observationLines.push(`\nAceita contato via WhatsApp: Sim`);
-      }
-
-      // Build tags array
-      const baseTags = etiquetasBase.split(",").map((t: string) => t.trim()).filter(Boolean);
-      const etiquetas = [
-        ...baseTags,
-        `afiliado:${affiliate_name.replace(/\s+/g, "_").toLowerCase()}`,
-      ];
-
-      // Build CRM payload using exact structure from n8n workflow
-      const crmPayload = {
-        id: insertedLead.id,
-        Nome: contact.name,
-        Cidade: form_responses.cnpj_or_region || "",
-        Etiquetas: etiquetas,
-        Observacao: observationLines.join("\n"),
-        Contato: {
-          Nome: contact.name,
-          Email: contact.email,
-          Telefones: contact.phone ? [contact.phone.replace(/\D/g, "").replace(/^55/, "")] : [],
-        },
-        produtoId: produtoId || undefined,
-      };
-
-      console.log("CRM Payload:", JSON.stringify(crmPayload, null, 2));
-
-      try {
-        // Use simple headers like n8n does - only ApiKey header
-        const crmResponse = await fetch("https://api.paineldocorretor.net/api/crm/negocios", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "ApiKey": apiKey,
-          },
-          body: JSON.stringify(crmPayload),
+        // Add each response to observation
+        Object.entries(form_responses).forEach(([key, value]) => {
+          if (key !== "contact_info" && key !== "confirmation" && value) {
+            const displayValue = Array.isArray(value) ? value.join(", ") : String(value);
+            observationLines.push(`${key}: ${displayValue}`);
+          }
         });
 
-        if (!crmResponse.ok) {
-          const errorText = await crmResponse.text();
-          console.error("CRM API error:", crmResponse.status, errorText);
-        } else {
-          console.log("Lead sent to CRM successfully");
+        if (accepts_whatsapp) {
+          observationLines.push(`\nAceita contato via WhatsApp: Sim`);
         }
-      } catch (crmError) {
-        console.error("Error sending to CRM:", crmError);
-        // Don't fail the whole request if CRM fails - lead is already saved
+
+        // Build tags array
+        const baseTags = etiquetasBase.split(",").map((t: string) => t.trim()).filter(Boolean);
+        const etiquetas = [
+          ...baseTags,
+          `afiliado:${affiliate_name.replace(/\s+/g, "_").toLowerCase()}`,
+        ];
+
+        // Build CRM payload using exact structure from n8n workflow
+        const crmPayload = {
+          id: insertedLead.id,
+          Nome: contact.name,
+          Cidade: form_responses.cnpj_or_region || "",
+          Etiquetas: etiquetas,
+          Observacao: observationLines.join("\n"),
+          Contato: {
+            Nome: contact.name,
+            Email: contact.email,
+            Telefones: contact.phone ? [contact.phone.replace(/\D/g, "").replace(/^55/, "")] : [],
+          },
+          produtoId: produtoId || undefined,
+        };
+
+        console.log("CRM Payload:", JSON.stringify(crmPayload, null, 2));
+
+        try {
+          // Use simple headers like n8n does - only ApiKey header
+          const crmResponse = await fetch("https://api.paineldocorretor.net/api/crm/negocios", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "ApiKey": apiKey,
+            },
+            body: JSON.stringify(crmPayload),
+          });
+
+          if (!crmResponse.ok) {
+            const errorText = await crmResponse.text();
+            console.error("CRM API error:", crmResponse.status, errorText);
+          } else {
+            console.log("Lead sent to CRM successfully");
+          }
+        } catch (crmError) {
+          console.error("Error sending to CRM:", crmError);
+          // Don't fail the whole request if CRM fails - lead is already saved
+        }
+      } else {
+        console.log("CRM API key not configured, skipping CRM integration");
       }
-    } else {
-      console.log("CRM API key not configured, skipping CRM integration");
     }
 
     return new Response(

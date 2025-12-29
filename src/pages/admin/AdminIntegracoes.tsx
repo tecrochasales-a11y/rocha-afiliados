@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Eye, EyeOff, Link2, Key, Shield, CheckCircle, XCircle, FileSpreadsheet } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, Link2, Key, Shield, CheckCircle, XCircle, FileSpreadsheet, Webhook } from "lucide-react";
 
 interface Setting {
   key: string;
@@ -30,6 +30,9 @@ const AdminIntegracoes = () => {
   
   // Google Sheets Settings
   const [googleSheetsSpreadsheetId, setGoogleSheetsSpreadsheetId] = useState("");
+  
+  // n8n Settings
+  const [n8nWebhookUrl, setN8nWebhookUrl] = useState("");
   
   // OAuth Settings
   const [googleClientId, setGoogleClientId] = useState("");
@@ -60,6 +63,9 @@ const AdminIntegracoes = () => {
       
       // Google Sheets
       setGoogleSheetsSpreadsheetId(settings.find(s => s.key === "google_sheets_spreadsheet_id")?.value || "");
+      
+      // n8n
+      setN8nWebhookUrl(settings.find(s => s.key === "n8n_webhook_url")?.value || "");
       
       // OAuth
       setGoogleClientId(settings.find(s => s.key === "google_client_id")?.value || "");
@@ -182,8 +188,12 @@ const AdminIntegracoes = () => {
           <p className="text-muted-foreground">Gerencie as integrações com serviços externos</p>
         </div>
 
-        <Tabs defaultValue="crm" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
+        <Tabs defaultValue="n8n" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[800px]">
+            <TabsTrigger value="n8n" className="flex items-center gap-2">
+              <Webhook className="w-4 h-4" />
+              n8n
+            </TabsTrigger>
             <TabsTrigger value="crm" className="flex items-center gap-2">
               <Link2 className="w-4 h-4" />
               CRM
@@ -197,6 +207,131 @@ const AdminIntegracoes = () => {
               Login Social
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="n8n" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Webhook className="w-5 h-5 text-orange-500" />
+                      n8n Webhook
+                    </CardTitle>
+                    <CardDescription>
+                      Integração centralizada via n8n para Google Sheets, CRM e outros serviços
+                    </CardDescription>
+                  </div>
+                  <Badge variant={n8nWebhookUrl ? "default" : "secondary"} className="flex items-center gap-1">
+                    {n8nWebhookUrl ? (
+                      <>
+                        <CheckCircle className="w-3 h-3" />
+                        Configurado
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-3 h-3" />
+                        Não configurado
+                      </>
+                    )}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
+                  <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">
+                    <strong>Recomendado!</strong> Use o n8n para centralizar todas as integrações de leads.
+                  </p>
+                  <p className="text-xs text-orange-700 dark:text-orange-300">
+                    Configure um workflow no n8n com trigger Webhook e conecte ao Google Sheets, CRM, e-mail, etc.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="n8n-webhook-url">URL do Webhook</Label>
+                  <Input
+                    id="n8n-webhook-url"
+                    value={n8nWebhookUrl}
+                    onChange={(e) => setN8nWebhookUrl(e.target.value)}
+                    placeholder="https://seu-n8n.app.n8n.cloud/webhook/xxxxx"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Cole a URL do webhook gerada no seu workflow n8n
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-muted/50 border space-y-3">
+                  <p className="text-sm font-medium">Payload enviado para o webhook:</p>
+                  <pre className="text-xs bg-background p-3 rounded border overflow-x-auto">
+{`{
+  "lead_id": "uuid",
+  "created_at": "2024-01-01T12:00:00Z",
+  "name": "Nome do Cliente",
+  "email": "email@exemplo.com",
+  "phone": "11999999999",
+  "affiliate_name": "Nome do Afiliado",
+  "tracking_code": "ABC123",
+  "accepts_whatsapp": true,
+  "form_responses": {
+    "company_type": "MEI",
+    "has_health_plan": "Sim",
+    ...
+  }
+}`}
+                  </pre>
+                </div>
+
+                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 space-y-2">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Como configurar no n8n:
+                  </p>
+                  <ol className="text-xs text-blue-700 dark:text-blue-300 list-decimal list-inside space-y-1">
+                    <li>Crie um novo workflow no n8n</li>
+                    <li>Adicione o nó "Webhook" como trigger</li>
+                    <li>Copie a URL de produção do webhook</li>
+                    <li>Cole a URL no campo acima</li>
+                    <li>Adicione nós para Google Sheets, CRM, etc.</li>
+                  </ol>
+                  <a 
+                    href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-xs text-primary hover:underline inline-block mt-2"
+                  >
+                    Ver documentação do n8n →
+                  </a>
+                </div>
+
+                <Button 
+                  onClick={async () => {
+                    setIsSaving(true);
+                    try {
+                      await saveSetting("n8n_webhook_url", n8nWebhookUrl, "URL do webhook n8n para integração de leads", false);
+                      toast({ title: "Configurações do n8n salvas!" });
+                    } catch (error) {
+                      console.error("Error saving n8n settings:", error);
+                      toast({ title: "Erro ao salvar configurações", variant: "destructive" });
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }} 
+                  disabled={isSaving} 
+                  className="w-full sm:w-auto"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Salvar Configurações
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="crm" className="space-y-4">
             <Card>
