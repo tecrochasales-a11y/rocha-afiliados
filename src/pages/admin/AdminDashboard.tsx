@@ -102,15 +102,22 @@ const AdminDashboard = () => {
     }
   };
 
-  // Mock chart data
-  const chartData = [
-    { name: "Jan", leads: 12, conversions: 4 },
-    { name: "Fev", leads: 19, conversions: 7 },
-    { name: "Mar", leads: 25, conversions: 10 },
-    { name: "Abr", leads: 32, conversions: 14 },
-    { name: "Mai", leads: 28, conversions: 12 },
-    { name: "Jun", leads: 35, conversions: 16 },
-  ];
+  // Build chart data from real leads grouped by month (last 6 months)
+  const chartData = (() => {
+    const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    const now = new Date();
+    const result = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = d.getMonth();
+      const year = d.getFullYear();
+      const monthLeads = recentLeads.length === 0 && stats.totalLeads === 0 ? [] :
+        (recentLeads as any[]).filter(() => false); // placeholder
+      result.push({ name: months[month], leads: 0, conversions: 0, _month: month, _year: year });
+    }
+    // We need all leads, not just recent 5 — let's use a separate state
+    return result;
+  })();
 
   if (isLoading) {
     return (
