@@ -32,9 +32,7 @@ const Indicacao = () => {
       try {
         const [affiliateRes, questionsRes] = await Promise.all([
           supabase
-            .from("profiles")
-            .select("id, full_name")
-            .eq("tracking_code", trackingCode)
+            .rpc("get_affiliate_by_tracking_code", { _tracking_code: trackingCode })
             .single(),
           supabase
             .from("lead_form_questions")
