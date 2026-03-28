@@ -50,6 +50,7 @@ const AdminDashboard = () => {
     pendingWithdrawalsAmount: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [allLeads, setAllLeads] = useState<any[]>([]);
   const [recentLeads, setRecentLeads] = useState<any[]>([]);
 
   useEffect(() => {
@@ -60,29 +61,26 @@ const AdminDashboard = () => {
     setIsLoading(true);
 
     try {
-      // Fetch affiliates count
       const { count: affiliatesCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true });
 
-      // Fetch leads
       const { data: leadsData } = await supabase
         .from("leads")
         .select("status, sale_value, created_at, name")
         .order("created_at", { ascending: false });
 
-      // Fetch commissions
       const { data: commissionsData } = await supabase
         .from("commissions")
         .select("amount, status");
 
-      // Fetch pending withdrawals
       const { data: withdrawalsData } = await supabase
         .from("withdrawals")
         .select("amount, status")
         .eq("status", "pending");
 
       if (leadsData) {
+        setAllLeads(leadsData);
         setStats({
           totalAffiliates: affiliatesCount || 0,
           totalLeads: leadsData.length,
@@ -92,7 +90,6 @@ const AdminDashboard = () => {
           pendingWithdrawals: withdrawalsData?.length || 0,
           pendingWithdrawalsAmount: withdrawalsData?.reduce((sum, w) => sum + Number(w.amount), 0) || 0,
         });
-
         setRecentLeads(leadsData.slice(0, 5));
       }
     } catch (error) {
@@ -102,15 +99,24 @@ const AdminDashboard = () => {
     }
   };
 
-  // Mock chart data
-  const chartData = [
-    { name: "Jan", leads: 12, conversions: 4 },
-    { name: "Fev", leads: 19, conversions: 7 },
-    { name: "Mar", leads: 25, conversions: 10 },
-    { name: "Abr", leads: 32, conversions: 14 },
-    { name: "Mai", leads: 28, conversions: 12 },
-    { name: "Jun", leads: 35, conversions: 16 },
-  ];
+  // Build chart data from real leads grouped by month (last 6 months)
+  const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const now = new Date();
+  const chartData = Array.from({ length: 6 }, (_, idx) => {
+    const i = 5 - idx;
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const month = d.getMonth();
+    const year = d.getFullYear();
+    const monthLeads = allLeads.filter(l => {
+      const ld = new Date(l.created_at);
+      return ld.getMonth() === month && ld.getFullYear() === year;
+    });
+    return {
+      name: monthNames[month],
+      leads: monthLeads.length,
+      conversions: monthLeads.filter(l => l.status === "converted").length,
+    };
+  });
 
   if (isLoading) {
     return (
