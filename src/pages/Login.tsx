@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Shield, Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { signInWithSocialProvider, SocialProvider } from "@/lib/socialAuth";
+import { lovable } from "@/integrations/lovable/index";
 import { z } from "zod";
 
 const loginSchema = z.object({
