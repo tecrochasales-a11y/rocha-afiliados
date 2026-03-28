@@ -76,20 +76,18 @@ const Header = () => {
                 className="h-10 md:h-12 w-auto object-contain"
               />
             ) : (
-              <>
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-hero rounded-xl flex items-center justify-center shadow-soft group-hover:shadow-medium transition-all duration-300">
-                  <Shield className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-heading font-bold text-lg md:text-xl text-foreground leading-tight">
-                    Rocha Sales
-                  </span>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    SEGUROS
-                  </span>
-                </div>
-              </>
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-hero rounded-xl flex items-center justify-center shadow-soft group-hover:shadow-medium transition-all duration-300">
+                <Shield className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
+              </div>
             )}
+            <div className="flex flex-col">
+              <span className="font-heading font-bold text-lg md:text-xl text-foreground leading-tight">
+                Rocha Sales
+              </span>
+              <span className="text-xs text-muted-foreground font-medium">
+                SEGUROS
+              </span>
+            </div>
           </button>
 
           {/* Desktop Navigation */}
