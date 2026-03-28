@@ -766,6 +766,14 @@ export type Database = {
         Args: { _affiliate_id: string }
         Returns: number
       }
+      get_affiliate_by_tracking_code: {
+        Args: { _tracking_code: string }
+        Returns: {
+          full_name: string
+          id: string
+          tracking_code: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
