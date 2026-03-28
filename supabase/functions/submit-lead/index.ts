@@ -171,7 +171,6 @@ Deno.serve(async (req) => {
     );
 
     const body: LeadFormData = await req.json();
-    console.log("Received lead submission:", JSON.stringify(body, null, 2));
 
     const {
       tracking_code,
@@ -184,9 +183,71 @@ Deno.serve(async (req) => {
 
     // Validate required fields
     if (!tracking_code || !affiliate_id || !contact?.name || !contact?.email) {
-      console.error("Missing required fields");
       return new Response(
         JSON.stringify({ error: "Campos obrigatórios não preenchidos" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate field formats and lengths
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contact.email) || contact.email.length > 255) {
+      return new Response(
+        JSON.stringify({ error: "E-mail inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (contact.name.length > 200) {
+      return new Response(
+        JSON.stringify({ error: "Nome muito longo" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (contact.phone && (contact.phone.replace(/\D/g, "").length < 10 || contact.phone.replace(/\D/g, "").length > 15)) {
+      return new Response(
+        JSON.stringify({ error: "Telefone inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (tracking_code.length > 20 || !/^[A-Za-z0-9]+$/.test(tracking_code)) {
+      return new Response(
+        JSON.stringify({ error: "Código de rastreamento inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate affiliate_id is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(affiliate_id)) {
+      return new Response(
+        JSON.stringify({ error: "ID de afiliado inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify affiliate exists with matching tracking code
+    const { data: affiliateCheck, error: affiliateError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", affiliate_id)
+      .eq("tracking_code", tracking_code)
+      .single();
+
+    if (affiliateError || !affiliateCheck) {
+      return new Response(
+        JSON.stringify({ error: "Afiliado não encontrado" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Limit form_responses size to prevent abuse
+    const formResponsesStr = JSON.stringify(form_responses || {});
+    if (formResponsesStr.length > 10000) {
+      return new Response(
+        JSON.stringify({ error: "Dados do formulário muito grandes" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
