@@ -164,7 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Defer profile fetching with setTimeout to avoid deadlock
         if (session?.user) {
           setTimeout(async () => {
-            const profileData = await fetchProfile(session.user.id);
+            const profileData = await fetchProfile(session.user.id, session.user.email, session.user.user_metadata);
             setProfile(profileData);
             const adminStatus = await checkAdminRole(session.user.id);
             setIsAdmin(adminStatus);
