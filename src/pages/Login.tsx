@@ -74,19 +74,20 @@ const Login = () => {
     setIsLoading(false);
   };
 
-  const handleSocialLogin = async (provider: SocialProvider) => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
-    const { error } = await signInWithSocialProvider(provider);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
     
-    if (error) {
+    if (result?.error) {
       toast({
         title: "Erro no login",
-        description: error.message || "Não foi possível fazer login. Tente novamente.",
+        description: result.error.message || "Não foi possível fazer login com Google. Tente novamente.",
         variant: "destructive",
       });
       setIsLoading(false);
     }
-    // If successful, the user will be redirected automatically
   };
 
   if (authLoading) {
