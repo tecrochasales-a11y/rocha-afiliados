@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isGestor, setIsGestor] = useState(false);
   const { toast } = useToast();
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, userEmail?: string, userMeta?: Record<string, any>) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -53,6 +53,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         console.error("Error fetching profile:", error);
         return null;
+      }
+
+      // If no profile exists (e.g. OAuth user where trigger didn't fire), create one
+      if (!data && userEmail) {
+        const fullName = userMeta?.full_name || userMeta?.name || userEmail;
+        const { data: newProfile, error: insertError } = await supabase
+          .from("profiles")
+          .insert({
+            id: userId,
+            full_name: fullName,
+            email: userEmail,
+            tracking_code: null, // Will be set by RPC below
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error("Error creating profile:", insertError);
+          return null;
+        }
+
+        // Generate tracking code
+        const { data: trackingCode } = await supabase.rpc("generate_tracking_code");
+        if (trackingCode) {
+          await supabase
+            .from("profiles")
+            .update({ tracking_code: trackingCode })
+            .eq("id", userId);
+          if (newProfile) {
+            newProfile.tracking_code = trackingCode;
+          }
+        }
+
+        // Assign default affiliate role
+        await supabase
+          .from("user_roles")
+          .insert({ user_id: userId, role: "affiliate" });
+
+        return newProfile;
       }
 
       return data;
