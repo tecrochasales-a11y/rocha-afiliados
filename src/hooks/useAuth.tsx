@@ -145,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshProfile = async () => {
     if (user) {
-      const profileData = await fetchProfile(user.id);
+      const profileData = await fetchProfile(user.id, user.email, user.user_metadata);
       setProfile(profileData);
       const adminStatus = await checkAdminRole(user.id);
       setIsAdmin(adminStatus);
