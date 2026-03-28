@@ -8,7 +8,7 @@ import { Shield, Eye, EyeOff, Mail, Lock, ArrowLeft, User, Phone, CreditCard, Ke
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { signInWithSocialProvider, SocialProvider } from "@/lib/socialAuth";
+import { lovable } from "@/integrations/lovable/index";
 import { z } from "zod";
 
 const cadastroSchema = z.object({
