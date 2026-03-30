@@ -1,0 +1,2 @@
+INSERT INTO public.site_content (section, content_key, title, description, value, display_order, is_active)
+VALUES ('commission_info', 'banner', 'Sistema de Comissões', 'Você recebe <strong>75% do valor de cada venda</strong> dividido em 3 parcelas mensais de 25%. As parcelas são liberadas automaticamente a cada 30 dias.', NULL, 1, true);
