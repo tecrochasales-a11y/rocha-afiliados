@@ -257,21 +257,19 @@ const Financeiro = () => {
             </p>
           </div>
 
-          {/* Commission Info Banner */}
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-8">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <DollarSign className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Sistema de Comissões</p>
-                <p className="text-sm text-muted-foreground">
-                  Você recebe <strong>75% do valor de cada venda</strong> dividido em 3 parcelas mensais de 25%.
-                  As parcelas são liberadas automaticamente a cada 30 dias.
-                </p>
+          {commissionContent.length > 0 && commissionContent[0].is_active && (
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-8">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <DollarSign className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">{commissionContent[0].title || "Sistema de Comissões"}</p>
+                  <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: commissionContent[0].description || "" }} />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
