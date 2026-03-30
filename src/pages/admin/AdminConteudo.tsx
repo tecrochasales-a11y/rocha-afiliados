@@ -558,7 +558,7 @@ const AdminConteudo = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
             {Object.keys(sectionLabels).map((section) => (
               <TabsTrigger key={section} value={section} className="text-xs">
                 {sectionLabels[section].split(" ")[0]}
