@@ -36,6 +36,7 @@ const sectionLabels: Record<string, string> = {
   results: "Resultados Alcançáveis",
   results_info: "Info Resultados",
   stats: "Estatísticas",
+  commission_info: "Info Comissões",
   cta: "Chamada para Ação (CTA)",
   faq: "Perguntas Frequentes",
   footer: "Rodapé",
