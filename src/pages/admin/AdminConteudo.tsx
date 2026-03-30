@@ -408,6 +408,108 @@ const AdminConteudo = () => {
       );
     }
 
+    // Footer section
+    if (activeTab === "footer") {
+      return (
+        <div className="space-y-4 border-t pt-4 mt-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Dados de Contato e Redes Sociais</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <Input
+                value={(extraData?.phone as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({
+                    ...selectedItem,
+                    extra_data: { ...extraData, phone: e.target.value },
+                  })
+                }
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                value={(extraData?.email as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({
+                    ...selectedItem,
+                    extra_data: { ...extraData, email: e.target.value },
+                  })
+                }
+                placeholder="contato@empresa.com.br"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Localização</Label>
+              <Input
+                value={(extraData?.location as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({
+                    ...selectedItem,
+                    extra_data: { ...extraData, location: e.target.value },
+                  })
+                }
+                placeholder="São Paulo, SP"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Copyright</Label>
+              <Input
+                value={(extraData?.copyright as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({
+                    ...selectedItem,
+                    extra_data: { ...extraData, copyright: e.target.value },
+                  })
+                }
+                placeholder="© 2024 Empresa. Todos os direitos reservados."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Instagram URL</Label>
+              <Input
+                value={(extraData?.instagram as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({
+                    ...selectedItem,
+                    extra_data: { ...extraData, instagram: e.target.value },
+                  })
+                }
+                placeholder="https://instagram.com/..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Facebook URL</Label>
+              <Input
+                value={(extraData?.facebook as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({
+                    ...selectedItem,
+                    extra_data: { ...extraData, facebook: e.target.value },
+                  })
+                }
+                placeholder="https://facebook.com/..."
+              />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label>LinkedIn URL</Label>
+              <Input
+                value={(extraData?.linkedin as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({
+                    ...selectedItem,
+                    extra_data: { ...extraData, linkedin: e.target.value },
+                  })
+                }
+                placeholder="https://linkedin.com/..."
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return null;
   };
 
