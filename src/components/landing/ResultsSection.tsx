@@ -5,6 +5,7 @@ import { useSiteContent } from "@/hooks/useSiteContent";
 
 const ResultsSection = () => {
   const { content, isLoading } = useSiteContent("results");
+  const { content: infoContent } = useSiteContent("results_info");
 
   if (isLoading) {
     return (
