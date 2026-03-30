@@ -41,7 +41,7 @@ const ProductsSection = () => {
   const products = content.map((item, index) => {
     const extra = item.extra_data as Record<string, unknown>;
     const commission = item.value || "Até 20%";
-    const avgTicket = (extra?.avg_ticket as string) || "R$ 300";
+    const avgTicket = (extra?.avgTicket as string) || (extra?.avg_ticket as string) || "R$ 300";
     const popularity = Number(extra?.popularity) || 3;
     const featured = Boolean(extra?.featured);
     const colors = iconColorMap[index % Object.keys(iconColorMap).length];
