@@ -34,6 +34,7 @@ const sectionLabels: Record<string, string> = {
   benefits: "Benefícios Exclusivos",
   products: "Produtos",
   results: "Resultados Alcançáveis",
+  results_info: "Info Resultados",
   stats: "Estatísticas",
   cta: "Chamada para Ação (CTA)",
   faq: "Perguntas Frequentes",
@@ -408,7 +409,105 @@ const AdminConteudo = () => {
       );
     }
 
-    // Footer section
+    // Results Info section
+    if (activeTab === "results_info") {
+      return (
+        <div className="space-y-4 border-t pt-4 mt-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Bullets e Calculadora</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Bullet 1</Label>
+              <Input
+                value={(extraData?.bullet1 as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({ ...selectedItem, extra_data: { ...extraData, bullet1: e.target.value } })
+                }
+                placeholder="Comissão média de 30% por venda"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Bullet 2</Label>
+              <Input
+                value={(extraData?.bullet2 as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({ ...selectedItem, extra_data: { ...extraData, bullet2: e.target.value } })
+                }
+                placeholder="Ticket médio de R$ 300 por contrato"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Bullet 3</Label>
+              <Input
+                value={(extraData?.bullet3 as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({ ...selectedItem, extra_data: { ...extraData, bullet3: e.target.value } })
+                }
+                placeholder="Taxa de conversão média de 40%"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Texto do Botão</Label>
+              <Input
+                value={(extraData?.cta_text as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({ ...selectedItem, extra_data: { ...extraData, cta_text: e.target.value } })
+                }
+                placeholder="Começar a Ganhar Agora"
+              />
+            </div>
+          </div>
+          <h4 className="font-medium text-sm text-muted-foreground pt-2">Calculadora de Ganhos</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Indicações</Label>
+              <Input
+                value={(extraData?.calc_indicacoes as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({ ...selectedItem, extra_data: { ...extraData, calc_indicacoes: e.target.value } })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Conversões</Label>
+              <Input
+                value={(extraData?.calc_conversoes as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({ ...selectedItem, extra_data: { ...extraData, calc_conversoes: e.target.value } })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Taxa de Conversão (%)</Label>
+              <Input
+                value={(extraData?.calc_taxa as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({ ...selectedItem, extra_data: { ...extraData, calc_taxa: e.target.value } })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Ticket Médio</Label>
+              <Input
+                value={(extraData?.calc_ticket as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({ ...selectedItem, extra_data: { ...extraData, calc_ticket: e.target.value } })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Ganho Estimado</Label>
+              <Input
+                value={(extraData?.calc_ganho as string) || ""}
+                onChange={(e) =>
+                  setSelectedItem({ ...selectedItem, extra_data: { ...extraData, calc_ganho: e.target.value } })
+                }
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (activeTab === "footer") {
       return (
         <div className="space-y-4 border-t pt-4 mt-4">
