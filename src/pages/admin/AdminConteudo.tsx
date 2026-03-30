@@ -36,6 +36,8 @@ const sectionLabels: Record<string, string> = {
   results: "Resultados Alcançáveis",
   stats: "Estatísticas",
   cta: "Chamada para Ação (CTA)",
+  faq: "Perguntas Frequentes",
+  footer: "Rodapé",
 };
 
 const AdminConteudo = () => {
