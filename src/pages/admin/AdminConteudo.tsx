@@ -34,6 +34,7 @@ const sectionLabels: Record<string, string> = {
   benefits: "Benefícios Exclusivos",
   products: "Produtos",
   results: "Resultados Alcançáveis",
+  results_info: "Info Resultados",
   stats: "Estatísticas",
   cta: "Chamada para Ação (CTA)",
   faq: "Perguntas Frequentes",

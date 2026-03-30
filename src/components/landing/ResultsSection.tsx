@@ -117,77 +117,91 @@ const ResultsSection = () => {
         </div>
 
         {/* Additional Info */}
-        <div className="bg-muted/50 rounded-2xl p-8 md:p-12 border border-border">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div>
-              <h3 className="font-heading text-2xl font-bold text-foreground mb-4">
-                Sem Limite de Ganhos
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Nossos melhores afiliados faturam mais de <strong className="text-foreground">R$ 10.000 por mês</strong>. 
-                O limite é sua dedicação e estratégia. Oferecemos todo suporte necessário 
-                para você alcançar seus objetivos financeiros.
-              </p>
-              <ul className="space-y-3 mb-6">
-                <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center">
-                    <TrendingUp className="w-3.5 h-3.5 text-secondary" />
-                  </div>
-                  <span className="text-foreground">Comissão média de 30% por venda</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center">
-                    <DollarSign className="w-3.5 h-3.5 text-secondary" />
-                  </div>
-                  <span className="text-foreground">Ticket médio de R$ 300 por contrato</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center">
-                    <Target className="w-3.5 h-3.5 text-secondary" />
-                  </div>
-                  <span className="text-foreground">Taxa de conversão média de 40%</span>
-                </li>
-              </ul>
-              <Link to="/cadastro">
-                <Button variant="gold" size="lg">
-                  Começar a Ganhar Agora
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
-            </div>
+        {(() => {
+          const info = infoContent[0];
+          const extra = info?.extra_data as Record<string, string> | undefined;
+          const infoTitle = info?.title || "Sem Limite de Ganhos";
+          const infoDesc = info?.description || "Nossos melhores afiliados faturam mais de <strong>R$ 10.000 por mês</strong>. O limite é sua dedicação e estratégia. Oferecemos todo suporte necessário para você alcançar seus objetivos financeiros.";
+          const bullet1 = extra?.bullet1 || "Comissão média de 30% por venda";
+          const bullet2 = extra?.bullet2 || "Ticket médio de R$ 300 por contrato";
+          const bullet3 = extra?.bullet3 || "Taxa de conversão média de 40%";
+          const ctaText = extra?.cta_text || "Começar a Ganhar Agora";
+          const calcIndicacoes = extra?.calc_indicacoes || "20";
+          const calcConversoes = extra?.calc_conversoes || "8";
+          const calcTaxa = extra?.calc_taxa || "40";
+          const calcTicket = extra?.calc_ticket || "R$ 300";
+          const calcGanho = extra?.calc_ganho || "R$ 2.400";
 
-            {/* Calculator Preview */}
-            <div className="bg-card rounded-xl p-6 border border-border shadow-soft">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-accent" />
-                </div>
+          return (
+            <div className="bg-muted/50 rounded-2xl p-8 md:p-12 border border-border">
+              <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
-                  <p className="font-heading font-semibold text-foreground">Calculadora de Ganhos</p>
-                  <p className="text-sm text-muted-foreground">Disponível no dashboard</p>
+                  <h3 className="font-heading text-2xl font-bold text-foreground mb-4">
+                    {infoTitle}
+                  </h3>
+                  <p className="text-muted-foreground mb-6" dangerouslySetInnerHTML={{ __html: infoDesc }} />
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center">
+                        <TrendingUp className="w-3.5 h-3.5 text-secondary" />
+                      </div>
+                      <span className="text-foreground">{bullet1}</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center">
+                        <DollarSign className="w-3.5 h-3.5 text-secondary" />
+                      </div>
+                      <span className="text-foreground">{bullet2}</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center">
+                        <Target className="w-3.5 h-3.5 text-secondary" />
+                      </div>
+                      <span className="text-foreground">{bullet3}</span>
+                    </li>
+                  </ul>
+                  <Link to="/cadastro">
+                    <Button variant="gold" size="lg">
+                      {ctaText}
+                      <ArrowRight className="w-5 h-5" />
+                    </Button>
+                  </Link>
                 </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Indicações</span>
-                  <span className="font-semibold text-foreground">20</span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Conversões (40%)</span>
-                  <span className="font-semibold text-foreground">8</span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Ticket médio</span>
-                  <span className="font-semibold text-foreground">R$ 300</span>
-                </div>
-                <div className="flex items-center justify-between py-3 bg-secondary/10 rounded-lg px-3 -mx-3">
-                  <span className="font-semibold text-foreground">Ganho estimado</span>
-                  <span className="font-heading text-2xl font-bold text-secondary">R$ 2.400</span>
+
+                {/* Calculator Preview */}
+                <div className="bg-card rounded-xl p-6 border border-border shadow-soft">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-accent" />
+                    </div>
+                    <div>
+                      <p className="font-heading font-semibold text-foreground">Calculadora de Ganhos</p>
+                      <p className="text-sm text-muted-foreground">Disponível no dashboard</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between py-2 border-b border-border">
+                      <span className="text-muted-foreground">Indicações</span>
+                      <span className="font-semibold text-foreground">{calcIndicacoes}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-border">
+                      <span className="text-muted-foreground">Conversões ({calcTaxa}%)</span>
+                      <span className="font-semibold text-foreground">{calcConversoes}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-border">
+                      <span className="text-muted-foreground">Ticket médio</span>
+                      <span className="font-semibold text-foreground">{calcTicket}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 bg-secondary/10 rounded-lg px-3 -mx-3">
+                      <span className="font-semibold text-foreground">Ganho estimado</span>
+                      <span className="font-heading text-2xl font-bold text-secondary">{calcGanho}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
     </section>
   );
