@@ -1,0 +1,3 @@
+
+INSERT INTO public.site_content (section, content_key, title, description, value, display_order, is_active, extra_data) VALUES
+('results_info', 'main', 'Sem Limite de Ganhos', 'Nossos melhores afiliados faturam mais de <strong>R$ 10.000 por mês</strong>. O limite é sua dedicação e estratégia. Oferecemos todo suporte necessário para você alcançar seus objetivos financeiros.', NULL, 1, true, '{"highlight_amount": "R$ 10.000 por mês", "bullet1": "Comissão média de 30% por venda", "bullet2": "Ticket médio de R$ 300 por contrato", "bullet3": "Taxa de conversão média de 40%", "cta_text": "Começar a Ganhar Agora", "calc_indicacoes": "20", "calc_conversoes": "8", "calc_taxa": "40", "calc_ticket": "R$ 300", "calc_ganho": "R$ 2.400"}'::jsonb);
