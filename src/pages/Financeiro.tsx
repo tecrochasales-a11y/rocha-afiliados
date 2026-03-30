@@ -70,6 +70,7 @@ const Financeiro = () => {
   
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
+  const { content: commissionContent } = useSiteContent("commission_info");
 
   useEffect(() => {
     if (!authLoading && !user) {
