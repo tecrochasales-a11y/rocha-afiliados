@@ -74,11 +74,32 @@ const AdminLeads = () => {
   const [paymentStatus, setPaymentStatus] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [commissionPercentage, setCommissionPercentage] = useState(30);
+  const [commissionInstallments, setCommissionInstallments] = useState(1);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchLeads();
+    fetchCommissionSettings();
   }, []);
+
+  const fetchCommissionSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("key, value")
+        .in("key", ["commission_percentage", "commission_installments"]);
+      
+      if (data) {
+        const pct = data.find(d => d.key === "commission_percentage");
+        const inst = data.find(d => d.key === "commission_installments");
+        if (pct?.value) setCommissionPercentage(parseFloat(pct.value));
+        if (inst?.value) setCommissionInstallments(parseInt(inst.value));
+      }
+    } catch (error) {
+      console.error("Error fetching commission settings:", error);
+    }
+  };
 
   const fetchLeads = async () => {
     setIsLoading(true);
