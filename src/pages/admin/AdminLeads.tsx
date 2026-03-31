@@ -355,7 +355,7 @@ const AdminLeads = () => {
             <div>
               <p className="font-medium text-foreground">Sistema de Comissões</p>
               <p className="text-sm text-muted-foreground">
-                Ao converter um lead, o afiliado recebe <strong>75% do valor da venda</strong> dividido em 3 parcelas mensais de 25%.
+                Ao converter um lead, o afiliado recebe <strong>{commissionPercentage}% do valor da venda</strong>{commissionInstallments > 1 ? ` dividido em ${commissionInstallments} parcelas mensais de ${(commissionPercentage / commissionInstallments).toFixed(1)}%` : " em parcela única"}.
               </p>
             </div>
           </div>
