@@ -530,12 +530,15 @@ const AdminLeads = () => {
                       />
                       {saleValue && (
                         <div className="bg-secondary/10 rounded-lg p-3 mt-2">
-                          <p className="text-sm font-medium text-secondary">Prévia da Comissão (75%)</p>
+                          <p className="text-sm font-medium text-secondary">Prévia da Comissão ({commissionPercentage}%)</p>
                           <p className="text-lg font-bold text-secondary">
-                            R$ {(parseFloat(saleValue) * 0.75).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            R$ {(parseFloat(saleValue) * (commissionPercentage / 100)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            3 parcelas de R$ {(parseFloat(saleValue) * 0.25).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            {commissionInstallments > 1 
+                              ? `${commissionInstallments} parcelas de R$ ${(parseFloat(saleValue) * (commissionPercentage / 100) / commissionInstallments).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                              : "Parcela única"
+                            }
                           </p>
                         </div>
                       )}
