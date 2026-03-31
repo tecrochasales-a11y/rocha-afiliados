@@ -416,6 +416,49 @@ const AdminComissoes = () => {
           </p>
         </div>
 
+        {/* Commission Settings */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-primary" />
+              Configurações de Comissão
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="space-y-2">
+                <Label>Percentual de Comissão (%)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={commissionPercentage}
+                  onChange={(e) => setCommissionPercentage(e.target.value)}
+                  className="w-32"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nº de Parcelas</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={commissionInstallments}
+                  onChange={(e) => setCommissionInstallments(e.target.value)}
+                  className="w-32"
+                />
+              </div>
+              <Button onClick={saveCommissionSettings} disabled={isSavingSettings}>
+                {isSavingSettings ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Salvar Configurações
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              Atualmente: <strong>{commissionPercentage}%</strong> do valor da venda em <strong>{commissionInstallments}</strong> parcela(s). O pagamento é automático para o afiliado.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
