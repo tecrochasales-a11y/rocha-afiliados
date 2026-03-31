@@ -69,9 +69,6 @@ const Dashboard = () => {
   const [balance, setBalance] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
