@@ -34,17 +34,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -80,9 +69,6 @@ const Dashboard = () => {
   const [balance, setBalance] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -206,69 +192,6 @@ const Dashboard = () => {
         title: "Link copiado!",
         description: "Seu link de indicação foi copiado para a área de transferência.",
       });
-    }
-  };
-
-  const handleWithdraw = async () => {
-    if (!user || !profile) return;
-
-    const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Valor inválido",
-        description: "Digite um valor válido para saque.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (amount > balance) {
-      toast({
-        title: "Saldo insuficiente",
-        description: "Você não tem saldo suficiente para este saque.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!profile.pix_key) {
-      toast({
-        title: "Chave PIX não cadastrada",
-        description: "Cadastre uma chave PIX no seu perfil para solicitar saque.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsWithdrawing(true);
-
-    try {
-      const { error } = await supabase.from("withdrawals").insert({
-        affiliate_id: user.id,
-        amount,
-        pix_key: profile.pix_key,
-        status: "pending",
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Saque solicitado!",
-        description: `Solicitação de R$ ${amount.toFixed(2)} enviada para análise.`,
-      });
-
-      setWithdrawAmount("");
-      setIsDialogOpen(false);
-      fetchDashboardData();
-    } catch (error) {
-      console.error("Error requesting withdrawal:", error);
-      toast({
-        title: "Erro ao solicitar saque",
-        description: "Tente novamente mais tarde.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsWithdrawing(false);
     }
   };
 
@@ -512,75 +435,27 @@ const Dashboard = () => {
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div className="bg-card rounded-2xl p-6 border border-border shadow-soft">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-heading font-semibold text-foreground">Saldo Disponível</h3>
+                <h3 className="font-heading font-semibold text-foreground">Total Recebido</h3>
                 <Wallet className="w-5 h-5 text-secondary" />
               </div>
               <p className="text-3xl font-heading font-bold text-foreground mb-4">
-                R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R$ {stats.totalEarned.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="hero" className="w-full" disabled={balance <= 0}>
-                    Solicitar Saque
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Solicitar Saque</DialogTitle>
-                    <DialogDescription>
-                      Saldo disponível: R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="amount">Valor do saque</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        placeholder="0,00"
-                        value={withdrawAmount}
-                        onChange={(e) => setWithdrawAmount(e.target.value)}
-                        min="0"
-                        max={balance}
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Chave PIX</Label>
-                      <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                        {profile?.pix_key || "Não cadastrada"}
-                      </p>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button onClick={handleWithdraw} disabled={isWithdrawing}>
-                      {isWithdrawing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          Processando...
-                        </>
-                      ) : (
-                        "Confirmar Saque"
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <p className="text-sm text-muted-foreground">
+                Comissões já pagas
+              </p>
             </div>
 
             <div className="bg-card rounded-2xl p-6 border border-border shadow-soft">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-heading font-semibold text-foreground">Saldo Pendente</h3>
+                <h3 className="font-heading font-semibold text-foreground">A Receber</h3>
                 <Clock className="w-5 h-5 text-accent" />
               </div>
               <p className="text-3xl font-heading font-bold text-foreground mb-4">
                 R$ {pendingBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
               <p className="text-sm text-muted-foreground">
-                Aguardando efetivação dos contratos
+                O pagamento é feito automaticamente via PIX
               </p>
             </div>
           </div>

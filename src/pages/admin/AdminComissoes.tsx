@@ -102,12 +102,64 @@ const AdminComissoes = () => {
   const [newCommissionStatus, setNewCommissionStatus] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Commission settings
+  const [commissionPercentage, setCommissionPercentage] = useState("30");
+  const [commissionInstallments, setCommissionInstallments] = useState("1");
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   
   const { toast } = useToast();
 
   useEffect(() => {
     fetchData();
+    fetchCommissionSettings();
   }, []);
+
+  const fetchCommissionSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("key, value")
+        .in("key", ["commission_percentage", "commission_installments"]);
+      
+      if (data) {
+        const pct = data.find(d => d.key === "commission_percentage");
+        const inst = data.find(d => d.key === "commission_installments");
+        if (pct?.value) setCommissionPercentage(pct.value);
+        if (inst?.value) setCommissionInstallments(inst.value);
+      }
+    } catch (error) {
+      console.error("Error fetching commission settings:", error);
+    }
+  };
+
+  const saveCommissionSettings = async () => {
+    setIsSavingSettings(true);
+    try {
+      const updates = [
+        { key: "commission_percentage", value: commissionPercentage },
+        { key: "commission_installments", value: commissionInstallments },
+      ];
+
+      for (const { key, value } of updates) {
+        const { error } = await supabase
+          .from("app_settings")
+          .update({ value, updated_at: new Date().toISOString() })
+          .eq("key", key);
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Configurações salvas!",
+        description: `Comissão: ${commissionPercentage}% em ${commissionInstallments} parcela(s).`,
+      });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -363,6 +415,49 @@ const AdminComissoes = () => {
             Controle de pagamentos e parcelas por afiliado
           </p>
         </div>
+
+        {/* Commission Settings */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-primary" />
+              Configurações de Comissão
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="space-y-2">
+                <Label>Percentual de Comissão (%)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={commissionPercentage}
+                  onChange={(e) => setCommissionPercentage(e.target.value)}
+                  className="w-32"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nº de Parcelas</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={commissionInstallments}
+                  onChange={(e) => setCommissionInstallments(e.target.value)}
+                  className="w-32"
+                />
+              </div>
+              <Button onClick={saveCommissionSettings} disabled={isSavingSettings}>
+                {isSavingSettings ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Salvar Configurações
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              Atualmente: <strong>{commissionPercentage}%</strong> do valor da venda em <strong>{commissionInstallments}</strong> parcela(s). O pagamento é automático para o afiliado.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

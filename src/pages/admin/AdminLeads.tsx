@@ -74,11 +74,32 @@ const AdminLeads = () => {
   const [paymentStatus, setPaymentStatus] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [commissionPercentage, setCommissionPercentage] = useState(30);
+  const [commissionInstallments, setCommissionInstallments] = useState(1);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchLeads();
+    fetchCommissionSettings();
   }, []);
+
+  const fetchCommissionSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("key, value")
+        .in("key", ["commission_percentage", "commission_installments"]);
+      
+      if (data) {
+        const pct = data.find(d => d.key === "commission_percentage");
+        const inst = data.find(d => d.key === "commission_installments");
+        if (pct?.value) setCommissionPercentage(parseFloat(pct.value));
+        if (inst?.value) setCommissionInstallments(parseInt(inst.value));
+      }
+    } catch (error) {
+      console.error("Error fetching commission settings:", error);
+    }
+  };
 
   const fetchLeads = async () => {
     setIsLoading(true);
@@ -190,11 +211,10 @@ const AdminLeads = () => {
 
       if (error) throw error;
 
-      // Se convertido, usar a função de comissões parceladas (75% em 3x de 25%)
+      // Se convertido, criar comissões usando configurações do admin
       if (newStatus === "converted" && selectedLead.status !== "converted" && saleValue && selectedLead.affiliate_id) {
         const saleValueNum = parseFloat(saleValue);
         
-        // Chama a função do banco para criar as 3 parcelas
         const { error: commissionError } = await supabase.rpc("create_installment_commissions", {
           _lead_id: selectedLead.id,
           _affiliate_id: selectedLead.affiliate_id,
@@ -207,8 +227,7 @@ const AdminLeads = () => {
           throw commissionError;
         }
 
-        // Criar notificação de sucesso para o afiliado
-        const totalCommission = saleValueNum * 0.75;
+        const totalCommission = saleValueNum * (commissionPercentage / 100);
         await supabase.rpc("create_lead_result_notification", {
           _affiliate_id: selectedLead.affiliate_id,
           _lead_name: selectedLead.name,
@@ -217,9 +236,12 @@ const AdminLeads = () => {
           _rejection_reason: null,
         });
 
+        const installmentDesc = commissionInstallments > 1 
+          ? ` em ${commissionInstallments} parcelas` 
+          : " em parcela única";
         toast({
           title: "Lead convertido!",
-          description: `Comissão de R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (75%) criada em 3 parcelas de 25%.`,
+          description: `Comissão de R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${commissionPercentage}%)${installmentDesc}.`,
         });
       } else if (newStatus === "lost" && selectedLead.status !== "lost" && selectedLead.affiliate_id) {
         // Criar notificação de lead perdido para o afiliado
@@ -333,7 +355,7 @@ const AdminLeads = () => {
             <div>
               <p className="font-medium text-foreground">Sistema de Comissões</p>
               <p className="text-sm text-muted-foreground">
-                Ao converter um lead, o afiliado recebe <strong>75% do valor da venda</strong> dividido em 3 parcelas mensais de 25%.
+                Ao converter um lead, o afiliado recebe <strong>{commissionPercentage}% do valor da venda</strong>{commissionInstallments > 1 ? ` dividido em ${commissionInstallments} parcelas mensais de ${(commissionPercentage / commissionInstallments).toFixed(1)}%` : " em parcela única"}.
               </p>
             </div>
           </div>
@@ -508,12 +530,15 @@ const AdminLeads = () => {
                       />
                       {saleValue && (
                         <div className="bg-secondary/10 rounded-lg p-3 mt-2">
-                          <p className="text-sm font-medium text-secondary">Prévia da Comissão (75%)</p>
+                          <p className="text-sm font-medium text-secondary">Prévia da Comissão ({commissionPercentage}%)</p>
                           <p className="text-lg font-bold text-secondary">
-                            R$ {(parseFloat(saleValue) * 0.75).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            R$ {(parseFloat(saleValue) * (commissionPercentage / 100)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            3 parcelas de R$ {(parseFloat(saleValue) * 0.25).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            {commissionInstallments > 1 
+                              ? `${commissionInstallments} parcelas de R$ ${(parseFloat(saleValue) * (commissionPercentage / 100) / commissionInstallments).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                              : "Parcela única"
+                            }
                           </p>
                         </div>
                       )}
