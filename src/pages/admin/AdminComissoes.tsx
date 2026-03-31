@@ -102,12 +102,64 @@ const AdminComissoes = () => {
   const [newCommissionStatus, setNewCommissionStatus] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Commission settings
+  const [commissionPercentage, setCommissionPercentage] = useState("30");
+  const [commissionInstallments, setCommissionInstallments] = useState("1");
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   
   const { toast } = useToast();
 
   useEffect(() => {
     fetchData();
+    fetchCommissionSettings();
   }, []);
+
+  const fetchCommissionSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("key, value")
+        .in("key", ["commission_percentage", "commission_installments"]);
+      
+      if (data) {
+        const pct = data.find(d => d.key === "commission_percentage");
+        const inst = data.find(d => d.key === "commission_installments");
+        if (pct?.value) setCommissionPercentage(pct.value);
+        if (inst?.value) setCommissionInstallments(inst.value);
+      }
+    } catch (error) {
+      console.error("Error fetching commission settings:", error);
+    }
+  };
+
+  const saveCommissionSettings = async () => {
+    setIsSavingSettings(true);
+    try {
+      const updates = [
+        { key: "commission_percentage", value: commissionPercentage },
+        { key: "commission_installments", value: commissionInstallments },
+      ];
+
+      for (const { key, value } of updates) {
+        const { error } = await supabase
+          .from("app_settings")
+          .update({ value, updated_at: new Date().toISOString() })
+          .eq("key", key);
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Configurações salvas!",
+        description: `Comissão: ${commissionPercentage}% em ${commissionInstallments} parcela(s).`,
+      });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
