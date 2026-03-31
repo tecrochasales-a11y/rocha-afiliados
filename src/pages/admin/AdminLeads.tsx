@@ -211,11 +211,10 @@ const AdminLeads = () => {
 
       if (error) throw error;
 
-      // Se convertido, usar a função de comissões parceladas (75% em 3x de 25%)
+      // Se convertido, criar comissões usando configurações do admin
       if (newStatus === "converted" && selectedLead.status !== "converted" && saleValue && selectedLead.affiliate_id) {
         const saleValueNum = parseFloat(saleValue);
         
-        // Chama a função do banco para criar as 3 parcelas
         const { error: commissionError } = await supabase.rpc("create_installment_commissions", {
           _lead_id: selectedLead.id,
           _affiliate_id: selectedLead.affiliate_id,
@@ -228,8 +227,7 @@ const AdminLeads = () => {
           throw commissionError;
         }
 
-        // Criar notificação de sucesso para o afiliado
-        const totalCommission = saleValueNum * 0.75;
+        const totalCommission = saleValueNum * (commissionPercentage / 100);
         await supabase.rpc("create_lead_result_notification", {
           _affiliate_id: selectedLead.affiliate_id,
           _lead_name: selectedLead.name,
@@ -238,9 +236,12 @@ const AdminLeads = () => {
           _rejection_reason: null,
         });
 
+        const installmentDesc = commissionInstallments > 1 
+          ? ` em ${commissionInstallments} parcelas` 
+          : " em parcela única";
         toast({
           title: "Lead convertido!",
-          description: `Comissão de R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (75%) criada em 3 parcelas de 25%.`,
+          description: `Comissão de R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${commissionPercentage}%)${installmentDesc}.`,
         });
       } else if (newStatus === "lost" && selectedLead.status !== "lost" && selectedLead.affiliate_id) {
         // Criar notificação de lead perdido para o afiliado
