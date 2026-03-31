@@ -195,69 +195,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleWithdraw = async () => {
-    if (!user || !profile) return;
-
-    const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Valor inválido",
-        description: "Digite um valor válido para saque.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (amount > balance) {
-      toast({
-        title: "Saldo insuficiente",
-        description: "Você não tem saldo suficiente para este saque.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!profile.pix_key) {
-      toast({
-        title: "Chave PIX não cadastrada",
-        description: "Cadastre uma chave PIX no seu perfil para solicitar saque.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsWithdrawing(true);
-
-    try {
-      const { error } = await supabase.from("withdrawals").insert({
-        affiliate_id: user.id,
-        amount,
-        pix_key: profile.pix_key,
-        status: "pending",
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Saque solicitado!",
-        description: `Solicitação de R$ ${amount.toFixed(2)} enviada para análise.`,
-      });
-
-      setWithdrawAmount("");
-      setIsDialogOpen(false);
-      fetchDashboardData();
-    } catch (error) {
-      console.error("Error requesting withdrawal:", error);
-      toast({
-        title: "Erro ao solicitar saque",
-        description: "Tente novamente mais tarde.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsWithdrawing(false);
-    }
-  };
-
   const handleLogout = async () => {
     await signOut();
     navigate("/");
