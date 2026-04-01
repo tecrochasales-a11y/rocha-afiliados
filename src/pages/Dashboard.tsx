@@ -490,7 +490,7 @@ const Dashboard = () => {
                       <TableHead>E-mail</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Valor Previsto</TableHead>
+                      <TableHead className="text-right">Comissão Prevista</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -504,7 +504,7 @@ const Dashboard = () => {
                         <TableCell>{getStatusBadge(lead.status)}</TableCell>
                         <TableCell className="text-right font-medium">
                           {lead.sale_value 
-                            ? `R$ ${Number(lead.sale_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                            ? `R$ ${(Number(lead.sale_value) * commissionPct / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                             : "-"
                           }
                         </TableCell>
