@@ -225,36 +225,37 @@ const AdminLeads = () => {
         if (existingCommissions && existingCommissions.length > 0) {
           console.log("Comissões já existem para este lead, pulando criação.");
         } else {
-        const saleValueNum = parseFloat(saleValue);
-        
-        const { error: commissionError } = await supabase.rpc("create_installment_commissions", {
-          _lead_id: selectedLead.id,
-          _affiliate_id: selectedLead.affiliate_id,
-          _product_id: null,
-          _sale_value: saleValueNum,
-        });
+          const saleValueNum = parseFloat(saleValue as string);
+          
+          const { error: commissionError } = await supabase.rpc("create_installment_commissions", {
+            _lead_id: selectedLead.id,
+            _affiliate_id: selectedLead.affiliate_id!,
+            _product_id: null,
+            _sale_value: saleValueNum,
+          });
 
-        if (commissionError) {
-          console.error("Error creating commissions:", commissionError);
-          throw commissionError;
+          if (commissionError) {
+            console.error("Error creating commissions:", commissionError);
+            throw commissionError;
+          }
+
+          const totalCommission = saleValueNum * (commissionPercentage / 100);
+          await supabase.rpc("create_lead_result_notification", {
+            _affiliate_id: selectedLead.affiliate_id!,
+            _lead_name: selectedLead.name,
+            _converted: true,
+            _commission_amount: totalCommission,
+            _rejection_reason: null,
+          });
+
+          const installmentDesc = commissionInstallments > 1 
+            ? ` em ${commissionInstallments} parcelas` 
+            : " em parcela única";
+          toast({
+            title: "Lead convertido!",
+            description: `Comissão de R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${commissionPercentage}%)${installmentDesc}.`,
+          });
         }
-
-        const totalCommission = saleValueNum * (commissionPercentage / 100);
-        await supabase.rpc("create_lead_result_notification", {
-          _affiliate_id: selectedLead.affiliate_id,
-          _lead_name: selectedLead.name,
-          _converted: true,
-          _commission_amount: totalCommission,
-          _rejection_reason: null,
-        });
-
-        const installmentDesc = commissionInstallments > 1 
-          ? ` em ${commissionInstallments} parcelas` 
-          : " em parcela única";
-        toast({
-          title: "Lead convertido!",
-          description: `Comissão de R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${commissionPercentage}%)${installmentDesc}.`,
-        });
       } else if (newStatus === "lost" && selectedLead.status !== "lost" && selectedLead.affiliate_id) {
         // Criar notificação de lead perdido para o afiliado
         await supabase.rpc("create_lead_result_notification", {
