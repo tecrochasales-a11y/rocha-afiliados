@@ -176,6 +176,13 @@ const Financeiro = () => {
             Agendado
           </span>
         );
+      case "cancelled":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+            <XCircle className="w-3 h-3" />
+            Cancelado
+          </span>
+        );
       default:
         return null;
     }
