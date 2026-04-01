@@ -69,6 +69,7 @@ const Dashboard = () => {
   const [balance, setBalance] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [commissionPct, setCommissionPct] = useState(30);
   
   const { toast } = useToast();
   const navigate = useNavigate();
