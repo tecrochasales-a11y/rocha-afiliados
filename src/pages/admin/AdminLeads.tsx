@@ -211,8 +211,20 @@ const AdminLeads = () => {
 
       if (error) throw error;
 
-      // Se convertido, criar comissões usando configurações do admin
-      if (newStatus === "converted" && selectedLead.status !== "converted" && saleValue && selectedLead.affiliate_id) {
+      // Se convertido pela primeira vez, criar comissões usando configurações do admin
+      const isNewConversion = newStatus === "converted" && selectedLead.status !== "converted" && saleValue && selectedLead.affiliate_id;
+      
+      if (isNewConversion) {
+        // Verificar se já existem comissões para este lead (evitar duplicatas)
+        const { data: existingCommissions } = await supabase
+          .from("commissions")
+          .select("id")
+          .eq("lead_id", selectedLead.id)
+          .limit(1);
+        
+        if (existingCommissions && existingCommissions.length > 0) {
+          console.log("Comissões já existem para este lead, pulando criação.");
+        } else {
         const saleValueNum = parseFloat(saleValue);
         
         const { error: commissionError } = await supabase.rpc("create_installment_commissions", {
