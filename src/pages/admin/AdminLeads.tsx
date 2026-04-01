@@ -256,7 +256,25 @@ const AdminLeads = () => {
             description: `Comissão de R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${commissionPercentage}%)${installmentDesc}.`,
           });
         }
-      } else if (newStatus === "lost" && selectedLead.status !== "lost" && selectedLead.affiliate_id) {
+      }
+
+      // Cancelar comissões se lead perdido ou pagamento cancelado
+      const shouldCancelCommissions = 
+        newStatus === "lost" || paymentStatus === "cancelado";
+      
+      if (shouldCancelCommissions) {
+        const { error: cancelError } = await supabase
+          .from("commissions")
+          .update({ status: "cancelled" })
+          .eq("lead_id", selectedLead.id)
+          .neq("status", "paid");
+
+        if (cancelError) {
+          console.error("Error cancelling commissions:", cancelError);
+        }
+      }
+
+      if (newStatus === "lost" && selectedLead.status !== "lost" && selectedLead.affiliate_id) {
         // Criar notificação de lead perdido para o afiliado
         await supabase.rpc("create_lead_result_notification", {
           _affiliate_id: selectedLead.affiliate_id,
@@ -268,7 +286,12 @@ const AdminLeads = () => {
 
         toast({
           title: "Lead atualizado",
-          description: "O afiliado foi notificado sobre o resultado.",
+          description: "Comissões canceladas. O afiliado foi notificado.",
+        });
+      } else if (shouldCancelCommissions) {
+        toast({
+          title: "Lead atualizado",
+          description: "Comissões canceladas com sucesso.",
         });
       } else {
         toast({
