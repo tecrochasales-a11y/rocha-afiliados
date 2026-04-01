@@ -190,6 +190,8 @@ const AdminLeads = () => {
       // Registrar data de confirmação de pagamento
       if (paymentStatus === "paid" && selectedLead.payment_status !== "paid") {
         updateData.payment_confirmed_at = new Date().toISOString();
+      } else if (paymentStatus !== "paid" && selectedLead.payment_status === "paid") {
+        updateData.payment_confirmed_at = null;
       }
 
       if (saleValue) {
@@ -259,8 +261,11 @@ const AdminLeads = () => {
       }
 
       // Cancelar comissões se lead perdido ou pagamento cancelado
-      const shouldCancelCommissions = 
-        newStatus === "lost" || paymentStatus === "cancelado";
+      const normalizedPaymentStatus = (paymentStatus || "").toLowerCase();
+      const shouldCancelCommissions =
+        newStatus === "lost" ||
+        normalizedPaymentStatus === "cancelled" ||
+        normalizedPaymentStatus === "cancelado";
       
       if (shouldCancelCommissions) {
         const { error: cancelError } = await supabase
