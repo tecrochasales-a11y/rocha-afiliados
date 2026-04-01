@@ -69,6 +69,7 @@ const Dashboard = () => {
   const [balance, setBalance] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [commissionPct, setCommissionPct] = useState(30);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -95,6 +96,13 @@ const Dashboard = () => {
     setIsLoadingData(true);
 
     try {
+      // Fetch commission percentage
+      const { data: settingsData } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "commission_percentage")
+        .maybeSingle();
+      if (settingsData?.value) setCommissionPct(Number(settingsData.value));
       // Fetch leads
       const { data: leadsData, error: leadsError } = await supabase
         .from("leads")
@@ -482,7 +490,7 @@ const Dashboard = () => {
                       <TableHead>E-mail</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Valor Previsto</TableHead>
+                      <TableHead className="text-right">Comissão Prevista</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -496,7 +504,7 @@ const Dashboard = () => {
                         <TableCell>{getStatusBadge(lead.status)}</TableCell>
                         <TableCell className="text-right font-medium">
                           {lead.sale_value 
-                            ? `R$ ${Number(lead.sale_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                            ? `R$ ${(Number(lead.sale_value) * commissionPct / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                             : "-"
                           }
                         </TableCell>
