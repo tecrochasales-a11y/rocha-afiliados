@@ -96,6 +96,13 @@ const Dashboard = () => {
     setIsLoadingData(true);
 
     try {
+      // Fetch commission percentage
+      const { data: settingsData } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "commission_percentage")
+        .maybeSingle();
+      if (settingsData?.value) setCommissionPct(Number(settingsData.value));
       // Fetch leads
       const { data: leadsData, error: leadsError } = await supabase
         .from("leads")
