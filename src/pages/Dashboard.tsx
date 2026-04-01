@@ -43,6 +43,7 @@ interface Lead {
   email: string;
   phone: string | null;
   status: string;
+  payment_status: string | null;
   sale_value: number | null;
   created_at: string;
   product_id: string | null;
@@ -248,6 +249,22 @@ const Dashboard = () => {
       default:
         return null;
     }
+  };
+
+  const getProjectedCommissionDisplay = (lead: Lead) => {
+    if (!lead.sale_value) {
+      return <span className="text-muted-foreground">-</span>;
+    }
+
+    if (lead.status === "lost" || lead.payment_status === "cancelled") {
+      return <span className="text-destructive">Cancelada</span>;
+    }
+
+    if (lead.status !== "converted") {
+      return <span className="text-muted-foreground">-</span>;
+    }
+
+    return `R$ ${(Number(lead.sale_value) * commissionPct / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
   };
 
   if (isLoading || isLoadingData) {
@@ -503,10 +520,7 @@ const Dashboard = () => {
                         </TableCell>
                         <TableCell>{getStatusBadge(lead.status)}</TableCell>
                         <TableCell className="text-right font-medium">
-                          {lead.sale_value 
-                            ? `R$ ${(Number(lead.sale_value) * commissionPct / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                            : "-"
-                          }
+                          {getProjectedCommissionDisplay(lead)}
                         </TableCell>
                       </TableRow>
                     ))}
