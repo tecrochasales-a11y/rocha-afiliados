@@ -157,6 +157,19 @@ const AdminLeads = () => {
   const handleUpdateLead = async () => {
     if (!selectedLead) return;
 
+    const normalizedPaymentStatus = (paymentStatus || "").toLowerCase();
+    const normalizedPreviousPaymentStatus = (selectedLead.payment_status || "").toLowerCase();
+    const shouldCancelCommissions =
+      newStatus === "lost" ||
+      normalizedPaymentStatus === "cancelled" ||
+      normalizedPaymentStatus === "cancelado";
+    const wasCancellationState =
+      selectedLead.status === "lost" ||
+      normalizedPreviousPaymentStatus === "cancelled" ||
+      normalizedPreviousPaymentStatus === "cancelado";
+    const shouldRestoreCancelledCommissions =
+      newStatus === "converted" && !shouldCancelCommissions && wasCancellationState;
+
     // Validação: se status for "lost", precisa de justificativa
     if (newStatus === "lost" && !rejectionReason.trim()) {
       toast({
@@ -260,13 +273,7 @@ const AdminLeads = () => {
         }
       }
 
-      // Cancelar comissões se lead perdido ou pagamento cancelado
-      const normalizedPaymentStatus = (paymentStatus || "").toLowerCase();
-      const shouldCancelCommissions =
-        newStatus === "lost" ||
-        normalizedPaymentStatus === "cancelled" ||
-        normalizedPaymentStatus === "cancelado";
-      
+      // Cancelar ou reativar comissões conforme status atual do lead/pagamento
       if (shouldCancelCommissions) {
         const { error: cancelError } = await supabase
           .from("commissions")
@@ -276,6 +283,41 @@ const AdminLeads = () => {
 
         if (cancelError) {
           console.error("Error cancelling commissions:", cancelError);
+        }
+      } else if (shouldRestoreCancelledCommissions) {
+        const { data: cancelledCommissions, error: cancelledCommissionsError } = await supabase
+          .from("commissions")
+          .select("id, installment_number")
+          .eq("lead_id", selectedLead.id)
+          .eq("status", "cancelled");
+
+        if (cancelledCommissionsError) {
+          console.error("Error fetching cancelled commissions:", cancelledCommissionsError);
+          throw cancelledCommissionsError;
+        }
+
+        if (cancelledCommissions && cancelledCommissions.length > 0) {
+          const restoreResults = await Promise.all(
+            cancelledCommissions.map((commission) =>
+              supabase
+                .from("commissions")
+                .update({
+                  status:
+                    commission.installment_number && commission.installment_number > 1
+                      ? "scheduled"
+                      : "pending",
+                  paid_at: null,
+                })
+                .eq("id", commission.id)
+            )
+          );
+
+          const restoreError = restoreResults.find((result) => result.error)?.error;
+
+          if (restoreError) {
+            console.error("Error restoring commissions:", restoreError);
+            throw restoreError;
+          }
         }
       }
 
@@ -297,6 +339,11 @@ const AdminLeads = () => {
         toast({
           title: "Lead atualizado",
           description: "Comissões canceladas com sucesso.",
+        });
+      } else if (shouldRestoreCancelledCommissions) {
+        toast({
+          title: "Lead atualizado",
+          description: "Comissões reativadas com sucesso.",
         });
       } else {
         toast({
