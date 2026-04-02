@@ -107,6 +107,7 @@ const AdminComissoes = () => {
   const [commissionPercentage, setCommissionPercentage] = useState("30");
   const [commissionInstallments, setCommissionInstallments] = useState("1");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [selectedAffiliatePixKey, setSelectedAffiliatePixKey] = useState<string | null>(null);
   
   const { toast } = useToast();
 
@@ -258,10 +259,19 @@ const AdminComissoes = () => {
     setExpandedLeads(newExpanded);
   };
 
-  const openCommissionDialog = (commission: Commission, leadName: string) => {
+  const openCommissionDialog = async (commission: Commission, leadName: string, affiliateId: string) => {
     setSelectedCommission({ ...commission, lead_name: leadName });
     setNewCommissionStatus(commission.status);
     setPaymentNotes("");
+    
+    // Fetch affiliate PIX key
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("pix_key")
+      .eq("id", affiliateId)
+      .maybeSingle();
+    
+    setSelectedAffiliatePixKey(profileData?.pix_key || null);
     setIsDialogOpen(true);
   };
 
@@ -693,7 +703,7 @@ const AdminComissoes = () => {
                                                 <Button
                                                   variant="outline"
                                                   size="sm"
-                                                  onClick={() => openCommissionDialog(commission, lead.name)}
+                                                  onClick={() => openCommissionDialog(commission, lead.name, affiliate.id)}
                                                 >
                                                   {commission.status === "paid" ? "Ver" : "Pagar"}
                                                 </Button>
@@ -742,6 +752,18 @@ const AdminComissoes = () => {
                       <span className="text-sm">
                         {new Date(selectedCommission.due_date).toLocaleDateString("pt-BR")}
                       </span>
+                    </div>
+                  )}
+                  {selectedAffiliatePixKey && (
+                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+                      <span className="text-sm text-muted-foreground">Chave PIX</span>
+                      <span className="text-sm font-medium text-foreground">{selectedAffiliatePixKey}</span>
+                    </div>
+                  )}
+                  {!selectedAffiliatePixKey && (
+                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+                      <span className="text-sm text-muted-foreground">Chave PIX</span>
+                      <span className="text-sm text-destructive">Não cadastrada</span>
                     </div>
                   )}
                 </div>

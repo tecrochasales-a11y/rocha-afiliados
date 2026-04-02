@@ -507,6 +507,7 @@ const Dashboard = () => {
                       <TableHead>E-mail</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Pagamento</TableHead>
                       <TableHead className="text-right">Comissão Prevista</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -519,6 +520,28 @@ const Dashboard = () => {
                           {new Date(lead.created_at).toLocaleDateString("pt-BR")}
                         </TableCell>
                         <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                        <TableCell>
+                          {lead.status === "converted" ? (
+                            lead.payment_status === "paid" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary">
+                                <CheckCircle className="w-3 h-3" />
+                                Pago
+                              </span>
+                            ) : lead.payment_status === "cancelled" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+                                <XCircle className="w-3 h-3" />
+                                Cancelado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
+                                <Clock className="w-3 h-3" />
+                                Aguardando
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right font-medium">
                           {getProjectedCommissionDisplay(lead)}
                         </TableCell>
