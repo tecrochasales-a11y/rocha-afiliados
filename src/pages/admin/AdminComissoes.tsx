@@ -258,10 +258,19 @@ const AdminComissoes = () => {
     setExpandedLeads(newExpanded);
   };
 
-  const openCommissionDialog = (commission: Commission, leadName: string) => {
+  const openCommissionDialog = async (commission: Commission, leadName: string, affiliateId: string) => {
     setSelectedCommission({ ...commission, lead_name: leadName });
     setNewCommissionStatus(commission.status);
     setPaymentNotes("");
+    
+    // Fetch affiliate PIX key
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("pix_key")
+      .eq("id", affiliateId)
+      .maybeSingle();
+    
+    setSelectedAffiliatePixKey(profileData?.pix_key || null);
     setIsDialogOpen(true);
   };
 
