@@ -1,6 +1,8 @@
 import { Shield, Mail, Phone, MapPin, Instagram, Facebook, Linkedin, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSiteContent } from "@/hooks/useSiteContent";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Footer = () => {
   const { content, isLoading } = useSiteContent("footer");
