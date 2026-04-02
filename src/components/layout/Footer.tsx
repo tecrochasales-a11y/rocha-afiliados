@@ -24,6 +24,8 @@ const Footer = () => {
     };
     fetchLogo();
   }, []);
+
+  const footerData = content[0];
   const extra = (footerData?.extra_data || {}) as Record<string, string>;
 
   const companyName = footerData?.title || "Rocha Sales";
