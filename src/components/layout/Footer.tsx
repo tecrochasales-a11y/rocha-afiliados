@@ -46,9 +46,17 @@ const Footer = () => {
           {/* Logo & Description */}
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-primary-foreground/20 rounded-xl flex items-center justify-center">
-                <Shield className="w-5 h-5 text-primary-foreground" />
-              </div>
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Rocha Sales Seguros" 
+                  className="h-10 w-auto object-contain"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-primary-foreground/20 rounded-xl flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-primary-foreground" />
+                </div>
+              )}
               <div className="flex flex-col">
                 <span className="font-heading font-bold text-lg text-primary-foreground leading-tight">
                   {companyName}
