@@ -507,6 +507,7 @@ const Dashboard = () => {
                       <TableHead>E-mail</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Pagamento</TableHead>
                       <TableHead className="text-right">Comissão Prevista</TableHead>
                     </TableRow>
                   </TableHeader>
