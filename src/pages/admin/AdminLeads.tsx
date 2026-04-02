@@ -255,6 +255,12 @@ const AdminLeads = () => {
           }
 
           const totalCommission = saleValueNum * (commissionPercentage / 100);
+          const installmentText = commissionInstallments > 1 
+            ? ` em ${commissionInstallments} parcelas mensais.` 
+            : " em parcela única.";
+          const notifTitle = "Indicação Convertida! 🎉";
+          const notifMessage = `Sua indicação ${selectedLead.name} foi convertida! Você receberá R$ ${totalCommission.toFixed(2)}${installmentText}`;
+
           await supabase.rpc("create_lead_result_notification", {
             _affiliate_id: selectedLead.affiliate_id!,
             _lead_name: selectedLead.name,
@@ -262,6 +268,18 @@ const AdminLeads = () => {
             _commission_amount: totalCommission,
             _rejection_reason: null,
           });
+
+          // Enviar para n8n (WhatsApp)
+          supabase.functions.invoke("send-notification-webhook", {
+            body: {
+              affiliate_id: selectedLead.affiliate_id,
+              notification_title: notifTitle,
+              notification_message: notifMessage,
+              notification_type: "lead_converted",
+              lead_name: selectedLead.name,
+              lead_id: selectedLead.id,
+            },
+          }).catch((err) => console.error("Webhook notification error:", err));
 
           const installmentDesc = commissionInstallments > 1 
             ? ` em ${commissionInstallments} parcelas` 
@@ -322,6 +340,9 @@ const AdminLeads = () => {
       }
 
       if (newStatus === "lost" && selectedLead.status !== "lost" && selectedLead.affiliate_id) {
+        const lostNotifTitle = "Indicação não convertida";
+        const lostNotifMessage = `Infelizmente a indicação ${selectedLead.name} não fechou. Motivo: ${rejectionReason || "Não informado"}`;
+
         // Criar notificação de lead perdido para o afiliado
         await supabase.rpc("create_lead_result_notification", {
           _affiliate_id: selectedLead.affiliate_id,
@@ -330,6 +351,18 @@ const AdminLeads = () => {
           _commission_amount: null,
           _rejection_reason: rejectionReason,
         });
+
+        // Enviar para n8n (WhatsApp)
+        supabase.functions.invoke("send-notification-webhook", {
+          body: {
+            affiliate_id: selectedLead.affiliate_id,
+            notification_title: lostNotifTitle,
+            notification_message: lostNotifMessage,
+            notification_type: "lead_lost",
+            lead_name: selectedLead.name,
+            lead_id: selectedLead.id,
+          },
+        }).catch((err) => console.error("Webhook notification error:", err));
 
         toast({
           title: "Lead atualizado",
