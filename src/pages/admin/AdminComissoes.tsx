@@ -107,6 +107,7 @@ const AdminComissoes = () => {
   const [commissionPercentage, setCommissionPercentage] = useState("30");
   const [commissionInstallments, setCommissionInstallments] = useState("1");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [selectedAffiliatePixKey, setSelectedAffiliatePixKey] = useState<string | null>(null);
   
   const { toast } = useToast();
 
