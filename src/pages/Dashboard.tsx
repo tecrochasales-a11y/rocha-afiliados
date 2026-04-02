@@ -98,6 +98,17 @@ const Dashboard = () => {
     setIsLoadingData(true);
 
     try {
+      // Fetch logo
+      const { data: logoData } = await supabase
+        .from("site_assets")
+        .select("url")
+        .eq("type", "logo")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .limit(1)
+        .single();
+      if (logoData) setLogoUrl(logoData.url);
+
       // Fetch commission percentage
       const { data: settingsData } = await supabase
         .from("app_settings")
