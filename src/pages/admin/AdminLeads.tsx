@@ -340,6 +340,9 @@ const AdminLeads = () => {
       }
 
       if (newStatus === "lost" && selectedLead.status !== "lost" && selectedLead.affiliate_id) {
+        const lostNotifTitle = "Indicação não convertida";
+        const lostNotifMessage = `Infelizmente a indicação ${selectedLead.name} não fechou. Motivo: ${rejectionReason || "Não informado"}`;
+
         // Criar notificação de lead perdido para o afiliado
         await supabase.rpc("create_lead_result_notification", {
           _affiliate_id: selectedLead.affiliate_id,
@@ -348,6 +351,18 @@ const AdminLeads = () => {
           _commission_amount: null,
           _rejection_reason: rejectionReason,
         });
+
+        // Enviar para n8n (WhatsApp)
+        supabase.functions.invoke("send-notification-webhook", {
+          body: {
+            affiliate_id: selectedLead.affiliate_id,
+            notification_title: lostNotifTitle,
+            notification_message: lostNotifMessage,
+            notification_type: "lead_lost",
+            lead_name: selectedLead.name,
+            lead_id: selectedLead.id,
+          },
+        }).catch((err) => console.error("Webhook notification error:", err));
 
         toast({
           title: "Lead atualizado",
