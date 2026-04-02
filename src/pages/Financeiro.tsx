@@ -43,6 +43,8 @@ interface Commission {
   total_installments: number | null;
   due_date: string | null;
   base_sale_value: number | null;
+  lead_id: string | null;
+  lead_payment_status?: string | null;
 }
 
 interface Withdrawal {
@@ -92,14 +94,18 @@ const Financeiro = () => {
       // Fetch commissions
       const { data: commissionsData, error: commissionsError } = await supabase
         .from("commissions")
-        .select("*")
+        .select("*, leads:lead_id(payment_status)")
         .eq("affiliate_id", user.id)
         .order("created_at", { ascending: false });
 
       if (commissionsError) {
         console.error("Error fetching commissions:", commissionsError);
       } else {
-        setCommissions(commissionsData || []);
+        const mapped = (commissionsData || []).map((c: any) => ({
+          ...c,
+          lead_payment_status: c.leads?.payment_status || null,
+        }));
+        setCommissions(mapped);
       }
 
       // Fetch withdrawals
@@ -374,13 +380,14 @@ const Financeiro = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Parcela</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Percentual</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Vencimento</TableHead>
-                        <TableHead>Data Pagamento</TableHead>
+                         <TableHead>Data</TableHead>
+                         <TableHead>Parcela</TableHead>
+                         <TableHead>Valor</TableHead>
+                         <TableHead>Percentual</TableHead>
+                         <TableHead>Status</TableHead>
+                         <TableHead>Pagamento Cliente</TableHead>
+                         <TableHead>Vencimento</TableHead>
+                         <TableHead>Data Pagamento</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -405,6 +412,24 @@ const Financeiro = () => {
                             {Number(commission.percentage).toFixed(1)}%
                           </TableCell>
                           <TableCell>{getCommissionStatusBadge(commission.status)}</TableCell>
+                          <TableCell>
+                            {commission.lead_payment_status === "pago" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary">
+                                <CheckCircle className="w-3 h-3" />
+                                Pago
+                              </span>
+                            ) : commission.lead_payment_status === "cancelado" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+                                <XCircle className="w-3 h-3" />
+                                Cancelado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
+                                <Clock className="w-3 h-3" />
+                                Aguardando
+                              </span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-muted-foreground">
                             {commission.due_date 
                               ? new Date(commission.due_date).toLocaleDateString("pt-BR")
