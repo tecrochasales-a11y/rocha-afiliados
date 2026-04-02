@@ -754,6 +754,18 @@ const AdminComissoes = () => {
                       </span>
                     </div>
                   )}
+                  {selectedAffiliatePixKey && (
+                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+                      <span className="text-sm text-muted-foreground">Chave PIX</span>
+                      <span className="text-sm font-medium text-foreground">{selectedAffiliatePixKey}</span>
+                    </div>
+                  )}
+                  {!selectedAffiliatePixKey && (
+                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+                      <span className="text-sm text-muted-foreground">Chave PIX</span>
+                      <span className="text-sm text-destructive">Não cadastrada</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">

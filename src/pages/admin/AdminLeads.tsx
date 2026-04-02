@@ -551,7 +551,7 @@ const AdminLeads = () => {
                       </TableCell>
                       <TableCell>
                         {lead.sale_value
-                          ? `R$ ${Number(lead.sale_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                          ? `R$ ${(Number(lead.sale_value) * commissionPercentage / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                           : "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
