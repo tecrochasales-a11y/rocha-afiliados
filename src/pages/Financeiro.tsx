@@ -380,13 +380,14 @@ const Financeiro = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Parcela</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Percentual</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Vencimento</TableHead>
-                        <TableHead>Data Pagamento</TableHead>
+                         <TableHead>Data</TableHead>
+                         <TableHead>Parcela</TableHead>
+                         <TableHead>Valor</TableHead>
+                         <TableHead>Percentual</TableHead>
+                         <TableHead>Status</TableHead>
+                         <TableHead>Pagamento Cliente</TableHead>
+                         <TableHead>Vencimento</TableHead>
+                         <TableHead>Data Pagamento</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
