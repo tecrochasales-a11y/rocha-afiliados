@@ -6,8 +6,24 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Footer = () => {
   const { content, isLoading } = useSiteContent("footer");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
-  const footerData = content[0];
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("site_assets")
+          .select("url")
+          .eq("type", "logo")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+          .limit(1)
+          .single();
+        if (!error && data) setLogoUrl(data.url);
+      } catch {}
+    };
+    fetchLogo();
+  }, []);
   const extra = (footerData?.extra_data || {}) as Record<string, string>;
 
   const companyName = footerData?.title || "Rocha Sales";
