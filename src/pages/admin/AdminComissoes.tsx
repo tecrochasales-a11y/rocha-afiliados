@@ -703,7 +703,7 @@ const AdminComissoes = () => {
                                                 <Button
                                                   variant="outline"
                                                   size="sm"
-                                                  onClick={() => openCommissionDialog(commission, lead.name)}
+                                                  onClick={() => openCommissionDialog(commission, lead.name, affiliate.id)}
                                                 >
                                                   {commission.status === "paid" ? "Ver" : "Pagar"}
                                                 </Button>
