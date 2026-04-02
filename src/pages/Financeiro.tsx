@@ -94,14 +94,18 @@ const Financeiro = () => {
       // Fetch commissions
       const { data: commissionsData, error: commissionsError } = await supabase
         .from("commissions")
-        .select("*")
+        .select("*, leads:lead_id(payment_status)")
         .eq("affiliate_id", user.id)
         .order("created_at", { ascending: false });
 
       if (commissionsError) {
         console.error("Error fetching commissions:", commissionsError);
       } else {
-        setCommissions(commissionsData || []);
+        const mapped = (commissionsData || []).map((c: any) => ({
+          ...c,
+          lead_payment_status: c.leads?.payment_status || null,
+        }));
+        setCommissions(mapped);
       }
 
       // Fetch withdrawals
