@@ -43,6 +43,8 @@ interface Commission {
   total_installments: number | null;
   due_date: string | null;
   base_sale_value: number | null;
+  lead_id: string | null;
+  lead_payment_status?: string | null;
 }
 
 interface Withdrawal {
