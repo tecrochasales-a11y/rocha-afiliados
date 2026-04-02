@@ -412,6 +412,24 @@ const Financeiro = () => {
                             {Number(commission.percentage).toFixed(1)}%
                           </TableCell>
                           <TableCell>{getCommissionStatusBadge(commission.status)}</TableCell>
+                          <TableCell>
+                            {commission.lead_payment_status === "pago" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary">
+                                <CheckCircle className="w-3 h-3" />
+                                Pago
+                              </span>
+                            ) : commission.lead_payment_status === "cancelado" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+                                <XCircle className="w-3 h-3" />
+                                Cancelado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
+                                <Clock className="w-3 h-3" />
+                                Aguardando
+                              </span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-muted-foreground">
                             {commission.due_date 
                               ? new Date(commission.due_date).toLocaleDateString("pt-BR")
