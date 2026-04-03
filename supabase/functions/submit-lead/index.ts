@@ -320,28 +320,63 @@ Deno.serve(async (req) => {
     const produtoId = settings?.find((s) => s.key === "painel_corretor_produto_id")?.value;
     const etiquetasBase = settings?.find((s) => s.key === "painel_corretor_etiquetas")?.value || "";
     const spreadsheetId = settings?.find((s) => s.key === "google_sheets_spreadsheet_id")?.value;
-    const n8nWebhookUrl = settings?.find((s) => s.key === "n8n_webhook_url")?.value;
+
+    // Get active webhooks from n8n_webhooks table (type 'lead' or 'all')
+    const { data: webhooks } = await supabase
+      .from("n8n_webhooks")
+      .select("id, name, webhook_url, webhook_type")
+      .eq("is_active", true)
+      .in("webhook_type", ["lead", "all"]);
+
+    // Fallback to legacy setting
+    let webhookUrls: { name: string; url: string }[] = [];
+    if (webhooks && webhooks.length > 0) {
+      webhookUrls = webhooks.map(w => ({ name: w.name, url: w.webhook_url }));
+    } else {
+      const legacyUrl = settings?.find((s) => s.key === "n8n_webhook_url")?.value;
+      if (legacyUrl) {
+        webhookUrls = [{ name: "Legacy", url: legacyUrl }];
+      }
+    }
 
     // n8n Webhook Integration (PREFERRED - centralizes all integrations)
-    if (n8nWebhookUrl && n8nWebhookUrl.length > 0) {
-      console.log("Sending lead to n8n webhook...");
-      try {
-        await sendToN8nWebhook(n8nWebhookUrl, {
-          lead_id: insertedLead.id,
-          created_at: insertedLead.created_at,
-          name: contact.name,
-          email: contact.email,
-          phone: contact.phone || null,
-          affiliate_name: affiliate_name,
-          tracking_code: tracking_code,
-          accepts_whatsapp: accepts_whatsapp,
-          form_responses: form_responses,
-        });
-        console.log("Lead sent to n8n successfully - skipping direct integrations");
-      } catch (n8nError) {
-        console.error("Error sending to n8n webhook:", n8nError);
-        // Continue with direct integrations as fallback
-        console.log("Falling back to direct integrations...");
+    if (webhookUrls.length > 0) {
+      console.log(`Sending lead to ${webhookUrls.length} n8n webhook(s)...`);
+      
+      const leadPayload = {
+        lead_id: insertedLead.id,
+        created_at: insertedLead.created_at,
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone || null,
+        affiliate_name: affiliate_name,
+        tracking_code: tracking_code,
+        accepts_whatsapp: accepts_whatsapp,
+        form_responses: form_responses,
+      };
+
+      const results = await Promise.allSettled(
+        webhookUrls.map(async (webhook) => {
+          console.log(`Sending to webhook "${webhook.name}":`, webhook.url);
+          const response = await fetch(webhook.url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(leadPayload),
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`${response.status}: ${errorText}`);
+          }
+          console.log(`Webhook "${webhook.name}" sent successfully`);
+        })
+      );
+
+      const successes = results.filter(r => r.status === "fulfilled").length;
+      const failures = results.filter(r => r.status === "rejected").length;
+      console.log(`Webhooks: ${successes} success, ${failures} failed`);
+      
+      if (failures > 0) {
+        console.log("Some webhooks failed, continuing with direct integrations as fallback...");
       }
     } else {
       console.log("n8n webhook not configured, using direct integrations");
