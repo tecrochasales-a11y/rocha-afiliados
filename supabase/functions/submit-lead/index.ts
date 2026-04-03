@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
     // Verify affiliate exists with matching tracking code
     const { data: affiliateCheck, error: affiliateError } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, phone, email, full_name")
       .eq("id", affiliate_id)
       .eq("tracking_code", tracking_code)
       .single();
@@ -344,15 +344,20 @@ Deno.serve(async (req) => {
       console.log(`Sending lead to ${webhookList.length} n8n webhook(s)...`);
       
       const leadPayload = {
+        type: "new_lead",
         lead_id: insertedLead.id,
         created_at: insertedLead.created_at,
-        name: contact.name,
-        email: contact.email,
-        phone: contact.phone || null,
+        lead_name: contact.name,
+        lead_email: contact.email,
+        lead_phone: contact.phone || null,
+        affiliate_id: affiliate_id,
         affiliate_name: affiliate_name,
+        affiliate_phone: affiliateCheck.phone || null,
+        affiliate_email: affiliateCheck.email || null,
         tracking_code: tracking_code,
         accepts_whatsapp: accepts_whatsapp,
         form_responses: form_responses,
+        timestamp: new Date().toISOString(),
       };
 
       const results = await Promise.allSettled(
