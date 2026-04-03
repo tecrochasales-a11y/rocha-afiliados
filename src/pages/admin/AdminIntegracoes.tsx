@@ -229,7 +229,7 @@ const AdminIntegracoes = () => {
 
   const openCreateDialog = () => {
     setEditingWebhook(null);
-    setWebhookForm({ name: "", webhook_url: "", webhook_type: "all" });
+    setWebhookForm({ name: "", webhook_url: "", webhook_type: "all", http_method: "POST" });
     setWebhookDialogOpen(true);
   };
 
