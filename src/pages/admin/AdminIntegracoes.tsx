@@ -8,8 +8,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Eye, EyeOff, Link2, Key, Shield, CheckCircle, XCircle, FileSpreadsheet, Webhook, Send, RefreshCw } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, Link2, Shield, CheckCircle, XCircle, FileSpreadsheet, Webhook, Send, RefreshCw, Plus, Pencil, Trash2, Power, PowerOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Setting {
   key: string;
@@ -18,11 +41,21 @@ interface Setting {
   is_secret: boolean;
 }
 
+interface N8nWebhook {
+  id: string;
+  name: string;
+  webhook_url: string;
+  webhook_type: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 const AdminIntegracoes = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
+  const [isTesting, setIsTesting] = useState<string | null>(null);
   const [isReprocessing, setIsReprocessing] = useState(false);
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   
@@ -34,8 +67,11 @@ const AdminIntegracoes = () => {
   // Google Sheets Settings
   const [googleSheetsSpreadsheetId, setGoogleSheetsSpreadsheetId] = useState("");
   
-  // n8n Settings
-  const [n8nWebhookUrl, setN8nWebhookUrl] = useState("");
+  // n8n Webhooks
+  const [webhooks, setWebhooks] = useState<N8nWebhook[]>([]);
+  const [webhookDialogOpen, setWebhookDialogOpen] = useState(false);
+  const [editingWebhook, setEditingWebhook] = useState<N8nWebhook | null>(null);
+  const [webhookForm, setWebhookForm] = useState({ name: "", webhook_url: "", webhook_type: "all" });
   
   // OAuth Settings
   const [googleClientId, setGoogleClientId] = useState("");
@@ -47,6 +83,7 @@ const AdminIntegracoes = () => {
 
   useEffect(() => {
     fetchSettings();
+    fetchWebhooks();
   }, []);
 
   const fetchSettings = async () => {
