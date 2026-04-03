@@ -104,9 +104,6 @@ const AdminIntegracoes = () => {
       // Google Sheets
       setGoogleSheetsSpreadsheetId(settings.find(s => s.key === "google_sheets_spreadsheet_id")?.value || "");
       
-      // n8n
-      setN8nWebhookUrl(settings.find(s => s.key === "n8n_webhook_url")?.value || "");
-      
       // OAuth
       setGoogleClientId(settings.find(s => s.key === "google_client_id")?.value || "");
       setGoogleClientSecret(settings.find(s => s.key === "google_client_secret")?.value || "");
@@ -121,6 +118,122 @@ const AdminIntegracoes = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchWebhooks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("n8n_webhooks")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      setWebhooks(data || []);
+    } catch (error) {
+      console.error("Error fetching webhooks:", error);
+    }
+  };
+
+  const handleSaveWebhook = async () => {
+    if (!webhookForm.name.trim() || !webhookForm.webhook_url.trim()) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      if (editingWebhook) {
+        const { error } = await supabase
+          .from("n8n_webhooks")
+          .update({
+            name: webhookForm.name,
+            webhook_url: webhookForm.webhook_url,
+            webhook_type: webhookForm.webhook_type,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingWebhook.id);
+        if (error) throw error;
+        toast({ title: "Webhook atualizado!" });
+      } else {
+        const { error } = await supabase
+          .from("n8n_webhooks")
+          .insert({
+            name: webhookForm.name,
+            webhook_url: webhookForm.webhook_url,
+            webhook_type: webhookForm.webhook_type,
+          });
+        if (error) throw error;
+        toast({ title: "Webhook criado!" });
+      }
+      setWebhookDialogOpen(false);
+      setEditingWebhook(null);
+      setWebhookForm({ name: "", webhook_url: "", webhook_type: "all" });
+      fetchWebhooks();
+    } catch (error) {
+      console.error("Error saving webhook:", error);
+      toast({ title: "Erro ao salvar webhook", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteWebhook = async (id: string) => {
+    try {
+      const { error } = await supabase.from("n8n_webhooks").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: "Webhook removido!" });
+      fetchWebhooks();
+    } catch (error) {
+      console.error("Error deleting webhook:", error);
+      toast({ title: "Erro ao remover webhook", variant: "destructive" });
+    }
+  };
+
+  const handleToggleWebhook = async (id: string, currentActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("n8n_webhooks")
+        .update({ is_active: !currentActive, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+      toast({ title: currentActive ? "Webhook desativado" : "Webhook ativado" });
+      fetchWebhooks();
+    } catch (error) {
+      console.error("Error toggling webhook:", error);
+    }
+  };
+
+  const handleTestWebhook = async (webhook: N8nWebhook) => {
+    setIsTesting(webhook.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-webhook", {
+        body: { webhook_url: webhook.webhook_url },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({ title: "Teste enviado com sucesso!", description: `Status: ${data.status}. Verifique seu workflow n8n.` });
+      } else {
+        toast({ title: "Webhook respondeu com erro", description: `Status: ${data?.status} - ${data?.response}`, variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Test error:", error);
+      toast({ title: "Erro ao testar webhook", description: String(error), variant: "destructive" });
+    } finally {
+      setIsTesting(null);
+    }
+  };
+
+  const openCreateDialog = () => {
+    setEditingWebhook(null);
+    setWebhookForm({ name: "", webhook_url: "", webhook_type: "all" });
+    setWebhookDialogOpen(true);
+  };
+
+  const openEditDialog = (webhook: N8nWebhook) => {
+    setEditingWebhook(webhook);
+    setWebhookForm({ name: webhook.name, webhook_url: webhook.webhook_url, webhook_type: webhook.webhook_type });
+    setWebhookDialogOpen(true);
   };
 
   const saveSetting = async (key: string, value: string, description: string, isSecret: boolean) => {
