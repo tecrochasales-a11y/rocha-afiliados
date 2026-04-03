@@ -169,7 +169,7 @@ const AdminIntegracoes = () => {
       }
       setWebhookDialogOpen(false);
       setEditingWebhook(null);
-      setWebhookForm({ name: "", webhook_url: "", webhook_type: "all" });
+      setWebhookForm({ name: "", webhook_url: "", webhook_type: "all", http_method: "POST" });
       fetchWebhooks();
     } catch (error) {
       console.error("Error saving webhook:", error);
