@@ -16,7 +16,8 @@ import {
   MessageSquareQuote,
   ClipboardList,
   DollarSign,
-  Settings2
+  Settings2,
+  Paintbrush
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,6 +49,7 @@ const navItems = [
   { path: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { path: "/admin/status-pagamento", label: "Status Pagamento", icon: ClipboardList },
   { path: "/admin/integracoes", label: "Integrações", icon: Settings2 },
+  { path: "/admin/white-label", label: "Identidade Visual", icon: Paintbrush },
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {

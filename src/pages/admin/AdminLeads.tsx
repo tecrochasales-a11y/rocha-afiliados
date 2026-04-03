@@ -339,36 +339,96 @@ const AdminLeads = () => {
         }
       }
 
-      if (newStatus === "lost" && selectedLead.status !== "lost" && selectedLead.affiliate_id) {
-        const lostNotifTitle = "Indicação não convertida";
-        const lostNotifMessage = `Infelizmente a indicação ${selectedLead.name} não fechou. Motivo: ${rejectionReason || "Não informado"}`;
+      // Notificar afiliado sobre mudanças de status do lead
+      if (selectedLead.affiliate_id && newStatus !== selectedLead.status) {
+        const statusLabels: Record<string, string> = {
+          pending: "Pendente",
+          contacted: "Contatado",
+          qualified: "Qualificado",
+          converted: "Convertido",
+          lost: "Perdido",
+        };
 
-        // Criar notificação de lead perdido para o afiliado
-        await supabase.rpc("create_lead_result_notification", {
-          _affiliate_id: selectedLead.affiliate_id,
-          _lead_name: selectedLead.name,
-          _converted: false,
-          _commission_amount: null,
-          _rejection_reason: rejectionReason,
+        if (newStatus === "lost") {
+          const lostNotifTitle = "Indicação não convertida";
+          const lostNotifMessage = `Infelizmente a indicação ${selectedLead.name} não fechou. Motivo: ${rejectionReason || "Não informado"}`;
+
+          await supabase.rpc("create_lead_result_notification", {
+            _affiliate_id: selectedLead.affiliate_id,
+            _lead_name: selectedLead.name,
+            _converted: false,
+            _commission_amount: null,
+            _rejection_reason: rejectionReason,
+          });
+
+          supabase.functions.invoke("send-notification-webhook", {
+            body: {
+              affiliate_id: selectedLead.affiliate_id,
+              notification_title: lostNotifTitle,
+              notification_message: lostNotifMessage,
+              notification_type: "lead_lost",
+              lead_name: selectedLead.name,
+              lead_id: selectedLead.id,
+            },
+          }).catch((err) => console.error("Webhook notification error:", err));
+        } else if (newStatus !== "converted") {
+          // Notificar para contacted, qualified, pending
+          const statusNotifTitle = `Atualização da sua indicação`;
+          const statusNotifMessage = `Sua indicação ${selectedLead.name} teve o status atualizado para: ${statusLabels[newStatus] || newStatus}.`;
+
+          await supabase.from("notifications").insert({
+            user_id: selectedLead.affiliate_id,
+            title: statusNotifTitle,
+            message: statusNotifMessage,
+            type: "lead_status_update",
+          });
+
+          supabase.functions.invoke("send-notification-webhook", {
+            body: {
+              affiliate_id: selectedLead.affiliate_id,
+              notification_title: statusNotifTitle,
+              notification_message: statusNotifMessage,
+              notification_type: "lead_status_update",
+              lead_name: selectedLead.name,
+              lead_id: selectedLead.id,
+            },
+          }).catch((err) => console.error("Webhook notification error:", err));
+        }
+      }
+
+      // Notificar afiliado sobre mudanças de status do pagamento
+      if (selectedLead.affiliate_id && paymentStatus !== (selectedLead.payment_status || "pending")) {
+        // Buscar nome amigável do status de pagamento
+        const { data: paymentStatusData } = await supabase
+          .from("payment_statuses")
+          .select("name")
+          .eq("key", paymentStatus)
+          .single();
+
+        const paymentStatusLabel = paymentStatusData?.name || paymentStatus;
+        const payNotifTitle = "Atualização de Pagamento";
+        const payNotifMessage = `O pagamento referente à sua indicação ${selectedLead.name} foi atualizado para: ${paymentStatusLabel}.`;
+
+        await supabase.from("notifications").insert({
+          user_id: selectedLead.affiliate_id,
+          title: payNotifTitle,
+          message: payNotifMessage,
+          type: "payment_status_update",
         });
 
-        // Enviar para n8n (WhatsApp)
         supabase.functions.invoke("send-notification-webhook", {
           body: {
             affiliate_id: selectedLead.affiliate_id,
-            notification_title: lostNotifTitle,
-            notification_message: lostNotifMessage,
-            notification_type: "lead_lost",
+            notification_title: payNotifTitle,
+            notification_message: payNotifMessage,
+            notification_type: "payment_status_update",
             lead_name: selectedLead.name,
             lead_id: selectedLead.id,
           },
         }).catch((err) => console.error("Webhook notification error:", err));
+      }
 
-        toast({
-          title: "Lead atualizado",
-          description: "Comissões canceladas. O afiliado foi notificado.",
-        });
-      } else if (shouldCancelCommissions) {
+      if (shouldCancelCommissions && newStatus !== "lost") {
         toast({
           title: "Lead atualizado",
           description: "Comissões canceladas com sucesso.",
