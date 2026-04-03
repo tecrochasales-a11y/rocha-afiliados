@@ -209,7 +209,7 @@ const AdminIntegracoes = () => {
     setIsTesting(webhook.id);
     try {
       const { data, error } = await supabase.functions.invoke("test-webhook", {
-        body: { webhook_url: webhook.webhook_url },
+        body: { webhook_url: webhook.webhook_url, http_method: webhook.http_method || "POST" },
       });
 
       if (error) throw error;
