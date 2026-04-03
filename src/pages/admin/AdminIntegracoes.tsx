@@ -505,42 +505,6 @@ const AdminIntegracoes = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-                            }
-                          }
-
-                          toast({ 
-                            title: "Reprocessamento concluído!", 
-                            description: `${successCount} leads enviados com sucesso, ${errorCount} erros` 
-                          });
-                        } catch (error) {
-                          console.error("Reprocess error:", error);
-                          toast({ title: "Erro ao reprocessar leads", description: String(error), variant: "destructive" });
-                        } finally {
-                          setIsReprocessing(false);
-                        }
-                      }} 
-                      disabled={isReprocessing || !n8nWebhookUrl}
-                    >
-                      {isReprocessing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Reprocessando...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Reprocessar Leads Existentes
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground">
-                    O teste envia um lead fictício. O reprocessamento envia os últimos 100 leads para o webhook.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="crm" className="space-y-4">
