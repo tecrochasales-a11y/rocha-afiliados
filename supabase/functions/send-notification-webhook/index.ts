@@ -40,23 +40,42 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get n8n webhook URL from app_settings
-    const { data: settings } = await supabase
-      .from("app_settings")
-      .select("key, value")
-      .in("key", ["n8n_webhook_url"]);
+    // Get active webhooks from n8n_webhooks table (type 'notification' or 'all')
+    const { data: webhooks, error: webhooksError } = await supabase
+      .from("n8n_webhooks")
+      .select("id, name, webhook_url, webhook_type")
+      .eq("is_active", true)
+      .in("webhook_type", ["notification", "all"]);
 
-    const n8nWebhookUrl = settings?.find((s: { key: string; value: string | null }) => s.key === "n8n_webhook_url")?.value;
+    if (webhooksError) {
+      console.error("Error fetching webhooks:", webhooksError);
+    }
 
-    if (!n8nWebhookUrl) {
-      console.log("n8n webhook URL not configured, skipping WhatsApp notification");
-      return new Response(JSON.stringify({ success: true, skipped: true, reason: "n8n_webhook_url not configured" }), {
+    // Fallback: check app_settings for legacy webhook
+    let webhookUrls: { name: string; url: string }[] = [];
+    
+    if (webhooks && webhooks.length > 0) {
+      webhookUrls = webhooks.map(w => ({ name: w.name, url: w.webhook_url }));
+    } else {
+      const { data: settings } = await supabase
+        .from("app_settings")
+        .select("key, value")
+        .eq("key", "n8n_webhook_url")
+        .single();
+
+      if (settings?.value) {
+        webhookUrls = [{ name: "Legacy", url: settings.value }];
+      }
+    }
+
+    if (webhookUrls.length === 0) {
+      console.log("No webhook URLs configured, skipping WhatsApp notification");
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: "No webhooks configured" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Send to n8n webhook
     const payload = {
       type: "notification",
       notification_type: notification_type || "info",
@@ -73,26 +92,36 @@ Deno.serve(async (req) => {
       timestamp: new Date().toISOString(),
     };
 
-    console.log("Sending notification to n8n webhook:", JSON.stringify(payload));
+    console.log("Sending notification to", webhookUrls.length, "webhook(s)");
 
-    const webhookResponse = await fetch(n8nWebhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const results = await Promise.allSettled(
+      webhookUrls.map(async (webhook) => {
+        console.log(`Sending to webhook "${webhook.name}":`, webhook.url);
+        const response = await fetch(webhook.url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
-    if (!webhookResponse.ok) {
-      const errorText = await webhookResponse.text();
-      console.error(`n8n webhook error [${webhookResponse.status}]: ${errorText}`);
-      return new Response(JSON.stringify({ success: false, error: "Webhook call failed" }), {
-        status: 200, // Don't fail the whole operation
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Webhook "${webhook.name}" error [${response.status}]: ${errorText}`);
+          throw new Error(`${response.status}: ${errorText}`);
+        }
 
-    console.log("Notification sent to n8n successfully");
+        console.log(`Webhook "${webhook.name}" sent successfully`);
+        return { name: webhook.name, success: true };
+      })
+    );
 
-    return new Response(JSON.stringify({ success: true }), {
+    const successes = results.filter(r => r.status === "fulfilled").length;
+    const failures = results.filter(r => r.status === "rejected").length;
+
+    return new Response(JSON.stringify({ 
+      success: successes > 0, 
+      sent: successes, 
+      failed: failures 
+    }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
