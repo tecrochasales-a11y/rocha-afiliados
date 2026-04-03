@@ -80,7 +80,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1">
+          <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1 scrollbar-thin">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -162,7 +162,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <nav className="bg-card border-b border-border px-4 py-4 space-y-1">
+          <nav className="bg-card border-b border-border px-4 py-4 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
