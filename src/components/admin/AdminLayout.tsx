@@ -16,7 +16,8 @@ import {
   MessageSquareQuote,
   ClipboardList,
   DollarSign,
-  Settings2
+  Settings2,
+  Paintbrush
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
