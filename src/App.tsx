@@ -33,6 +33,7 @@ import AdminConteudo from "./pages/admin/AdminConteudo";
 import AdminFormulario from "./pages/admin/AdminFormulario";
 import AdminIntegracoes from "./pages/admin/AdminIntegracoes";
 import AdminStatusPagamento from "./pages/admin/AdminStatusPagamento";
+import AdminWhiteLabel from "./pages/admin/AdminWhiteLabel";
 import GestorDashboard from "./pages/gestor/GestorDashboard";
 import GestorAfiliados from "./pages/gestor/GestorAfiliados";
 import GestorLeads from "./pages/gestor/GestorLeads";
