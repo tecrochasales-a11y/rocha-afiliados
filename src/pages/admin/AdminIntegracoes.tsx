@@ -498,6 +498,17 @@ const AdminIntegracoes = () => {
                     </Select>
                     <p className="text-xs text-muted-foreground mt-1">Define quais eventos disparam este webhook</p>
                   </div>
+                  <div>
+                    <Label>Método HTTP</Label>
+                    <Select value={webhookForm.http_method} onValueChange={(v) => setWebhookForm(f => ({ ...f, http_method: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="POST">POST</SelectItem>
+                        <SelectItem value="GET">GET</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">POST envia dados no corpo. GET envia como parâmetros na URL.</p>
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setWebhookDialogOpen(false)}>Cancelar</Button>
