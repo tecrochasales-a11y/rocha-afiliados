@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       created_at: new Date().toISOString(),
       name: "Lead de Teste",
       email: "teste@exemplo.com",
-      phone: "11999999999",
+      phone: "5511947236906",
       affiliate_name: "Afiliado Teste",
       tracking_code: "TEST123",
       accepts_whatsapp: true,
