@@ -72,7 +72,7 @@ const AdminIntegracoes = () => {
   const [webhooks, setWebhooks] = useState<N8nWebhook[]>([]);
   const [webhookDialogOpen, setWebhookDialogOpen] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<N8nWebhook | null>(null);
-  const [webhookForm, setWebhookForm] = useState({ name: "", webhook_url: "", webhook_type: "all" });
+  const [webhookForm, setWebhookForm] = useState({ name: "", webhook_url: "", webhook_type: "all", http_method: "POST" });
   
   // OAuth Settings
   const [googleClientId, setGoogleClientId] = useState("");
