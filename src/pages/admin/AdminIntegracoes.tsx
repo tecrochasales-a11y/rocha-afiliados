@@ -396,6 +396,7 @@ const AdminIntegracoes = () => {
                       <TableRow>
                         <TableHead>Nome</TableHead>
                         <TableHead>Tipo</TableHead>
+                        <TableHead>Método</TableHead>
                         <TableHead>URL</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
@@ -409,6 +410,9 @@ const AdminIntegracoes = () => {
                             <Badge variant="outline">
                               {wh.webhook_type === "all" ? "Todos" : wh.webhook_type === "lead" ? "Leads" : "Notificações"}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{wh.http_method || "POST"}</Badge>
                           </TableCell>
                           <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">
                             {wh.webhook_url}
