@@ -144,7 +144,7 @@ export const GestorLayout = ({ children }: GestorLayoutProps) => {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <nav className="bg-card border-b border-border px-4 py-4 space-y-1">
+          <nav className="bg-card border-b border-border px-4 py-4 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
