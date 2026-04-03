@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
     // Verify affiliate exists with matching tracking code
     const { data: affiliateCheck, error: affiliateError } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, phone, email, full_name")
       .eq("id", affiliate_id)
       .eq("tracking_code", tracking_code)
       .single();
