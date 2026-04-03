@@ -46,6 +46,7 @@ interface N8nWebhook {
   name: string;
   webhook_url: string;
   webhook_type: string;
+  http_method: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
