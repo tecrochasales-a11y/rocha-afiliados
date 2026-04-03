@@ -162,6 +162,7 @@ const AdminIntegracoes = () => {
             name: webhookForm.name,
             webhook_url: webhookForm.webhook_url,
             webhook_type: webhookForm.webhook_type,
+            http_method: webhookForm.http_method,
           });
         if (error) throw error;
         toast({ title: "Webhook criado!" });
