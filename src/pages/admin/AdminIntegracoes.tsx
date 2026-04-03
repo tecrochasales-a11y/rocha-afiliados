@@ -8,8 +8,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Eye, EyeOff, Link2, Key, Shield, CheckCircle, XCircle, FileSpreadsheet, Webhook, Send, RefreshCw } from "lucide-react";
+import { Loader2, Save, Eye, EyeOff, Link2, Shield, CheckCircle, XCircle, FileSpreadsheet, Webhook, Send, RefreshCw, Plus, Pencil, Trash2, Power, PowerOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Setting {
   key: string;
@@ -18,11 +41,21 @@ interface Setting {
   is_secret: boolean;
 }
 
+interface N8nWebhook {
+  id: string;
+  name: string;
+  webhook_url: string;
+  webhook_type: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 const AdminIntegracoes = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
+  const [isTesting, setIsTesting] = useState<string | null>(null);
   const [isReprocessing, setIsReprocessing] = useState(false);
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   
@@ -34,8 +67,11 @@ const AdminIntegracoes = () => {
   // Google Sheets Settings
   const [googleSheetsSpreadsheetId, setGoogleSheetsSpreadsheetId] = useState("");
   
-  // n8n Settings
-  const [n8nWebhookUrl, setN8nWebhookUrl] = useState("");
+  // n8n Webhooks
+  const [webhooks, setWebhooks] = useState<N8nWebhook[]>([]);
+  const [webhookDialogOpen, setWebhookDialogOpen] = useState(false);
+  const [editingWebhook, setEditingWebhook] = useState<N8nWebhook | null>(null);
+  const [webhookForm, setWebhookForm] = useState({ name: "", webhook_url: "", webhook_type: "all" });
   
   // OAuth Settings
   const [googleClientId, setGoogleClientId] = useState("");
@@ -47,6 +83,7 @@ const AdminIntegracoes = () => {
 
   useEffect(() => {
     fetchSettings();
+    fetchWebhooks();
   }, []);
 
   const fetchSettings = async () => {
@@ -67,9 +104,6 @@ const AdminIntegracoes = () => {
       // Google Sheets
       setGoogleSheetsSpreadsheetId(settings.find(s => s.key === "google_sheets_spreadsheet_id")?.value || "");
       
-      // n8n
-      setN8nWebhookUrl(settings.find(s => s.key === "n8n_webhook_url")?.value || "");
-      
       // OAuth
       setGoogleClientId(settings.find(s => s.key === "google_client_id")?.value || "");
       setGoogleClientSecret(settings.find(s => s.key === "google_client_secret")?.value || "");
@@ -84,6 +118,122 @@ const AdminIntegracoes = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchWebhooks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("n8n_webhooks")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      setWebhooks(data || []);
+    } catch (error) {
+      console.error("Error fetching webhooks:", error);
+    }
+  };
+
+  const handleSaveWebhook = async () => {
+    if (!webhookForm.name.trim() || !webhookForm.webhook_url.trim()) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      if (editingWebhook) {
+        const { error } = await supabase
+          .from("n8n_webhooks")
+          .update({
+            name: webhookForm.name,
+            webhook_url: webhookForm.webhook_url,
+            webhook_type: webhookForm.webhook_type,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingWebhook.id);
+        if (error) throw error;
+        toast({ title: "Webhook atualizado!" });
+      } else {
+        const { error } = await supabase
+          .from("n8n_webhooks")
+          .insert({
+            name: webhookForm.name,
+            webhook_url: webhookForm.webhook_url,
+            webhook_type: webhookForm.webhook_type,
+          });
+        if (error) throw error;
+        toast({ title: "Webhook criado!" });
+      }
+      setWebhookDialogOpen(false);
+      setEditingWebhook(null);
+      setWebhookForm({ name: "", webhook_url: "", webhook_type: "all" });
+      fetchWebhooks();
+    } catch (error) {
+      console.error("Error saving webhook:", error);
+      toast({ title: "Erro ao salvar webhook", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteWebhook = async (id: string) => {
+    try {
+      const { error } = await supabase.from("n8n_webhooks").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: "Webhook removido!" });
+      fetchWebhooks();
+    } catch (error) {
+      console.error("Error deleting webhook:", error);
+      toast({ title: "Erro ao remover webhook", variant: "destructive" });
+    }
+  };
+
+  const handleToggleWebhook = async (id: string, currentActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("n8n_webhooks")
+        .update({ is_active: !currentActive, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+      toast({ title: currentActive ? "Webhook desativado" : "Webhook ativado" });
+      fetchWebhooks();
+    } catch (error) {
+      console.error("Error toggling webhook:", error);
+    }
+  };
+
+  const handleTestWebhook = async (webhook: N8nWebhook) => {
+    setIsTesting(webhook.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-webhook", {
+        body: { webhook_url: webhook.webhook_url },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({ title: "Teste enviado com sucesso!", description: `Status: ${data.status}. Verifique seu workflow n8n.` });
+      } else {
+        toast({ title: "Webhook respondeu com erro", description: `Status: ${data?.status} - ${data?.response}`, variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Test error:", error);
+      toast({ title: "Erro ao testar webhook", description: String(error), variant: "destructive" });
+    } finally {
+      setIsTesting(null);
+    }
+  };
+
+  const openCreateDialog = () => {
+    setEditingWebhook(null);
+    setWebhookForm({ name: "", webhook_url: "", webhook_type: "all" });
+    setWebhookDialogOpen(true);
+  };
+
+  const openEditDialog = (webhook: N8nWebhook) => {
+    setEditingWebhook(webhook);
+    setWebhookForm({ name: webhook.name, webhook_url: webhook.webhook_url, webhook_type: webhook.webhook_type });
+    setWebhookDialogOpen(true);
   };
 
   const saveSetting = async (key: string, value: string, description: string, isSecret: boolean) => {
@@ -217,283 +367,144 @@ const AdminIntegracoes = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
-                      <Webhook className="w-5 h-5 text-orange-500" />
-                      n8n Webhook
+                      <Webhook className="w-5 h-5 text-primary" />
+                      Webhooks n8n
                     </CardTitle>
                     <CardDescription>
-                      Integração centralizada via n8n para Google Sheets, CRM e outros serviços
+                      Gerencie múltiplas integrações via n8n para leads, notificações e WhatsApp
                     </CardDescription>
                   </div>
-                  <Badge variant={n8nWebhookUrl ? "default" : "secondary"} className="flex items-center gap-1">
-                    {n8nWebhookUrl ? (
-                      <>
-                        <CheckCircle className="w-3 h-3" />
-                        Configurado
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-3 h-3" />
-                        Não configurado
-                      </>
-                    )}
-                  </Badge>
+                  <Button onClick={openCreateDialog} size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Webhook
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
-                  <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">
-                    <strong>Recomendado!</strong> Use o n8n para centralizar todas as integrações de leads.
-                  </p>
-                  <p className="text-xs text-orange-700 dark:text-orange-300">
-                    Configure um workflow no n8n com trigger Webhook e conecte ao Google Sheets, CRM, e-mail, etc.
-                  </p>
-                </div>
+                {webhooks.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Webhook className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>Nenhum webhook configurado</p>
+                    <p className="text-sm">Clique em "Novo Webhook" para adicionar uma integração n8n</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>URL</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {webhooks.map((wh) => (
+                        <TableRow key={wh.id}>
+                          <TableCell className="font-medium">{wh.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {wh.webhook_type === "all" ? "Todos" : wh.webhook_type === "lead" ? "Leads" : "Notificações"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">
+                            {wh.webhook_url}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={wh.is_active ? "default" : "secondary"}>
+                              {wh.is_active ? "Ativo" : "Inativo"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleTestWebhook(wh)} disabled={isTesting === wh.id || !wh.is_active} title="Testar">
+                                {isTesting === wh.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleToggleWebhook(wh.id, wh.is_active)} title={wh.is_active ? "Desativar" : "Ativar"}>
+                                {wh.is_active ? <Power className="w-4 h-4" /> : <PowerOff className="w-4 h-4" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => openEditDialog(wh)} title="Editar">
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteWebhook(wh.id)} title="Remover" className="text-destructive hover:text-destructive">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="n8n-webhook-url">URL do Webhook</Label>
-                  <Input
-                    id="n8n-webhook-url"
-                    value={n8nWebhookUrl}
-                    onChange={(e) => setN8nWebhookUrl(e.target.value)}
-                    placeholder="https://seu-n8n.app.n8n.cloud/webhook/xxxxx"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Cole a URL do webhook gerada no seu workflow n8n
-                  </p>
-                </div>
+                <Separator />
 
                 <div className="p-4 rounded-lg bg-muted/50 border space-y-3">
-                  <p className="text-sm font-medium">Payload enviado para o webhook:</p>
+                  <p className="text-sm font-medium">Payload enviado para webhooks de leads:</p>
                   <pre className="text-xs bg-background p-3 rounded border overflow-x-auto">
 {`{
   "lead_id": "uuid",
-  "created_at": "2024-01-01T12:00:00Z",
   "name": "Nome do Cliente",
   "email": "email@exemplo.com",
   "phone": "11999999999",
   "affiliate_name": "Nome do Afiliado",
   "tracking_code": "ABC123",
-  "accepts_whatsapp": true,
-  "form_responses": {
-    "company_type": "MEI",
-    "has_health_plan": "Sim",
-    ...
-  }
+  "form_responses": { ... }
 }`}
                   </pre>
                 </div>
 
-                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 space-y-2">
-                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    Como configurar no n8n:
-                  </p>
-                  <ol className="text-xs text-blue-700 dark:text-blue-300 list-decimal list-inside space-y-1">
+                <div className="p-4 rounded-lg bg-muted/30 border space-y-2">
+                  <p className="text-sm font-medium">Como configurar no n8n:</p>
+                  <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1">
                     <li>Crie um novo workflow no n8n</li>
                     <li>Adicione o nó "Webhook" como trigger</li>
                     <li>Copie a URL de produção do webhook</li>
-                    <li>Cole a URL no campo acima</li>
-                    <li>Adicione nós para Google Sheets, CRM, etc.</li>
+                    <li>Adicione o webhook aqui com o tipo adequado</li>
+                    <li>Adicione nós para Google Sheets, CRM, WhatsApp, etc.</li>
                   </ol>
-                  <a 
-                    href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-xs text-primary hover:underline inline-block mt-2"
-                  >
-                    Ver documentação do n8n →
-                  </a>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    onClick={async () => {
-                      setIsSaving(true);
-                      try {
-                        await saveSetting("n8n_webhook_url", n8nWebhookUrl, "URL do webhook n8n para integração de leads", false);
-                        toast({ title: "Configurações do n8n salvas!" });
-                      } catch (error) {
-                        console.error("Error saving n8n settings:", error);
-                        toast({ title: "Erro ao salvar configurações", variant: "destructive" });
-                      } finally {
-                        setIsSaving(false);
-                      }
-                    }} 
-                    disabled={isSaving} 
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-2" />
-                        Salvar Configurações
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                <Separator className="my-4" />
-
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Ações</h4>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    <Button 
-                      variant="outline"
-                      onClick={async () => {
-                        if (!n8nWebhookUrl) {
-                          toast({ title: "Configure a URL do webhook primeiro", variant: "destructive" });
-                          return;
-                        }
-                        setIsTesting(true);
-                        try {
-                          const testPayload = {
-                            lead_id: "test-" + Date.now(),
-                            created_at: new Date().toISOString(),
-                            name: "Lead de Teste",
-                            email: "teste@exemplo.com",
-                            phone: "11999999999",
-                            affiliate_name: "Afiliado Teste",
-                            tracking_code: "TEST123",
-                            accepts_whatsapp: true,
-                            form_responses: {
-                              company_type: "MEI",
-                              has_health_plan: "Sim",
-                              monthly_income: "R$ 5.000 a R$ 10.000",
-                              test: true
-                            }
-                          };
-                          
-                          const response = await fetch(n8nWebhookUrl, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(testPayload)
-                          });
-                          
-                          if (response.ok) {
-                            toast({ title: "Teste enviado com sucesso!", description: "Verifique seu workflow n8n" });
-                          } else {
-                            const errorText = await response.text();
-                            toast({ title: "Erro no teste", description: `Status: ${response.status} - ${errorText}`, variant: "destructive" });
-                          }
-                        } catch (error) {
-                          console.error("Test error:", error);
-                          toast({ title: "Erro ao enviar teste", description: String(error), variant: "destructive" });
-                        } finally {
-                          setIsTesting(false);
-                        }
-                      }} 
-                      disabled={isTesting || !n8nWebhookUrl}
-                    >
-                      {isTesting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Enviando...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4 mr-2" />
-                          Enviar Lead de Teste
-                        </>
-                      )}
-                    </Button>
-
-                    <Button 
-                      variant="outline"
-                      onClick={async () => {
-                        if (!n8nWebhookUrl) {
-                          toast({ title: "Configure a URL do webhook primeiro", variant: "destructive" });
-                          return;
-                        }
-                        setIsReprocessing(true);
-                        try {
-                          // Fetch all leads with affiliate info
-                          const { data: leads, error } = await supabase
-                            .from("leads")
-                            .select(`
-                              id, created_at, name, email, phone, accepts_whatsapp, 
-                              tracking_code, form_responses,
-                              profiles!leads_affiliate_id_fkey (full_name)
-                            `)
-                            .order("created_at", { ascending: false })
-                            .limit(100);
-
-                          if (error) throw error;
-
-                          if (!leads || leads.length === 0) {
-                            toast({ title: "Nenhum lead encontrado para reprocessar" });
-                            return;
-                          }
-
-                          let successCount = 0;
-                          let errorCount = 0;
-
-                          for (const lead of leads) {
-                            try {
-                              const payload = {
-                                lead_id: lead.id,
-                                created_at: lead.created_at,
-                                name: lead.name,
-                                email: lead.email,
-                                phone: lead.phone,
-                                affiliate_name: lead.profiles?.full_name || "Desconhecido",
-                                tracking_code: lead.tracking_code || "",
-                                accepts_whatsapp: lead.accepts_whatsapp || false,
-                                form_responses: lead.form_responses || {},
-                                reprocessed: true
-                              };
-
-                              const response = await fetch(n8nWebhookUrl, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify(payload)
-                              });
-
-                              if (response.ok) {
-                                successCount++;
-                              } else {
-                                errorCount++;
-                              }
-                            } catch {
-                              errorCount++;
-                            }
-                          }
-
-                          toast({ 
-                            title: "Reprocessamento concluído!", 
-                            description: `${successCount} leads enviados com sucesso, ${errorCount} erros` 
-                          });
-                        } catch (error) {
-                          console.error("Reprocess error:", error);
-                          toast({ title: "Erro ao reprocessar leads", description: String(error), variant: "destructive" });
-                        } finally {
-                          setIsReprocessing(false);
-                        }
-                      }} 
-                      disabled={isReprocessing || !n8nWebhookUrl}
-                    >
-                      {isReprocessing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Reprocessando...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Reprocessar Leads Existentes
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground">
-                    O teste envia um lead fictício. O reprocessamento envia os últimos 100 leads para o webhook.
-                  </p>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Webhook Dialog */}
+            <Dialog open={webhookDialogOpen} onOpenChange={setWebhookDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{editingWebhook ? "Editar Webhook" : "Novo Webhook"}</DialogTitle>
+                  <DialogDescription>Configure a integração com o n8n</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Nome</Label>
+                    <Input value={webhookForm.name} onChange={(e) => setWebhookForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Leads para Google Sheets" />
+                  </div>
+                  <div>
+                    <Label>URL do Webhook</Label>
+                    <Input value={webhookForm.webhook_url} onChange={(e) => setWebhookForm(f => ({ ...f, webhook_url: e.target.value }))} placeholder="https://n8n.seudominio.com/webhook/..." />
+                  </div>
+                  <div>
+                    <Label>Tipo</Label>
+                    <Select value={webhookForm.webhook_type} onValueChange={(v) => setWebhookForm(f => ({ ...f, webhook_type: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos (Leads + Notificações)</SelectItem>
+                        <SelectItem value="lead">Apenas Leads</SelectItem>
+                        <SelectItem value="notification">Apenas Notificações</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">Define quais eventos disparam este webhook</p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setWebhookDialogOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleSaveWebhook} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    {editingWebhook ? "Atualizar" : "Criar"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="crm" className="space-y-4">
