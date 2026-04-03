@@ -235,7 +235,7 @@ const AdminIntegracoes = () => {
 
   const openEditDialog = (webhook: N8nWebhook) => {
     setEditingWebhook(webhook);
-    setWebhookForm({ name: webhook.name, webhook_url: webhook.webhook_url, webhook_type: webhook.webhook_type });
+    setWebhookForm({ name: webhook.name, webhook_url: webhook.webhook_url, webhook_type: webhook.webhook_type, http_method: webhook.http_method || "POST" });
     setWebhookDialogOpen(true);
   };
 
