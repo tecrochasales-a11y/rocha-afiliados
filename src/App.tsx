@@ -213,6 +213,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/admin/white-label" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminWhiteLabel />
+                </ProtectedRoute>
+              } 
+            />
             {/* Gestor Routes */}
             <Route 
               path="/gestor" 
