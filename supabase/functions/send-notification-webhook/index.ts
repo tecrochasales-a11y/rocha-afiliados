@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get affiliate profile (phone number)
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("full_name, phone, email")
@@ -40,10 +39,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get active webhooks from n8n_webhooks table (type 'notification' or 'all')
     const { data: webhooks, error: webhooksError } = await supabase
       .from("n8n_webhooks")
-      .select("id, name, webhook_url, webhook_type")
+      .select("id, name, webhook_url, webhook_type, http_method")
       .eq("is_active", true)
       .in("webhook_type", ["notification", "all"]);
 
@@ -51,11 +49,10 @@ Deno.serve(async (req) => {
       console.error("Error fetching webhooks:", webhooksError);
     }
 
-    // Fallback: check app_settings for legacy webhook
-    let webhookUrls: { name: string; url: string }[] = [];
+    let webhookList: { name: string; url: string; method: string }[] = [];
     
     if (webhooks && webhooks.length > 0) {
-      webhookUrls = webhooks.map(w => ({ name: w.name, url: w.webhook_url }));
+      webhookList = webhooks.map(w => ({ name: w.name, url: w.webhook_url, method: w.http_method || "POST" }));
     } else {
       const { data: settings } = await supabase
         .from("app_settings")
@@ -64,12 +61,12 @@ Deno.serve(async (req) => {
         .single();
 
       if (settings?.value) {
-        webhookUrls = [{ name: "Legacy", url: settings.value }];
+        webhookList = [{ name: "Legacy", url: settings.value, method: "POST" }];
       }
     }
 
-    if (webhookUrls.length === 0) {
-      console.log("No webhook URLs configured, skipping WhatsApp notification");
+    if (webhookList.length === 0) {
+      console.log("No webhook URLs configured, skipping notification");
       return new Response(JSON.stringify({ success: true, skipped: true, reason: "No webhooks configured" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -92,16 +89,26 @@ Deno.serve(async (req) => {
       timestamp: new Date().toISOString(),
     };
 
-    console.log("Sending notification to", webhookUrls.length, "webhook(s)");
+    console.log("Sending notification to", webhookList.length, "webhook(s)");
 
     const results = await Promise.allSettled(
-      webhookUrls.map(async (webhook) => {
-        console.log(`Sending to webhook "${webhook.name}":`, webhook.url);
-        const response = await fetch(webhook.url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+      webhookList.map(async (webhook) => {
+        console.log(`Sending to webhook "${webhook.name}" (${webhook.method}):`, webhook.url);
+        
+        let response: Response;
+        if (webhook.method === "GET") {
+          const url = new URL(webhook.url);
+          Object.entries(payload).forEach(([key, value]) => {
+            url.searchParams.set(key, typeof value === "object" ? JSON.stringify(value) : String(value));
+          });
+          response = await fetch(url.toString(), { method: "GET" });
+        } else {
+          response = await fetch(webhook.url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        }
 
         if (!response.ok) {
           const errorText = await response.text();

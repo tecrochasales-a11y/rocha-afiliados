@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, Upload, Palette, Type, Image as ImageIcon } from "lucide-react";
+import { Loader2, Save, Upload, Palette, Type, Image as ImageIcon, Mail, FileText, Settings, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,8 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 
 interface BrandSettings {
+  // Branding
   brand_name: string;
   brand_slogan: string;
   brand_description: string;
@@ -21,6 +24,24 @@ interface BrandSettings {
   brand_text_color: string;
   brand_logo_url: string;
   brand_favicon_url: string;
+  brand_login_bg_url: string;
+  brand_dashboard_banner_url: string;
+  // Naming
+  brand_system_name: string;
+  brand_system_url: string;
+  // E-mails
+  brand_email_sender_name: string;
+  brand_email_sender_address: string;
+  brand_email_signature: string;
+  brand_email_footer: string;
+  // Termos
+  brand_terms_of_use: string;
+  brand_privacy_policy: string;
+  // Permissões
+  brand_affiliate_can_see_leads: string;
+  brand_affiliate_can_withdraw: string;
+  brand_min_withdrawal_amount: string;
+  brand_commission_default_pct: string;
 }
 
 const defaultSettings: BrandSettings = {
@@ -34,6 +55,20 @@ const defaultSettings: BrandSettings = {
   brand_text_color: "#1a2633",
   brand_logo_url: "",
   brand_favicon_url: "",
+  brand_login_bg_url: "",
+  brand_dashboard_banner_url: "",
+  brand_system_name: "Rocha Sales Afiliados",
+  brand_system_url: "",
+  brand_email_sender_name: "Rocha Sales",
+  brand_email_sender_address: "",
+  brand_email_signature: "",
+  brand_email_footer: "",
+  brand_terms_of_use: "",
+  brand_privacy_policy: "",
+  brand_affiliate_can_see_leads: "true",
+  brand_affiliate_can_withdraw: "true",
+  brand_min_withdrawal_amount: "50",
+  brand_commission_default_pct: "10",
 };
 
 const AdminWhiteLabel = () => {
@@ -42,6 +77,8 @@ const AdminWhiteLabel = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const [loginBgFile, setLoginBgFile] = useState<File | null>(null);
+  const [dashboardBannerFile, setDashboardBannerFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -93,16 +130,19 @@ const AdminWhiteLabel = () => {
     try {
       const updatedSettings = { ...settings };
 
-      // Upload logo if selected
-      if (logoFile) {
-        const logoUrl = await uploadFile(logoFile, `brand/logo-${Date.now()}.${logoFile.name.split('.').pop()}`);
-        updatedSettings.brand_logo_url = logoUrl;
-      }
+      // Upload files if selected
+      const uploads: { file: File | null; key: keyof BrandSettings; prefix: string }[] = [
+        { file: logoFile, key: "brand_logo_url", prefix: "brand/logo" },
+        { file: faviconFile, key: "brand_favicon_url", prefix: "brand/favicon" },
+        { file: loginBgFile, key: "brand_login_bg_url", prefix: "brand/login-bg" },
+        { file: dashboardBannerFile, key: "brand_dashboard_banner_url", prefix: "brand/dashboard-banner" },
+      ];
 
-      // Upload favicon if selected
-      if (faviconFile) {
-        const faviconUrl = await uploadFile(faviconFile, `brand/favicon-${Date.now()}.${faviconFile.name.split('.').pop()}`);
-        updatedSettings.brand_favicon_url = faviconUrl;
+      for (const upload of uploads) {
+        if (upload.file) {
+          const url = await uploadFile(upload.file, `${upload.prefix}-${Date.now()}.${upload.file.name.split('.').pop()}`);
+          updatedSettings[upload.key] = url;
+        }
       }
 
       // Save each setting to app_settings
@@ -128,13 +168,14 @@ const AdminWhiteLabel = () => {
       setSettings(updatedSettings);
       setLogoFile(null);
       setFaviconFile(null);
+      setLoginBgFile(null);
+      setDashboardBannerFile(null);
 
-      // Apply colors dynamically
       applyBrandColors(updatedSettings);
 
       toast({
-        title: "Identidade visual salva!",
-        description: "As configurações de marca foram atualizadas com sucesso.",
+        title: "Configurações salvas!",
+        description: "Todas as personalizações foram atualizadas com sucesso.",
       });
     } catch (error) {
       console.error("Error saving brand settings:", error);
@@ -203,6 +244,43 @@ const AdminWhiteLabel = () => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
+  const FileUploadBox = ({ label, file, currentUrl, onFileChange }: {
+    label: string;
+    file: File | null;
+    currentUrl: string;
+    onFileChange: (f: File | null) => void;
+  }) => (
+    <div className="space-y-3">
+      <Label>{label}</Label>
+      <div className="border-2 border-dashed border-border rounded-xl p-6 text-center relative">
+        {(file || currentUrl) ? (
+          <div className="space-y-3">
+            <img
+              src={file ? URL.createObjectURL(file) : currentUrl}
+              alt={label}
+              className="max-h-20 mx-auto object-contain"
+            />
+            <p className="text-sm text-muted-foreground">
+              {file ? file.name : "Arquivo atual"}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Clique para enviar</p>
+          </div>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          className="opacity-0 cursor-pointer"
+          onChange={(e) => onFileChange(e.target.files?.[0] || null)}
+          style={{ position: "relative", marginTop: "8px" }}
+        />
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -215,14 +293,14 @@ const AdminWhiteLabel = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="p-6 max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-heading font-bold text-foreground">
-              Identidade Visual (White Label)
+              White Label
             </h1>
             <p className="text-muted-foreground mt-1">
-              Personalize a aparência da plataforma com a identidade da sua empresa.
+              Personalize completamente a plataforma com a identidade da sua empresa.
             </p>
           </div>
           <Button onClick={handleSave} disabled={isSaving}>
@@ -231,232 +309,437 @@ const AdminWhiteLabel = () => {
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            Salvar
+            Salvar Tudo
           </Button>
         </div>
 
-        {/* Nome e Textos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Type className="w-5 h-5" />
-              Nome e Textos
-            </CardTitle>
-            <CardDescription>
-              Defina o nome da empresa, slogan e descrição institucional.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Nome da Empresa</Label>
-                <Input
-                  value={settings.brand_name}
-                  onChange={(e) => updateSetting("brand_name", e.target.value)}
-                  placeholder="Nome da empresa"
-                />
-              </div>
-              <div>
-                <Label>Slogan / Subtítulo</Label>
-                <Input
-                  value={settings.brand_slogan}
-                  onChange={(e) => updateSetting("brand_slogan", e.target.value)}
-                  placeholder="Ex: SEGUROS"
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Descrição Institucional</Label>
-              <Textarea
-                value={settings.brand_description}
-                onChange={(e) => updateSetting("brand_description", e.target.value)}
-                placeholder="Breve descrição da empresa"
-                rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="branding" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+            <TabsTrigger value="branding" className="flex items-center gap-2 text-xs">
+              <Palette className="w-4 h-4" />
+              <span className="hidden sm:inline">Identidade Visual</span>
+              <span className="sm:hidden">Visual</span>
+            </TabsTrigger>
+            <TabsTrigger value="naming" className="flex items-center gap-2 text-xs">
+              <Type className="w-4 h-4" />
+              <span className="hidden sm:inline">Nome do Sistema</span>
+              <span className="sm:hidden">Nome</span>
+            </TabsTrigger>
+            <TabsTrigger value="emails" className="flex items-center gap-2 text-xs">
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">E-mails</span>
+              <span className="sm:hidden">E-mails</span>
+            </TabsTrigger>
+            <TabsTrigger value="terms" className="flex items-center gap-2 text-xs">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Termos e Políticas</span>
+              <span className="sm:hidden">Termos</span>
+            </TabsTrigger>
+            <TabsTrigger value="config" className="flex items-center gap-2 text-xs">
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Configurações</span>
+              <span className="sm:hidden">Config</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Logo e Favicon */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="w-5 h-5" />
-              Logo e Favicon
-            </CardTitle>
-            <CardDescription>
-              Faça upload do logotipo e ícone da sua empresa.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Logo */}
-              <div className="space-y-3">
-                <Label>Logotipo</Label>
-                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                  {(logoFile || settings.brand_logo_url) ? (
-                    <div className="space-y-3">
-                      <img
-                        src={logoFile ? URL.createObjectURL(logoFile) : settings.brand_logo_url}
-                        alt="Logo"
-                        className="max-h-20 mx-auto object-contain"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        {logoFile ? logoFile.name : "Logo atual"}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Clique para enviar</p>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                    style={{ position: "relative", marginTop: "8px" }}
-                  />
-                </div>
-              </div>
-
-              {/* Favicon */}
-              <div className="space-y-3">
-                <Label>Favicon (ícone do navegador)</Label>
-                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                  {(faviconFile || settings.brand_favicon_url) ? (
-                    <div className="space-y-3">
-                      <img
-                        src={faviconFile ? URL.createObjectURL(faviconFile) : settings.brand_favicon_url}
-                        alt="Favicon"
-                        className="max-h-16 mx-auto object-contain"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        {faviconFile ? faviconFile.name : "Favicon atual"}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Clique para enviar</p>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={(e) => setFaviconFile(e.target.files?.[0] || null)}
-                    style={{ position: "relative", marginTop: "8px" }}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Cores */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="w-5 h-5" />
-              Paleta de Cores
-            </CardTitle>
-            <CardDescription>
-              Personalize as cores do tema da plataforma.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { key: "brand_primary_color" as const, label: "Cor Primária", desc: "Botões, links e destaques" },
-                { key: "brand_secondary_color" as const, label: "Cor Secundária", desc: "CTAs e ações secundárias" },
-                { key: "brand_accent_color" as const, label: "Cor de Destaque", desc: "Badges e alertas" },
-                { key: "brand_background_color" as const, label: "Cor de Fundo", desc: "Background geral" },
-                { key: "brand_text_color" as const, label: "Cor do Texto", desc: "Textos principais" },
-              ].map((color) => (
-                <div key={color.key} className="space-y-2">
-                  <Label>{color.label}</Label>
-                  <p className="text-xs text-muted-foreground">{color.desc}</p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={settings[color.key]}
-                      onChange={(e) => updateSetting(color.key, e.target.value)}
-                      className="w-12 h-10 rounded-lg border border-border cursor-pointer"
-                    />
+          {/* ==================== ABA: Identidade Visual ==================== */}
+          <TabsContent value="branding" className="space-y-6">
+            {/* Nome e Textos */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Type className="w-5 h-5" />
+                  Nome e Textos
+                </CardTitle>
+                <CardDescription>
+                  Defina o nome da empresa, slogan e descrição institucional.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Nome da Empresa</Label>
                     <Input
-                      value={settings[color.key]}
-                      onChange={(e) => updateSetting(color.key, e.target.value)}
-                      className="flex-1 font-mono text-sm"
-                      placeholder="#000000"
+                      value={settings.brand_name}
+                      onChange={(e) => updateSetting("brand_name", e.target.value)}
+                      placeholder="Nome da empresa"
+                    />
+                  </div>
+                  <div>
+                    <Label>Slogan / Subtítulo</Label>
+                    <Input
+                      value={settings.brand_slogan}
+                      onChange={(e) => updateSetting("brand_slogan", e.target.value)}
+                      placeholder="Ex: SEGUROS"
                     />
                   </div>
                 </div>
-              ))}
-            </div>
+                <div>
+                  <Label>Descrição Institucional</Label>
+                  <Textarea
+                    value={settings.brand_description}
+                    onChange={(e) => updateSetting("brand_description", e.target.value)}
+                    placeholder="Breve descrição da empresa"
+                    rows={3}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-            <Separator className="my-6" />
+            {/* Logo, Favicon e Imagens */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5" />
+                  Logo, Favicon e Imagens
+                </CardTitle>
+                <CardDescription>
+                  Substitua a logo, ícone, tela de login e banner do dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FileUploadBox
+                    label="Logotipo"
+                    file={logoFile}
+                    currentUrl={settings.brand_logo_url}
+                    onFileChange={setLogoFile}
+                  />
+                  <FileUploadBox
+                    label="Favicon (ícone do navegador)"
+                    file={faviconFile}
+                    currentUrl={settings.brand_favicon_url}
+                    onFileChange={setFaviconFile}
+                  />
+                  <FileUploadBox
+                    label="Imagem de fundo do Login"
+                    file={loginBgFile}
+                    currentUrl={settings.brand_login_bg_url}
+                    onFileChange={setLoginBgFile}
+                  />
+                  <FileUploadBox
+                    label="Banner do Dashboard"
+                    file={dashboardBannerFile}
+                    currentUrl={settings.brand_dashboard_banner_url}
+                    onFileChange={setDashboardBannerFile}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Preview */}
-            <div>
-              <Label className="text-base font-semibold">Pré-visualização</Label>
-              <p className="text-sm text-muted-foreground mb-4">
-                Veja como as cores ficam na prática.
-              </p>
-              <div
-                className="rounded-xl p-6 border border-border"
-                style={{ backgroundColor: settings.brand_background_color }}
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  {settings.brand_logo_url && (
-                    <img src={settings.brand_logo_url} alt="Logo" className="h-8 object-contain" />
-                  )}
+            {/* Cores */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="w-5 h-5" />
+                  Paleta de Cores
+                </CardTitle>
+                <CardDescription>
+                  Personalize as cores do tema da plataforma.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    { key: "brand_primary_color" as const, label: "Cor Primária", desc: "Botões, links e destaques" },
+                    { key: "brand_secondary_color" as const, label: "Cor Secundária", desc: "CTAs e ações secundárias" },
+                    { key: "brand_accent_color" as const, label: "Cor de Destaque", desc: "Badges e alertas" },
+                    { key: "brand_background_color" as const, label: "Cor de Fundo", desc: "Background geral" },
+                    { key: "brand_text_color" as const, label: "Cor do Texto", desc: "Textos principais" },
+                  ].map((color) => (
+                    <div key={color.key} className="space-y-2">
+                      <Label>{color.label}</Label>
+                      <p className="text-xs text-muted-foreground">{color.desc}</p>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={settings[color.key]}
+                          onChange={(e) => updateSetting(color.key, e.target.value)}
+                          className="w-12 h-10 rounded-lg border border-border cursor-pointer"
+                        />
+                        <Input
+                          value={settings[color.key]}
+                          onChange={(e) => updateSetting(color.key, e.target.value)}
+                          className="flex-1 font-mono text-sm"
+                          placeholder="#000000"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator className="my-6" />
+
+                {/* Preview */}
+                <div>
+                  <Label className="text-base font-semibold">Pré-visualização</Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Veja como as cores ficam na prática.
+                  </p>
+                  <div
+                    className="rounded-xl p-6 border border-border"
+                    style={{ backgroundColor: settings.brand_background_color }}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      {settings.brand_logo_url && (
+                        <img src={settings.brand_logo_url} alt="Logo" className="h-8 object-contain" />
+                      )}
+                      <div>
+                        <h3 className="font-heading font-bold" style={{ color: settings.brand_text_color }}>
+                          {settings.brand_name}
+                        </h3>
+                        <p className="text-xs" style={{ color: settings.brand_text_color, opacity: 0.6 }}>
+                          {settings.brand_slogan}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm mb-4" style={{ color: settings.brand_text_color, opacity: 0.8 }}>
+                      {settings.brand_description}
+                    </p>
+                    <div className="flex gap-3 flex-wrap">
+                      <button
+                        className="px-4 py-2 rounded-lg text-sm font-medium"
+                        style={{ backgroundColor: settings.brand_primary_color, color: "#fff" }}
+                      >
+                        Botão Primário
+                      </button>
+                      <button
+                        className="px-4 py-2 rounded-lg text-sm font-medium"
+                        style={{ backgroundColor: settings.brand_secondary_color, color: "#fff" }}
+                      >
+                        Botão Secundário
+                      </button>
+                      <span
+                        className="px-3 py-1 rounded-full text-xs font-semibold flex items-center"
+                        style={{ backgroundColor: settings.brand_accent_color, color: "#fff" }}
+                      >
+                        Destaque
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ==================== ABA: Nome do Sistema ==================== */}
+          <TabsContent value="naming" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Type className="w-5 h-5" />
+                  Identidade do Sistema
+                </CardTitle>
+                <CardDescription>
+                  Altere o nome do software e a URL personalizada para refletir sua marca.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Nome do Sistema</Label>
+                  <Input
+                    value={settings.brand_system_name}
+                    onChange={(e) => updateSetting("brand_system_name", e.target.value)}
+                    placeholder="Ex: Minha Empresa Afiliados"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Este nome aparecerá no título do navegador, e-mails e relatórios.
+                  </p>
+                </div>
+                <div>
+                  <Label>URL Personalizada (Domínio)</Label>
+                  <Input
+                    value={settings.brand_system_url}
+                    onChange={(e) => updateSetting("brand_system_url", e.target.value)}
+                    placeholder="https://afiliados.suaempresa.com.br"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Domínio personalizado para acesso ao sistema (requer configuração de DNS).
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ==================== ABA: E-mails ==================== */}
+          <TabsContent value="emails" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  E-mails Automáticos
+                </CardTitle>
+                <CardDescription>
+                  Configure os e-mails de notificação com seu remetente e assinatura.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h3 className="font-heading font-bold" style={{ color: settings.brand_text_color }}>
-                      {settings.brand_name}
-                    </h3>
-                    <p className="text-xs" style={{ color: settings.brand_text_color, opacity: 0.6 }}>
-                      {settings.brand_slogan}
+                    <Label>Nome do Remetente</Label>
+                    <Input
+                      value={settings.brand_email_sender_name}
+                      onChange={(e) => updateSetting("brand_email_sender_name", e.target.value)}
+                      placeholder="Sua Empresa"
+                    />
+                  </div>
+                  <div>
+                    <Label>E-mail do Remetente</Label>
+                    <Input
+                      type="email"
+                      value={settings.brand_email_sender_address}
+                      onChange={(e) => updateSetting("brand_email_sender_address", e.target.value)}
+                      placeholder="contato@suaempresa.com.br"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Assinatura do E-mail</Label>
+                  <Textarea
+                    value={settings.brand_email_signature}
+                    onChange={(e) => updateSetting("brand_email_signature", e.target.value)}
+                    placeholder="Ex: Atenciosamente, Equipe Sua Empresa"
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Texto que aparecerá no final de cada e-mail automático.
+                  </p>
+                </div>
+                <div>
+                  <Label>Rodapé do E-mail</Label>
+                  <Textarea
+                    value={settings.brand_email_footer}
+                    onChange={(e) => updateSetting("brand_email_footer", e.target.value)}
+                    placeholder="Ex: © 2026 Sua Empresa. Todos os direitos reservados."
+                    rows={2}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ==================== ABA: Termos e Políticas ==================== */}
+          <TabsContent value="terms" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Termos de Uso
+                </CardTitle>
+                <CardDescription>
+                  Personalize os Termos de Uso exibidos na plataforma.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={settings.brand_terms_of_use}
+                  onChange={(e) => updateSetting("brand_terms_of_use", e.target.value)}
+                  placeholder="Cole aqui os Termos de Uso da sua empresa..."
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Suporta texto simples. Os termos serão exibidos na página /termos.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Política de Privacidade
+                </CardTitle>
+                <CardDescription>
+                  Personalize a Política de Privacidade exibida na plataforma.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={settings.brand_privacy_policy}
+                  onChange={(e) => updateSetting("brand_privacy_policy", e.target.value)}
+                  placeholder="Cole aqui a Política de Privacidade da sua empresa..."
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Suporta texto simples. A política será exibida na página /privacidade.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ==================== ABA: Configurações ==================== */}
+          <TabsContent value="config" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Funcionalidades e Permissões
+                </CardTitle>
+                <CardDescription>
+                  Ajuste regras de negócio e permissões dos afiliados.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div>
+                    <Label className="text-sm font-medium">Afiliados podem ver detalhes dos leads</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Permite que afiliados vejam nome, e-mail e telefone dos leads que indicaram.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.brand_affiliate_can_see_leads === "true"}
+                    onCheckedChange={(checked) => updateSetting("brand_affiliate_can_see_leads", checked ? "true" : "false")}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div>
+                    <Label className="text-sm font-medium">Afiliados podem solicitar saques</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Permite que afiliados solicitem saques de comissões pelo sistema.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.brand_affiliate_can_withdraw === "true"}
+                    onCheckedChange={(checked) => updateSetting("brand_affiliate_can_withdraw", checked ? "true" : "false")}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Valor Mínimo para Saque (R$)</Label>
+                    <Input
+                      type="number"
+                      value={settings.brand_min_withdrawal_amount}
+                      onChange={(e) => updateSetting("brand_min_withdrawal_amount", e.target.value)}
+                      placeholder="50"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Valor mínimo em reais para o afiliado solicitar um saque.
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Comissão Padrão (%)</Label>
+                    <Input
+                      type="number"
+                      value={settings.brand_commission_default_pct}
+                      onChange={(e) => updateSetting("brand_commission_default_pct", e.target.value)}
+                      placeholder="10"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Percentual de comissão padrão para novos produtos.
                     </p>
                   </div>
                 </div>
-                <p className="text-sm mb-4" style={{ color: settings.brand_text_color, opacity: 0.8 }}>
-                  {settings.brand_description}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    className="px-4 py-2 rounded-lg text-sm font-medium"
-                    style={{
-                      backgroundColor: settings.brand_primary_color,
-                      color: "#fff",
-                    }}
-                  >
-                    Botão Primário
-                  </button>
-                  <button
-                    className="px-4 py-2 rounded-lg text-sm font-medium"
-                    style={{
-                      backgroundColor: settings.brand_secondary_color,
-                      color: "#fff",
-                    }}
-                  >
-                    Botão Secundário
-                  </button>
-                  <span
-                    className="px-3 py-1 rounded-full text-xs font-semibold flex items-center"
-                    style={{
-                      backgroundColor: settings.brand_accent_color,
-                      color: "#fff",
-                    }}
-                  >
-                    Destaque
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </AdminLayout>
   );

@@ -46,6 +46,7 @@ interface N8nWebhook {
   name: string;
   webhook_url: string;
   webhook_type: string;
+  http_method: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -71,7 +72,7 @@ const AdminIntegracoes = () => {
   const [webhooks, setWebhooks] = useState<N8nWebhook[]>([]);
   const [webhookDialogOpen, setWebhookDialogOpen] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<N8nWebhook | null>(null);
-  const [webhookForm, setWebhookForm] = useState({ name: "", webhook_url: "", webhook_type: "all" });
+  const [webhookForm, setWebhookForm] = useState({ name: "", webhook_url: "", webhook_type: "all", http_method: "POST" });
   
   // OAuth Settings
   const [googleClientId, setGoogleClientId] = useState("");
@@ -148,6 +149,7 @@ const AdminIntegracoes = () => {
             name: webhookForm.name,
             webhook_url: webhookForm.webhook_url,
             webhook_type: webhookForm.webhook_type,
+            http_method: webhookForm.http_method,
             updated_at: new Date().toISOString(),
           })
           .eq("id", editingWebhook.id);
@@ -160,13 +162,14 @@ const AdminIntegracoes = () => {
             name: webhookForm.name,
             webhook_url: webhookForm.webhook_url,
             webhook_type: webhookForm.webhook_type,
+            http_method: webhookForm.http_method,
           });
         if (error) throw error;
         toast({ title: "Webhook criado!" });
       }
       setWebhookDialogOpen(false);
       setEditingWebhook(null);
-      setWebhookForm({ name: "", webhook_url: "", webhook_type: "all" });
+      setWebhookForm({ name: "", webhook_url: "", webhook_type: "all", http_method: "POST" });
       fetchWebhooks();
     } catch (error) {
       console.error("Error saving webhook:", error);
@@ -206,7 +209,7 @@ const AdminIntegracoes = () => {
     setIsTesting(webhook.id);
     try {
       const { data, error } = await supabase.functions.invoke("test-webhook", {
-        body: { webhook_url: webhook.webhook_url },
+        body: { webhook_url: webhook.webhook_url, http_method: webhook.http_method || "POST" },
       });
 
       if (error) throw error;
@@ -226,13 +229,13 @@ const AdminIntegracoes = () => {
 
   const openCreateDialog = () => {
     setEditingWebhook(null);
-    setWebhookForm({ name: "", webhook_url: "", webhook_type: "all" });
+    setWebhookForm({ name: "", webhook_url: "", webhook_type: "all", http_method: "POST" });
     setWebhookDialogOpen(true);
   };
 
   const openEditDialog = (webhook: N8nWebhook) => {
     setEditingWebhook(webhook);
-    setWebhookForm({ name: webhook.name, webhook_url: webhook.webhook_url, webhook_type: webhook.webhook_type });
+    setWebhookForm({ name: webhook.name, webhook_url: webhook.webhook_url, webhook_type: webhook.webhook_type, http_method: webhook.http_method || "POST" });
     setWebhookDialogOpen(true);
   };
 
@@ -393,6 +396,7 @@ const AdminIntegracoes = () => {
                       <TableRow>
                         <TableHead>Nome</TableHead>
                         <TableHead>Tipo</TableHead>
+                        <TableHead>Método</TableHead>
                         <TableHead>URL</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
@@ -406,6 +410,9 @@ const AdminIntegracoes = () => {
                             <Badge variant="outline">
                               {wh.webhook_type === "all" ? "Todos" : wh.webhook_type === "lead" ? "Leads" : "Notificações"}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{wh.http_method || "POST"}</Badge>
                           </TableCell>
                           <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">
                             {wh.webhook_url}
@@ -494,6 +501,17 @@ const AdminIntegracoes = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground mt-1">Define quais eventos disparam este webhook</p>
+                  </div>
+                  <div>
+                    <Label>Método HTTP</Label>
+                    <Select value={webhookForm.http_method} onValueChange={(v) => setWebhookForm(f => ({ ...f, http_method: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="POST">POST</SelectItem>
+                        <SelectItem value="GET">GET</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">POST envia dados no corpo. GET envia como parâmetros na URL.</p>
                   </div>
                 </div>
                 <DialogFooter>

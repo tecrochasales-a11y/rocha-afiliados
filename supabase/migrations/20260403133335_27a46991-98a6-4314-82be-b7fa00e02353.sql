@@ -1,0 +1,1 @@
+ALTER TABLE public.n8n_webhooks ADD COLUMN http_method TEXT NOT NULL DEFAULT 'POST';

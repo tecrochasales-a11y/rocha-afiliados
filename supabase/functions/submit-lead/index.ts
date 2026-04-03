@@ -324,24 +324,24 @@ Deno.serve(async (req) => {
     // Get active webhooks from n8n_webhooks table (type 'lead' or 'all')
     const { data: webhooks } = await supabase
       .from("n8n_webhooks")
-      .select("id, name, webhook_url, webhook_type")
+      .select("id, name, webhook_url, webhook_type, http_method")
       .eq("is_active", true)
       .in("webhook_type", ["lead", "all"]);
 
     // Fallback to legacy setting
-    let webhookUrls: { name: string; url: string }[] = [];
+    let webhookList: { name: string; url: string; method: string }[] = [];
     if (webhooks && webhooks.length > 0) {
-      webhookUrls = webhooks.map(w => ({ name: w.name, url: w.webhook_url }));
+      webhookList = webhooks.map(w => ({ name: w.name, url: w.webhook_url, method: w.http_method || "POST" }));
     } else {
       const legacyUrl = settings?.find((s) => s.key === "n8n_webhook_url")?.value;
       if (legacyUrl) {
-        webhookUrls = [{ name: "Legacy", url: legacyUrl }];
+        webhookList = [{ name: "Legacy", url: legacyUrl, method: "POST" }];
       }
     }
 
     // n8n Webhook Integration (PREFERRED - centralizes all integrations)
-    if (webhookUrls.length > 0) {
-      console.log(`Sending lead to ${webhookUrls.length} n8n webhook(s)...`);
+    if (webhookList.length > 0) {
+      console.log(`Sending lead to ${webhookList.length} n8n webhook(s)...`);
       
       const leadPayload = {
         lead_id: insertedLead.id,
@@ -356,13 +356,22 @@ Deno.serve(async (req) => {
       };
 
       const results = await Promise.allSettled(
-        webhookUrls.map(async (webhook) => {
-          console.log(`Sending to webhook "${webhook.name}":`, webhook.url);
-          const response = await fetch(webhook.url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(leadPayload),
-          });
+        webhookList.map(async (webhook) => {
+          console.log(`Sending to webhook "${webhook.name}" (${webhook.method}):`, webhook.url);
+          let response: Response;
+          if (webhook.method === "GET") {
+            const url = new URL(webhook.url);
+            Object.entries(leadPayload).forEach(([key, value]) => {
+              url.searchParams.set(key, typeof value === "object" ? JSON.stringify(value) : String(value));
+            });
+            response = await fetch(url.toString(), { method: "GET" });
+          } else {
+            response = await fetch(webhook.url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(leadPayload),
+            });
+          }
           if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`${response.status}: ${errorText}`);
