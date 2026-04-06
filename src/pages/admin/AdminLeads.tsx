@@ -822,6 +822,23 @@ const AdminLeads = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Form Responses Dialog */}
+        {formResponsesLead && (
+          <LeadFormResponsesDialog
+            open={isFormDialogOpen}
+            onOpenChange={setIsFormDialogOpen}
+            leadName={formResponsesLead.name}
+            formResponses={
+              formResponsesLead.form_responses &&
+              typeof formResponsesLead.form_responses === "object" &&
+              !Array.isArray(formResponsesLead.form_responses)
+                ? (formResponsesLead.form_responses as Record<string, unknown>)
+                : null
+            }
+            leadData={formResponsesLead}
+          />
+        )}
       </div>
     </AdminLayout>
   );
