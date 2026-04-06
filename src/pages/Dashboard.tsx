@@ -507,70 +507,91 @@ const Dashboard = () => {
 
           {/* Leads Table */}
           <div className="bg-card rounded-2xl border border-border shadow-soft overflow-hidden">
-            <div className="p-6 border-b border-border">
+            <div className="p-4 sm:p-6 border-b border-border">
               <h3 className="font-heading font-semibold text-lg text-foreground">
                 Últimas Indicações
               </h3>
             </div>
-            <div className="overflow-x-auto">
-              {leads.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Você ainda não tem indicações.</p>
-                  <p className="text-sm mt-2">Compartilhe seu link para começar a ganhar!</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>E-mail</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Pagamento</TableHead>
-                      <TableHead className="text-right">Comissão Prevista</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {leads.map((lead) => (
-                      <TableRow key={lead.id}>
-                        <TableCell className="font-medium">{lead.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{lead.email}</TableCell>
-                        <TableCell className="text-muted-foreground">
+            {leads.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Você ainda não tem indicações.</p>
+                <p className="text-sm mt-2">Compartilhe seu link para começar a ganhar!</p>
+              </div>
+            ) : (
+              <>
+                {/* Mobile card view */}
+                <div className="md:hidden divide-y divide-border">
+                  {leads.map((lead) => (
+                    <div key={lead.id} className="p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm text-foreground truncate mr-2">{lead.name}</span>
+                        {getStatusBadge(lead.status)}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{lead.email}</p>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
                           {new Date(lead.created_at).toLocaleDateString("pt-BR")}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                        <TableCell>
-                          {lead.status === "converted" ? (
-                            lead.payment_status === "paid" ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary">
-                                <CheckCircle className="w-3 h-3" />
-                                Pago
-                              </span>
-                            ) : lead.payment_status === "cancelled" ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
-                                <XCircle className="w-3 h-3" />
-                                Cancelado
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
-                                <Clock className="w-3 h-3" />
-                                Aguardando
-                              </span>
-                            )
-                          ) : (
-                            <span className="text-muted-foreground text-xs">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {getProjectedCommissionDisplay(lead)}
-                        </TableCell>
+                        </span>
+                        <span className="font-medium">{getProjectedCommissionDisplay(lead)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>E-mail</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Pagamento</TableHead>
+                        <TableHead className="text-right">Comissão Prevista</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {leads.map((lead) => (
+                        <TableRow key={lead.id}>
+                          <TableCell className="font-medium">{lead.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{lead.email}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(lead.created_at).toLocaleDateString("pt-BR")}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                          <TableCell>
+                            {lead.status === "converted" ? (
+                              lead.payment_status === "paid" ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Pago
+                                </span>
+                              ) : lead.payment_status === "cancelled" ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+                                  <XCircle className="w-3 h-3" />
+                                  Cancelado
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
+                                  <Clock className="w-3 h-3" />
+                                  Aguardando
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {getProjectedCommissionDisplay(lead)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </main>
