@@ -60,6 +60,16 @@ interface Lead {
   payment_status: string | null;
   payment_confirmed_at: string | null;
   payment_notes: string | null;
+  form_responses: Record<string, unknown> | null;
+  company_type: string | null;
+  has_health_plan: string | null;
+  monthly_income: string | null;
+  health_plan_investment: string | null;
+  insurance_provider: string | null;
+  covered_ages: string | null;
+  adjustment_month: string | null;
+  cnpj_or_region: string | null;
+  accepts_whatsapp: boolean | null;
 }
 
 const AdminLeads = () => {
