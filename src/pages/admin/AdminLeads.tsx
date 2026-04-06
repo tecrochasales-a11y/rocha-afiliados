@@ -10,7 +10,8 @@ import {
   Phone,
   Mail,
   AlertTriangle,
-  CreditCard
+  CreditCard,
+  FileText
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LeadFormResponsesDialog } from "@/components/admin/LeadFormResponsesDialog";
 
 interface Lead {
   id: string;
@@ -58,6 +60,16 @@ interface Lead {
   payment_status: string | null;
   payment_confirmed_at: string | null;
   payment_notes: string | null;
+  form_responses: unknown | null;
+  company_type: string | null;
+  has_health_plan: string | null;
+  monthly_income: string | null;
+  health_plan_investment: string | null;
+  insurance_provider: string | null;
+  covered_ages: string | null;
+  adjustment_month: string | null;
+  cnpj_or_region: string | null;
+  accepts_whatsapp: boolean | null;
 }
 
 const AdminLeads = () => {
@@ -74,6 +86,8 @@ const AdminLeads = () => {
   const [paymentStatus, setPaymentStatus] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [formResponsesLead, setFormResponsesLead] = useState<Lead | null>(null);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [commissionPercentage, setCommissionPercentage] = useState(30);
   const [commissionInstallments, setCommissionInstallments] = useState(1);
   const { toast } = useToast();
@@ -651,13 +665,26 @@ const AdminLeads = () => {
                         {new Date(lead.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openUpdateDialog(lead)}
-                        >
-                          Atualizar
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setFormResponsesLead(lead);
+                              setIsFormDialogOpen(true);
+                            }}
+                            title="Ver formulário"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openUpdateDialog(lead)}
+                          >
+                            Atualizar
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -795,6 +822,23 @@ const AdminLeads = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Form Responses Dialog */}
+        {formResponsesLead && (
+          <LeadFormResponsesDialog
+            open={isFormDialogOpen}
+            onOpenChange={setIsFormDialogOpen}
+            leadName={formResponsesLead.name}
+            formResponses={
+              formResponsesLead.form_responses &&
+              typeof formResponsesLead.form_responses === "object" &&
+              !Array.isArray(formResponsesLead.form_responses)
+                ? (formResponsesLead.form_responses as Record<string, unknown>)
+                : null
+            }
+            leadData={formResponsesLead}
+          />
+        )}
       </div>
     </AdminLayout>
   );
