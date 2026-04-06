@@ -86,6 +86,8 @@ const AdminLeads = () => {
   const [paymentStatus, setPaymentStatus] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [formResponsesLead, setFormResponsesLead] = useState<Lead | null>(null);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [commissionPercentage, setCommissionPercentage] = useState(30);
   const [commissionInstallments, setCommissionInstallments] = useState(1);
   const { toast } = useToast();
