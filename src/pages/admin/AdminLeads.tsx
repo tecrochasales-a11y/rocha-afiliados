@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LeadFormResponsesDialog } from "@/components/admin/LeadFormResponsesDialog";
 
 interface Lead {
   id: string;
