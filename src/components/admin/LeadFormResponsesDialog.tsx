@@ -40,6 +40,29 @@ const fieldLabels: Record<string, string> = {
   adjustment_month: "Mês de reajuste",
   cnpj_or_region: "CNPJ ou Região",
   accepts_whatsapp: "Aceita WhatsApp?",
+  contact_info: "Dados de Contato",
+};
+
+const formatValue = (value: unknown): string => {
+  if (typeof value === "boolean") return value ? "Sim" : "Não";
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "object") {
+    // Handle nested objects like contact_info
+    const obj = value as Record<string, unknown>;
+    const parts: string[] = [];
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== null && v !== undefined && v !== "") {
+        const label = fieldLabels[k] || k.replace(/_/g, " ");
+        parts.push(`${label}: ${String(v)}`);
+      }
+    }
+    return parts.length > 0 ? parts.join("\n") : "-";
+  }
+  return String(value);
+};
+
+const isObjectValue = (value: unknown): boolean => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 };
 
 export const LeadFormResponsesDialog = ({
@@ -63,19 +86,32 @@ export const LeadFormResponsesDialog = ({
     ["cnpj_or_region", leadData.cnpj_or_region],
     ["accepts_whatsapp", leadData.accepts_whatsapp],
   ];
-  const knownFields = allKnownFields.filter(([, value]) => value !== null && value !== undefined && value !== "");
+  const knownFields = allKnownFields.filter(
+    ([, value]) => value !== null && value !== undefined && value !== ""
+  );
 
   const dynamicResponses = formResponses
     ? Object.entries(formResponses).filter(
-        ([key]) => !Object.keys(fieldLabels).includes(key)
+        ([key]) => !Object.keys(fieldLabels).includes(key) || key === "contact_info"
       )
     : [];
 
-  const formatValue = (value: unknown): string => {
-    if (typeof value === "boolean") return value ? "Sim" : "Não";
-    if (value === null || value === undefined) return "-";
-    return String(value);
-  };
+  // Flatten nested objects into individual rows
+  const flattenedDynamic: [string, unknown][] = [];
+  for (const [key, value] of dynamicResponses) {
+    if (isObjectValue(value)) {
+      const obj = value as Record<string, unknown>;
+      // Add as a section header
+      flattenedDynamic.push([key, "__section__"]);
+      for (const [subKey, subValue] of Object.entries(obj)) {
+        if (subValue !== null && subValue !== undefined && subValue !== "") {
+          flattenedDynamic.push([subKey, subValue]);
+        }
+      }
+    } else {
+      flattenedDynamic.push([key, value]);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -92,32 +128,43 @@ export const LeadFormResponsesDialog = ({
           {knownFields.map(([key, value]) => (
             <div
               key={key}
-              className="flex justify-between items-start py-2.5 border-b border-border last:border-0"
+              className="flex flex-col sm:flex-row sm:justify-between sm:items-start py-2.5 border-b border-border last:border-0 gap-1"
             >
               <span className="text-sm font-medium text-muted-foreground">
                 {fieldLabels[key] || key}
               </span>
-              <span className="text-sm text-foreground text-right max-w-[60%]">
+              <span className="text-sm text-foreground sm:text-right sm:max-w-[60%] break-words">
                 {formatValue(value)}
               </span>
             </div>
           ))}
 
-          {dynamicResponses.map(([key, value]) => (
-            <div
-              key={key}
-              className="flex justify-between items-start py-2.5 border-b border-border last:border-0"
-            >
-              <span className="text-sm font-medium text-muted-foreground">
-                {fieldLabels[key] || key.replace(/_/g, " ")}
-              </span>
-              <span className="text-sm text-foreground text-right max-w-[60%]">
-                {formatValue(value)}
-              </span>
-            </div>
-          ))}
+          {flattenedDynamic.map(([key, value], idx) =>
+            value === "__section__" ? (
+              <div
+                key={`section-${idx}`}
+                className="pt-4 pb-1 border-b border-border"
+              >
+                <span className="text-sm font-semibold text-foreground">
+                  {fieldLabels[key] || key.replace(/_/g, " ")}
+                </span>
+              </div>
+            ) : (
+              <div
+                key={`dynamic-${idx}`}
+                className="flex flex-col sm:flex-row sm:justify-between sm:items-start py-2.5 border-b border-border last:border-0 gap-1"
+              >
+                <span className="text-sm font-medium text-muted-foreground">
+                  {fieldLabels[key] || key.replace(/_/g, " ")}
+                </span>
+                <span className="text-sm text-foreground sm:text-right sm:max-w-[60%] break-words whitespace-pre-line">
+                  {formatValue(value)}
+                </span>
+              </div>
+            )
+          )}
 
-          {knownFields.length === 0 && dynamicResponses.length === 0 && (
+          {knownFields.length === 0 && flattenedDynamic.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="w-10 h-10 mx-auto mb-2 opacity-50" />
               <p>Nenhuma resposta registrada para este lead.</p>
