@@ -60,7 +60,7 @@ interface Lead {
   payment_status: string | null;
   payment_confirmed_at: string | null;
   payment_notes: string | null;
-  form_responses: Record<string, unknown> | null;
+  form_responses: unknown | null;
   company_type: string | null;
   has_health_plan: string | null;
   monthly_income: string | null;
