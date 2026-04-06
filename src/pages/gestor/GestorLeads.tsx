@@ -190,7 +190,7 @@ const GestorLeads = () => {
 
   return (
     <GestorLayout>
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-heading text-2xl md:text-3xl font-bold text-foreground">
@@ -227,8 +227,47 @@ const GestorLeads = () => {
           </Select>
         </div>
 
-        {/* Table */}
-        <div className="bg-card rounded-2xl border border-border shadow-soft overflow-hidden">
+        {/* Mobile card view */}
+        <div className="lg:hidden space-y-3">
+          {filteredLeads.length === 0 ? (
+            <div className="bg-card rounded-2xl border border-border p-8 text-center text-muted-foreground">
+              Nenhum lead encontrado
+            </div>
+          ) : (
+            filteredLeads.map((lead) => (
+              <div key={lead.id} className="bg-card rounded-xl border border-border p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-sm text-foreground truncate">{lead.name}</span>
+                  {getStatusBadge(lead.status)}
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="flex items-center gap-1">
+                    <Mail className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{lead.email}</span>
+                  </div>
+                  {lead.phone && (
+                    <div className="flex items-center gap-1">
+                      <Phone className="w-3 h-3 shrink-0" />
+                      {lead.phone}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Afiliado: {lead.affiliate_name}</span>
+                  <span>{new Date(lead.created_at).toLocaleDateString("pt-BR")}</span>
+                </div>
+                {lead.sale_value && (
+                  <p className="text-sm font-medium">
+                    R$ {Number(lead.sale_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden lg:block bg-card rounded-2xl border border-border shadow-soft overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -255,12 +294,12 @@ const GestorLeads = () => {
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Mail className="w-3 h-3" />
-                            {lead.email}
+                            <Mail className="w-3 h-3 shrink-0" />
+                            <span className="truncate max-w-[200px]">{lead.email}</span>
                           </div>
                           {lead.phone && (
                             <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Phone className="w-3 h-3" />
+                              <Phone className="w-3 h-3 shrink-0" />
                               {lead.phone}
                             </div>
                           )}

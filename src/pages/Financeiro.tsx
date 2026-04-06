@@ -285,8 +285,8 @@ const Financeiro = () => {
           )}
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-8">
+            <div className="bg-card rounded-2xl p-4 sm:p-5 border border-border shadow-soft">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
                   <TrendingUp className="w-5 h-5" />
@@ -361,152 +361,197 @@ const Financeiro = () => {
             </Select>
           </div>
 
-          {/* Commissions Table */}
+          {/* Commissions */}
           {(filter === "all" || filter === "commissions") && (
             <div className="bg-card rounded-2xl border border-border shadow-soft overflow-hidden mb-8">
-              <div className="p-6 border-b border-border flex items-center gap-3">
+              <div className="p-4 sm:p-6 border-b border-border flex items-center gap-3">
                 <DollarSign className="w-5 h-5 text-secondary" />
                 <h3 className="font-heading font-semibold text-lg text-foreground">
                   Comissões
                 </h3>
               </div>
-              <div className="overflow-x-auto">
-                {commissions.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Você ainda não tem comissões.</p>
+              {commissions.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Você ainda não tem comissões.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Mobile */}
+                  <div className="md:hidden divide-y divide-border">
+                    {commissions.map((c) => (
+                      <div key={c.id} className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">
+                            R$ {Number(c.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </span>
+                          {getCommissionStatusBadge(c.status)}
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{new Date(c.created_at).toLocaleDateString("pt-BR")}</span>
+                          <span>{Number(c.percentage).toFixed(1)}%</span>
+                        </div>
+                        {c.total_installments && c.total_installments > 1 && (
+                          <p className="text-xs text-muted-foreground">
+                            Parcela {c.installment_number}/{c.total_installments}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                         <TableHead>Data</TableHead>
-                         <TableHead>Parcela</TableHead>
-                         <TableHead>Valor</TableHead>
-                         <TableHead>Percentual</TableHead>
-                         <TableHead>Status</TableHead>
-                         <TableHead>Pagamento Cliente</TableHead>
-                         <TableHead>Vencimento</TableHead>
-                         <TableHead>Data Pagamento</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {commissions.map((commission) => (
-                        <TableRow key={commission.id}>
-                          <TableCell className="text-muted-foreground">
-                            {new Date(commission.created_at).toLocaleDateString("pt-BR")}
-                          </TableCell>
-                          <TableCell>
-                            {commission.total_installments && commission.total_installments > 1 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted text-xs font-medium">
-                                {commission.installment_number}/{commission.total_installments}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            R$ {Number(commission.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {Number(commission.percentage).toFixed(1)}%
-                          </TableCell>
-                          <TableCell>{getCommissionStatusBadge(commission.status)}</TableCell>
-                          <TableCell>
-                            {commission.status === "cancelled" ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
-                                <XCircle className="w-3 h-3" />
-                                Cancelado
-                              </span>
-                            ) : commission.lead_payment_status === "pago" ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary">
-                                <CheckCircle className="w-3 h-3" />
-                                Pago
-                              </span>
-                            ) : commission.lead_payment_status === "cancelado" ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
-                                <XCircle className="w-3 h-3" />
-                                Cancelado
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
-                                <Clock className="w-3 h-3" />
-                                Aguardando
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {commission.status !== "cancelled" && commission.due_date 
-                              ? new Date(commission.due_date).toLocaleDateString("pt-BR")
-                              : "-"
-                            }
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {commission.status !== "cancelled" && commission.paid_at 
-                              ? new Date(commission.paid_at).toLocaleDateString("pt-BR")
-                              : "-"
-                            }
-                          </TableCell>
+                  {/* Desktop */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Parcela</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Percentual</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Pagamento Cliente</TableHead>
+                          <TableHead>Vencimento</TableHead>
+                          <TableHead>Data Pagamento</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {commissions.map((commission) => (
+                          <TableRow key={commission.id}>
+                            <TableCell className="text-muted-foreground">
+                              {new Date(commission.created_at).toLocaleDateString("pt-BR")}
+                            </TableCell>
+                            <TableCell>
+                              {commission.total_installments && commission.total_installments > 1 ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted text-xs font-medium">
+                                  {commission.installment_number}/{commission.total_installments}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              R$ {Number(commission.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {Number(commission.percentage).toFixed(1)}%
+                            </TableCell>
+                            <TableCell>{getCommissionStatusBadge(commission.status)}</TableCell>
+                            <TableCell>
+                              {commission.status === "cancelled" ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+                                  <XCircle className="w-3 h-3" />
+                                  Cancelado
+                                </span>
+                              ) : commission.lead_payment_status === "pago" ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Pago
+                                </span>
+                              ) : commission.lead_payment_status === "cancelado" ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+                                  <XCircle className="w-3 h-3" />
+                                  Cancelado
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
+                                  <Clock className="w-3 h-3" />
+                                  Aguardando
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {commission.status !== "cancelled" && commission.due_date 
+                                ? new Date(commission.due_date).toLocaleDateString("pt-BR")
+                                : "-"
+                              }
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {commission.status !== "cancelled" && commission.paid_at 
+                                ? new Date(commission.paid_at).toLocaleDateString("pt-BR")
+                                : "-"
+                              }
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
-          {/* Withdrawals Table */}
+          {/* Withdrawals */}
           {(filter === "all" || filter === "withdrawals") && (
             <div className="bg-card rounded-2xl border border-border shadow-soft overflow-hidden">
-              <div className="p-6 border-b border-border flex items-center gap-3">
+              <div className="p-4 sm:p-6 border-b border-border flex items-center gap-3">
                 <Wallet className="w-5 h-5 text-primary" />
                 <h3 className="font-heading font-semibold text-lg text-foreground">
                   Saques
                 </h3>
               </div>
-              <div className="overflow-x-auto">
-                {withdrawals.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <Wallet className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Você ainda não fez nenhum saque.</p>
+              {withdrawals.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  <Wallet className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Você ainda não fez nenhum saque.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Mobile */}
+                  <div className="md:hidden divide-y divide-border">
+                    {withdrawals.map((w) => (
+                      <div key={w.id} className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">
+                            R$ {Number(w.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </span>
+                          {getWithdrawalStatusBadge(w.status)}
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{new Date(w.requested_at).toLocaleDateString("pt-BR")}</span>
+                          <span className="truncate max-w-[150px]">{w.pix_key}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data Solicitação</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Chave PIX</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Data Processamento</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {withdrawals.map((withdrawal) => (
-                        <TableRow key={withdrawal.id}>
-                          <TableCell className="text-muted-foreground">
-                            {new Date(withdrawal.requested_at).toLocaleDateString("pt-BR")}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            R$ {Number(withdrawal.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {withdrawal.pix_key}
-                          </TableCell>
-                          <TableCell>{getWithdrawalStatusBadge(withdrawal.status)}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {withdrawal.processed_at 
-                              ? new Date(withdrawal.processed_at).toLocaleDateString("pt-BR")
-                              : "-"
-                            }
-                          </TableCell>
+                  {/* Desktop */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data Solicitação</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Chave PIX</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Data Processamento</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {withdrawals.map((withdrawal) => (
+                          <TableRow key={withdrawal.id}>
+                            <TableCell className="text-muted-foreground">
+                              {new Date(withdrawal.requested_at).toLocaleDateString("pt-BR")}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              R$ {Number(withdrawal.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {withdrawal.pix_key}
+                            </TableCell>
+                            <TableCell>{getWithdrawalStatusBadge(withdrawal.status)}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {withdrawal.processed_at 
+                                ? new Date(withdrawal.processed_at).toLocaleDateString("pt-BR")
+                                : "-"
+                              }
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
