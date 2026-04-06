@@ -49,7 +49,7 @@ export const LeadFormResponsesDialog = ({
   formResponses,
   leadData,
 }: LeadFormResponsesDialogProps) => {
-  const knownFields: [string, unknown][] = [
+  const allKnownFields: [string, unknown][] = [
     ["name", leadData.name],
     ["email", leadData.email],
     ["phone", leadData.phone],
@@ -62,7 +62,8 @@ export const LeadFormResponsesDialog = ({
     ["adjustment_month", leadData.adjustment_month],
     ["cnpj_or_region", leadData.cnpj_or_region],
     ["accepts_whatsapp", leadData.accepts_whatsapp],
-  ].filter(([, value]) => value !== null && value !== undefined && value !== "");
+  ];
+  const knownFields = allKnownFields.filter(([, value]) => value !== null && value !== undefined && value !== "");
 
   const dynamicResponses = formResponses
     ? Object.entries(formResponses).filter(
