@@ -582,8 +582,76 @@ const AdminLeads = () => {
           </Select>
         </div>
 
-        {/* Table */}
-        <div className="bg-card rounded-2xl border border-border shadow-soft overflow-hidden">
+        {/* Mobile card view */}
+        <div className="lg:hidden space-y-3">
+          {filteredLeads.length === 0 ? (
+            <div className="bg-card rounded-2xl border border-border p-8 text-center text-muted-foreground">
+              Nenhum lead encontrado
+            </div>
+          ) : (
+            filteredLeads.map((lead) => (
+              <div key={lead.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground truncate">{lead.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{lead.email}</p>
+                    {lead.phone && (
+                      <p className="text-xs text-muted-foreground">{lead.phone}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setFormResponsesLead(lead);
+                        setIsFormDialogOpen(true);
+                      }}
+                    >
+                      <FileText className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => openUpdateDialog(lead)}
+                    >
+                      Atualizar
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {getStatusBadge(lead.status)}
+                  {lead.status === "converted" && (
+                    lead.payment_status === "paid" ? (
+                      <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20 text-xs">Pago</Badge>
+                    ) : lead.payment_status === "cancelled" ? (
+                      <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs">Cancelado</Badge>
+                    ) : (
+                      <Badge className="bg-accent/10 text-accent hover:bg-accent/20 text-xs">Aguardando</Badge>
+                    )
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Afiliado: {lead.affiliate_name}</span>
+                  <span>{new Date(lead.created_at).toLocaleDateString("pt-BR")}</span>
+                </div>
+                {lead.sale_value ? (
+                  <p className="text-sm font-medium text-foreground">
+                    Comissão: R$ {(Number(lead.sale_value) * commissionPercentage / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                ) : null}
+                {lead.status === "lost" && lead.rejection_reason && (
+                  <p className="text-xs text-destructive">Motivo: {lead.rejection_reason}</p>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden lg:block bg-card rounded-2xl border border-border shadow-soft overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -621,12 +689,12 @@ const AdminLeads = () => {
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Mail className="w-3 h-3" />
-                            {lead.email}
+                            <Mail className="w-3 h-3 shrink-0" />
+                            <span className="truncate max-w-[200px]">{lead.email}</span>
                           </div>
                           {lead.phone && (
                             <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Phone className="w-3 h-3" />
+                              <Phone className="w-3 h-3 shrink-0" />
                               {lead.phone}
                             </div>
                           )}
