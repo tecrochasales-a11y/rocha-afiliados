@@ -665,13 +665,26 @@ const AdminLeads = () => {
                         {new Date(lead.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openUpdateDialog(lead)}
-                        >
-                          Atualizar
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setFormResponsesLead(lead);
+                              setIsFormDialogOpen(true);
+                            }}
+                            title="Ver formulário"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openUpdateDialog(lead)}
+                          >
+                            Atualizar
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
