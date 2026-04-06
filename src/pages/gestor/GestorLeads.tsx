@@ -190,7 +190,7 @@ const GestorLeads = () => {
 
   return (
     <GestorLayout>
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-heading text-2xl md:text-3xl font-bold text-foreground">
