@@ -658,13 +658,19 @@ const AdminConteudo = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
-            {Object.keys(sectionLabels).map((section) => (
-              <TabsTrigger key={section} value={section} className="text-xs">
-                {sectionLabels[section].split(" ")[0]}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="overflow-x-auto -mx-1 px-1 pb-2">
+            <TabsList className="inline-flex h-auto min-w-full flex-nowrap gap-1 bg-muted/50 p-1 rounded-lg">
+              {Object.keys(sectionLabels).map((section) => (
+                <TabsTrigger
+                  key={section}
+                  value={section}
+                  className="shrink-0 text-xs px-3 py-2 rounded-md whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {sectionLabels[section]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {Object.keys(sectionLabels).map((section) => (
             <TabsContent key={section} value={section}>
