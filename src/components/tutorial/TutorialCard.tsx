@@ -15,7 +15,7 @@ interface TutorialCardProps {
 const TutorialCard = ({ topic, index }: TutorialCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const IconComponent = (icons as Record<string, React.ComponentType<{ className?: string; size?: number }>>)[topic.icon] || icons.HelpCircle;
+  const IconComponent = (icons as Record<string, React.ComponentType<{ className?: string; size?: number }>>)[topic.icon] || (icons as Record<string, React.ComponentType<{ className?: string; size?: number }>>)["HelpCircle"];
   const categoryLabel = tutorialCategories.find((c) => c.key === topic.category)?.label || topic.category;
 
   return (

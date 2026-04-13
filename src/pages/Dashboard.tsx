@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import HelpButton from "@/components/tutorial/HelpButton";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -38,6 +38,7 @@ import GestorDashboard from "./pages/gestor/GestorDashboard";
 import GestorAfiliados from "./pages/gestor/GestorAfiliados";
 import GestorLeads from "./pages/gestor/GestorLeads";
 import Indicacao from "./pages/Indicacao";
+import HelpCenter from "./components/tutorial/HelpCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -243,6 +244,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireGestor>
                   <GestorLeads />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/ajuda" 
+              element={
+                <ProtectedRoute>
+                  <HelpCenter />
                 </ProtectedRoute>
               } 
             />
