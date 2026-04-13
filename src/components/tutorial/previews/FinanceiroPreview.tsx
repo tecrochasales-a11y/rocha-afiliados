@@ -96,12 +96,10 @@ export const SaquePreview = () => {
   const targetValue = "R$ 500,00";
 
   useEffect(() => {
-    // Step 0: show card, step 1: type value, step 2: show pix, step 3: pulse button
-    const timers: NodeJS.Timeout[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     timers.push(setTimeout(() => setStep(1), 800));
 
-    // Typewriter for value
     let charIndex = 0;
     timers.push(setTimeout(() => {
       const typeInterval = setInterval(() => {
@@ -112,14 +110,12 @@ export const SaquePreview = () => {
           clearInterval(typeInterval);
           setTimeout(() => setStep(2), 400);
           setTimeout(() => setStep(3), 1200);
-          // Reset loop
           setTimeout(() => {
             setStep(0);
             setTypedValue("");
           }, 5000);
         }
       }, 80);
-      timers.push(typeInterval as unknown as NodeJS.Timeout);
     }, 1200));
 
     return () => timers.forEach(clearTimeout);
