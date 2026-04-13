@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import HelpButton from "@/components/tutorial/HelpButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -595,6 +596,7 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
+      <HelpButton />
     </div>
   );
 };
