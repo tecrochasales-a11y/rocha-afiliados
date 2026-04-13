@@ -1,58 +1,62 @@
 
 
-## Plano: Sistema de Tutorial/Ajuda Guiada (Camada Isolada)
+## Plano: Tutorial Visual Interativo (estilo Royal Enfield Explore)
 
-### Resumo
-Adicionar uma central de ajuda/tutorial como camada complementar ao app, sem modificar nenhum arquivo ou funcionalidade existente. O sistema será composto por novos arquivos apenas.
+### Conceito
+Transformar a Central de Ajuda para que, ao clicar em um card de tutorial, ele abra um painel visual mostrando uma **simulação/preview** de como a funcionalidade aparece no app real. Inspirado na seção Explore da Royal Enfield, onde um menu lateral controla a imagem principal com transições suaves.
 
-### Arquivos a criar (todos novos, nenhuma alteração em existentes exceto App.tsx para rota e Dashboard.tsx para botão)
+### O que seria necessario
 
-**1. Dados do tutorial** — `src/data/tutorialData.ts`
-- Array centralizado com todos os tópicos organizados por categorias (Dashboard, Financeiro, Indicações, Perfil, etc.)
-- Cada item com: título, descrição, como usar, dicas, observações, ícone, categoria
-- Estrutura escalável para adicionar novos tópicos facilmente no futuro
+**1. Screenshots/Mockups das telas do app**
+- Para cada tópico do tutorial, seria necessario ter uma imagem (screenshot ou mockup) da area correspondente do app
+- Exemplos: screenshot do Dashboard com os cards de metricas, screenshot da pagina Financeiro, screenshot do link de indicacao, etc.
+- Essas imagens seriam armazenadas em `public/tutorial/` ou `src/assets/tutorial/`
+- Sem imagens reais, podemos criar mockups simplificados com componentes HTML/CSS que simulam a aparencia da tela
 
-**2. Componente da Central de Ajuda** — `src/components/tutorial/HelpCenter.tsx`
-- Página completa com:
-  - Campo de busca por palavras-chave
-  - Filtro por categorias (tabs ou chips)
-  - Cards visuais com animações fade-in ao aparecer
-  - Accordion para expandir/colapsar detalhes de cada tópico
-  - Seções: "Para que serve", "Como usar", "Dicas", "Observações"
-- Visual compatível com o design atual (Tailwind + shadcn/ui)
+**2. Novo layout da pagina de tutorial**
+- Layout dividido em duas colunas (estilo Explore):
+  - **Esquerda**: Menu vertical com os topicos (como MOTOR, FREIOS, FAROL na Royal Enfield)
+  - **Direita**: Area de preview visual que muda com transicao suave ao selecionar cada topico
+- O preview mostra a imagem/mockup da tela + um tooltip/label apontando para a area relevante
+- Animacao de fade/slide ao trocar entre topicos
 
-**3. Componente de Card Tutorial** — `src/components/tutorial/TutorialCard.tsx`
-- Card individual com ícone, título, descrição curta
-- Expande ao clicar para mostrar detalhes completos
-- Microanimações suaves (fade-in, scale-in)
+**3. Alternativa sem screenshots (mockups CSS)**
+- Como nao temos screenshots prontos, podemos criar mini-mockups visuais com CSS/HTML que representam cada area do app
+- Exemplo: para "Cards de metricas", mostrar um mini-dashboard com cards simplificados
+- Para "Link de indicacao", mostrar um mini-componente com o link e botao de copiar
+- Isso daria um efeito visual rico sem depender de imagens externas
 
-**4. Botão flutuante de ajuda** — `src/components/tutorial/HelpButton.tsx`
-- Ícone de interrogação fixo no canto inferior direito
-- Visível apenas nas páginas autenticadas (dashboard, financeiro, perfil)
-- Ao clicar, navega para `/ajuda`
+### Arquivos a criar/modificar
 
-### Alterações mínimas em arquivos existentes
+| Arquivo | Acao |
+|---------|------|
+| `src/components/tutorial/TutorialExplorer.tsx` | **Novo** - Layout principal estilo Explore com menu lateral + area de preview |
+| `src/components/tutorial/TutorialPreview.tsx` | **Novo** - Componente que renderiza o mockup visual de cada area |
+| `src/components/tutorial/previews/*.tsx` | **Novos** - Mini-mockups visuais para cada area (DashboardPreview, FinanceiroPreview, etc.) |
+| `src/data/tutorialData.ts` | **Editar** - Adicionar campo `previewComponent` ou `previewImage` a cada topico |
+| `src/components/tutorial/HelpCenter.tsx` | **Editar** - Integrar o novo layout Explorer como modo de visualizacao |
 
-**5. `src/App.tsx`** — Adicionar apenas 1 rota nova:
-```
-<Route path="/ajuda" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
-```
+### Comportamento esperado
 
-**6. `src/pages/Dashboard.tsx`** — Adicionar apenas o componente `<HelpButton />` no final do JSX (sem alterar nada existente)
+1. Usuario acessa `/ajuda`
+2. Ve o layout com menu lateral (categorias/topicos) a esquerda
+3. Ao clicar em um topico, a area direita mostra:
+   - Um mockup visual animado da tela correspondente
+   - Indicadores/setas apontando para a area relevante
+   - Texto explicativo abaixo ou ao lado do preview
+4. Transicoes suaves entre topicos (fade + slide)
+5. No mobile: layout empilhado (menu em cima, preview embaixo)
 
-### Categorias iniciais do tutorial
-- **Visão Geral** — O que é a plataforma, como funciona o programa de afiliados
-- **Dashboard** — Cards de métricas, link de indicação, tabela de leads
-- **Financeiro** — Comissões, total recebido, a receber, pagamento via PIX
-- **Indicações** — Como compartilhar link, QR Code, acompanhar leads
-- **Perfil** — Dados cadastrais, chave PIX, alteração de senha
-- **Dicas Rápidas** — Boas práticas para converter mais leads
-- **Problemas Comuns** — FAQ com soluções para dúvidas frequentes
+### Decisao necessaria
 
-### Detalhes técnicos
-- Usa apenas componentes shadcn/ui já instalados (Card, Accordion, Input, Badge, Tabs)
-- Animações via classes Tailwind existentes (animate-fade-in, animate-scale-in)
-- Zero dependências novas
-- Nenhuma integração com banco de dados (dados estáticos no código, editáveis depois)
-- Nenhum arquivo existente será refatorado ou reestruturado
+Para prosseguir, preciso saber sua preferencia:
+
+- **Opcao A**: Criar mini-mockups CSS/HTML que simulam as telas do app (100% codigo, sem imagens externas)
+- **Opcao B**: Usar screenshots reais das telas (voce precisaria fornecer os prints ou eu geraria placeholders)
+- **Opcao C**: Manter os cards atuais mas adicionar uma area de preview visual ao expandir cada card (menos radical, mais rapido)
+
+### Seguranca
+- Nenhum arquivo existente sera refatorado
+- Apenas adicao de novos componentes e edicoes minimas nos arquivos de tutorial ja criados
+- Zero impacto nas integracoes, rotas ou logica de negocio
 
