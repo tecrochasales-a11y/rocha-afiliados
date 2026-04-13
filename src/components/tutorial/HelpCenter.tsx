@@ -3,15 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, ArrowLeft, BookOpen } from "lucide-react";
+import { Search, ArrowLeft, BookOpen, LayoutGrid, Columns } from "lucide-react";
 import { tutorialTopics, tutorialCategories } from "@/data/tutorialData";
 import TutorialCard from "./TutorialCard";
+import TutorialExplorer from "./TutorialExplorer";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const HelpCenter = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [viewMode, setViewMode] = useState<"explore" | "cards">("explore");
 
   const filteredTopics = useMemo(() => {
     return tutorialTopics.filter((topic) => {
@@ -33,18 +37,41 @@ const HelpCenter = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft size={20} />
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <BookOpen size={22} className="text-primary" />
             <h1 className="text-xl font-bold text-foreground">Central de Ajuda</h1>
+          </div>
+          {/* View mode toggle */}
+          <div className="flex items-center bg-muted rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode("explore")}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === "explore" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+              title="Modo explorar"
+            >
+              <Columns size={18} />
+            </button>
+            <button
+              onClick={() => setViewMode("cards")}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === "cards" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+              title="Modo cards"
+            >
+              <LayoutGrid size={18} />
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Search */}
         <div className="relative animate-fade-in">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -80,12 +107,16 @@ const HelpCenter = () => {
           {filteredTopics.length} {filteredTopics.length === 1 ? "tópico encontrado" : "tópicos encontrados"}
         </p>
 
-        {/* Cards */}
-        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
-          {filteredTopics.map((topic, index) => (
-            <TutorialCard key={topic.id} topic={topic} index={index} />
-          ))}
-        </div>
+        {/* Content */}
+        {viewMode === "explore" ? (
+          <TutorialExplorer activeCategory={activeCategory} searchQuery={searchQuery} />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
+            {filteredTopics.map((topic, index) => (
+              <TutorialCard key={topic.id} topic={topic} index={index} />
+            ))}
+          </div>
+        )}
 
         {filteredTopics.length === 0 && (
           <div className="text-center py-12 animate-fade-in">
