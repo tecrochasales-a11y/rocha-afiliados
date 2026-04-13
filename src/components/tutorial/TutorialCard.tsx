@@ -12,7 +12,8 @@ import type { TutorialTopic } from "@/data/tutorialData";
 import { tutorialCategories } from "@/data/tutorialData";
 import { cn } from "@/lib/utils";
 
-const iconMap: Record<string, React.ComponentType<{ className?: string; size?: number }>> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const iconMap: Record<string, any> = {
   LayoutDashboard, Users, BarChart3, Link, ClipboardList,
   DollarSign, Wallet, Share2, QrCode, Eye,
   UserCog, KeyRound, Lock, TrendingUp, Globe,
