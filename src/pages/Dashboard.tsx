@@ -596,6 +596,7 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
+      <HelpButton />
     </div>
   );
 };
