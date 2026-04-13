@@ -1,11 +1,23 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Lightbulb, BookOpen, Info } from "lucide-react";
-import { icons } from "lucide-react";
+import {
+  ChevronDown, Lightbulb, BookOpen, Info, HelpCircle,
+  LayoutDashboard, Users, BarChart3, Link, ClipboardList,
+  DollarSign, Wallet, Share2, QrCode, Eye,
+  UserCog, KeyRound, Lock, TrendingUp, Globe,
+  AlertCircle, AlertTriangle, Ban,
+} from "lucide-react";
 import type { TutorialTopic } from "@/data/tutorialData";
 import { tutorialCategories } from "@/data/tutorialData";
 import { cn } from "@/lib/utils";
+
+const iconMap: Record<string, React.ComponentType<{ className?: string; size?: number }>> = {
+  LayoutDashboard, Users, BarChart3, Link, ClipboardList,
+  DollarSign, Wallet, Share2, QrCode, Eye,
+  UserCog, KeyRound, Lock, TrendingUp, Globe,
+  AlertCircle, AlertTriangle, Ban, HelpCircle,
+};
 
 interface TutorialCardProps {
   topic: TutorialTopic;
@@ -15,7 +27,7 @@ interface TutorialCardProps {
 const TutorialCard = ({ topic, index }: TutorialCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const IconComponent = (icons as Record<string, React.ComponentType<{ className?: string; size?: number }>>)[topic.icon] || (icons as Record<string, React.ComponentType<{ className?: string; size?: number }>>)["HelpCircle"];
+  const IconComponent = iconMap[topic.icon] || HelpCircle;
   const categoryLabel = tutorialCategories.find((c) => c.key === topic.category)?.label || topic.category;
 
   return (
@@ -66,7 +78,6 @@ const TutorialCard = ({ topic, index }: TutorialCardProps) => {
       >
         <CardContent className="pt-0 space-y-4">
           <div className="border-t pt-4">
-            {/* Como usar */}
             <div className="flex items-start gap-2 mb-4">
               <BookOpen size={16} className="text-primary mt-0.5 shrink-0" />
               <div>
@@ -77,10 +88,9 @@ const TutorialCard = ({ topic, index }: TutorialCardProps) => {
               </div>
             </div>
 
-            {/* Dicas */}
             {topic.tips.length > 0 && (
               <div className="flex items-start gap-2 mb-4">
-                <Lightbulb size={16} className="text-yellow-500 mt-0.5 shrink-0" />
+                <Lightbulb size={16} className="text-accent-foreground mt-0.5 shrink-0" />
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-1">Dicas</h4>
                   <ul className="space-y-1">
@@ -95,10 +105,9 @@ const TutorialCard = ({ topic, index }: TutorialCardProps) => {
               </div>
             )}
 
-            {/* Observações */}
             {topic.notes && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
-                <Info size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                <Info size={16} className="text-primary mt-0.5 shrink-0" />
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-0.5">Observação</h4>
                   <p className="text-sm text-muted-foreground">{topic.notes}</p>
