@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import {
   HelpCircle, LayoutDashboard, Users, BarChart3, Link, ClipboardList,
   DollarSign, Wallet, Share2, QrCode, Eye, UserCog, KeyRound, Lock,
@@ -52,23 +52,36 @@ const previewMap: Record<string, ReactNode> = {
 };
 
 interface TutorialExplorerProps {
-  activeCategory: string;
   searchQuery: string;
 }
 
-const TutorialExplorer = ({ activeCategory, searchQuery }: TutorialExplorerProps) => {
+const TutorialExplorer = ({ searchQuery }: TutorialExplorerProps) => {
   const isMobile = useIsMobile();
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
 
-  const filteredTopics = tutorialTopics.filter((topic) => {
-    const matchesCategory = activeCategory === "all" || topic.category === activeCategory;
-    if (!searchQuery.trim()) return matchesCategory;
-    const query = searchQuery.toLowerCase();
-    return matchesCategory && (
-      topic.title.toLowerCase().includes(query) ||
-      topic.description.toLowerCase().includes(query)
-    );
-  });
+  const filteredTopics = useMemo(() => {
+    return tutorialTopics.filter((topic) => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        topic.title.toLowerCase().includes(query) ||
+        topic.description.toLowerCase().includes(query) ||
+        topic.howToUse.toLowerCase().includes(query) ||
+        topic.tips.some((t) => t.toLowerCase().includes(query))
+      );
+    });
+  }, [searchQuery]);
+
+  // Group filtered topics by category (excluding "all")
+  const groupedTopics = useMemo(() => {
+    const categories = tutorialCategories.filter((c) => c.key !== "all");
+    return categories
+      .map((cat) => ({
+        ...cat,
+        topics: filteredTopics.filter((t) => t.category === cat.key),
+      }))
+      .filter((group) => group.topics.length > 0);
+  }, [filteredTopics]);
 
   const selectedTopic = filteredTopics.find((t) => t.id === selectedTopicId) || filteredTopics[0] || null;
   const currentId = selectedTopic?.id;
@@ -81,7 +94,7 @@ const TutorialExplorer = ({ activeCategory, searchQuery }: TutorialExplorerProps
 
     return (
       <div key={topic.id} className="animate-fade-in flex flex-col gap-4">
-        {/* Compact header bar */}
+        {/* Header */}
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
             <IconComponent size={20} />
@@ -92,7 +105,7 @@ const TutorialExplorer = ({ activeCategory, searchQuery }: TutorialExplorerProps
           )}
         </div>
 
-        {/* Large preview area */}
+        {/* Preview */}
         <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-muted/30 to-muted/10 p-6 min-h-[350px] flex items-center justify-center transition-all duration-500">
           <div className="w-full">
             {previewMap[topic.id] || (
@@ -103,8 +116,8 @@ const TutorialExplorer = ({ activeCategory, searchQuery }: TutorialExplorerProps
           </div>
         </div>
 
-        {/* Collapsible info accordion */}
-        <Accordion type="multiple" className="w-full">
+        {/* Accordions — description open by default */}
+        <Accordion type="multiple" defaultValue={["description"]} className="w-full">
           <AccordionItem value="description" className="border-border/40">
             <AccordionTrigger className="py-3 text-sm hover:no-underline">
               <span className="flex items-center gap-2 text-muted-foreground">
@@ -166,37 +179,66 @@ const TutorialExplorer = ({ activeCategory, searchQuery }: TutorialExplorerProps
   return (
     <div className={cn(
       "grid gap-4",
-      isMobile ? "grid-cols-1" : "grid-cols-[220px_1fr]"
+      isMobile ? "grid-cols-1" : "grid-cols-[260px_1fr]"
     )}>
-      {/* Sidebar menu */}
+      {/* Sidebar grouped by category */}
       <div className={cn(
         isMobile
           ? "flex flex-wrap gap-1.5"
-          : "space-y-0.5 border-r border-border/30 pr-3 max-h-[calc(100vh-220px)] overflow-y-auto"
+          : "space-y-4 border-r border-border/30 pr-3 max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin"
       )}>
-        {filteredTopics.map((topic) => {
-          const Icon = iconMap[topic.icon] || HelpCircle;
-          const isActive = topic.id === currentId;
-
-          return (
-            <button
-              key={topic.id}
-              onClick={() => setSelectedTopicId(topic.id)}
-              className={cn(
-                "flex items-center gap-2 text-left transition-all duration-200 rounded-lg",
-                isMobile
-                  ? "px-3 py-2 text-xs"
-                  : "w-full px-2.5 py-2 text-[13px]",
-                isActive
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              <Icon size={isMobile ? 14 : 15} className="shrink-0" />
-              <span className="truncate">{topic.title}</span>
-            </button>
-          );
-        })}
+        {isMobile ? (
+          // Mobile: flat list
+          filteredTopics.map((topic) => {
+            const Icon = iconMap[topic.icon] || HelpCircle;
+            const isActive = topic.id === currentId;
+            return (
+              <button
+                key={topic.id}
+                onClick={() => setSelectedTopicId(topic.id)}
+                className={cn(
+                  "flex items-center gap-2 text-left transition-all duration-200 rounded-lg px-3 py-2 text-xs",
+                  isActive
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                )}
+              >
+                <Icon size={14} className="shrink-0" />
+                <span className="truncate">{topic.title}</span>
+              </button>
+            );
+          })
+        ) : (
+          // Desktop: grouped by category
+          groupedTopics.map((group) => (
+            <div key={group.key}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2.5 mb-1.5">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.topics.map((topic) => {
+                  const Icon = iconMap[topic.icon] || HelpCircle;
+                  const isActive = topic.id === currentId;
+                  return (
+                    <button
+                      key={topic.id}
+                      onClick={() => setSelectedTopicId(topic.id)}
+                      className={cn(
+                        "flex items-center gap-2 text-left transition-all duration-200 rounded-lg w-full px-2.5 py-2 text-[13px]",
+                        isActive
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      )}
+                    >
+                      <Icon size={15} className="shrink-0" />
+                      <span className="leading-tight">{topic.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Detail area */}
