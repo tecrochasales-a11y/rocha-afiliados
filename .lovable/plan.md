@@ -1,28 +1,26 @@
 
 
-## Plano: Trocar laranja por dourado
+## Plano: Trocar filtro do hero de dourado para cinza
 
 ### Problema
-O `--primary`, `--accent`, `--ring` e `--sidebar-ring` estão em `24 100% 50%` (laranja #FF6600). O usuário quer tudo em **dourado** (#C9A84C / `40 52% 54%`).
+O overlay do hero usa `from-primary/85 via-primary/65 to-primary/50`, que agora é dourado. O usuário quer um tom de cinza para dar contraste.
 
-### Alterações — apenas `src/index.css`
+### Alteração — 1 arquivo
 
-Trocar os valores HSL de laranja para dourado nas variáveis CSS:
+**`src/components/landing/HeroSection.tsx`** (linha 16):
 
-| Token | Valor atual (laranja) | Novo valor (dourado) |
-|-------|----------------------|---------------------|
-| `--primary` | `24 100% 50%` | `40 52% 54%` |
-| `--accent` | `24 100% 50%` | `40 52% 54%` |
-| `--ring` | `24 100% 50%` | `40 52% 54%` |
-| `--sidebar-ring` | `24 100% 50%` | `40 52% 54%` |
-| `--gradient-hero` (tint final) | `hsl(24 30% 18%)` | `hsl(40 30% 18%)` |
-| `--gradient-cta` | `hsl(24 100% 45%)…55%` | `hsl(40 52% 48%)…58%` |
-| `--shadow-glow` | `hsl(24 100% 50% / 0.25)` | `hsl(40 52% 54% / 0.25)` |
-| Dark mode `--accent` | `24 100% 55%` | `40 52% 58%` |
+Trocar:
+```
+from-primary/85 via-primary/65 to-primary/50
+```
+Por:
+```
+from-gray-900/85 via-gray-800/65 to-gray-700/50
+```
 
-Também atualizar no `tailwind.config.ts` os keyframes `glow-pulse` que referenciam `hsl(24 100% 50%)`.
+Isso aplica um overlay cinza escuro sobre a imagem de fundo, mantendo o texto legível e dando contraste elegante. O restante (textos, botões, cards flutuantes) permanece inalterado.
 
 ### O que NÃO muda
-- Nenhum componente, layout, função ou integração
-- Apenas substituição de valores de cor em 2 arquivos
+- Nenhuma função, integração ou lógica
+- Apenas 1 classe CSS em 1 linha
 
