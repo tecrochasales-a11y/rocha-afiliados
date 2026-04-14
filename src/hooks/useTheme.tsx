@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
-    return "dark";
+    return "light";
   });
 
   useEffect(() => {
