@@ -1,19 +1,38 @@
 
 
-## Plano: Alterar rodapé para tom cinza
+## Plano: Tutorial em modal passo-a-passo (estilo onboarding)
 
-### Alteração — `src/components/layout/Footer.tsx`
+### Conceito
+Criar um componente `TutorialModal` que exibe os tópicos do tutorial como slides dentro de um Dialog, com preview animado no topo, título, descrição, dots de progresso e navegação Anterior/Próximo — semelhante à imagem de referência.
 
-Trocar as classes de cor do footer de `bg-primary text-primary-foreground` para tons de cinza escuro, mantendo a legibilidade:
+### Arquivos
 
-- **Tag `<footer>`**: `bg-primary` → `bg-gray-800` e `text-primary-foreground` → `text-gray-100`
-- **Decoração de fundo**: trocar `bg-secondary` e `bg-accent` por `bg-gray-600`
-- **Textos secundários**: trocar `text-primary-foreground/80` → `text-gray-300`, `text-primary-foreground/70` → `text-gray-400`, `text-primary-foreground/60` → `text-gray-500`
-- **Ícones de contato**: manter `text-secondary` (dourado) nos ícones de telefone/email/localização para contraste
-- **Redes sociais**: `bg-primary-foreground/10` → `bg-gray-700`, hover `bg-primary-foreground/20` → `bg-gray-600`
-- **Divider**: `border-primary-foreground/15` → `border-gray-700`
-- **Logo fallback**: `bg-primary-foreground/20` → `bg-gray-700`
-- **Headings**: `text-primary-foreground` → `text-gray-100`
+#### 1. Criar `src/components/tutorial/TutorialModal.tsx`
+- Dialog/modal centralizado usando `shadcn/ui Dialog`
+- Cada "slide" = um tópico do `tutorialTopics` (já existem 18 tópicos)
+- Layout de cada slide:
+  - **Topo**: Preview animado do tópico (reutilizar os componentes de preview existentes: `DashboardPreview`, `FinanceiroPreview`, etc.)
+  - **Centro**: Título em negrito + descrição do tópico
+  - **Dots**: Indicadores de progresso (slide atual destacado com cor primary, os demais em cinza)
+  - **Rodapé**: Botão "← Anterior" (text) | Botão "Próximo →" (filled) | Contador "3 de 11"
+- Estado interno: `currentStep` controlando qual tópico é exibido
+- Botão X para fechar no canto superior direito
+- Animação de transição suave entre slides (fade)
 
-O rodapé ficará com fundo cinza escuro consistente com o tema, sem o tom dourado.
+#### 2. Atualizar `src/components/tutorial/HelpButton.tsx`
+- Ao clicar no botão "Tutorial", abrir o `TutorialModal` em vez de navegar para `/ajuda`
+- Manter a opção de acessar a Central de Ajuda completa (link "Ver todos os tutoriais" no modal)
+
+#### 3. Opcional: Filtrar por contexto
+- Possibilidade futura de filtrar os slides por categoria (ex: mostrar só "Dashboard" quando o usuário está no Dashboard)
+
+### Técnico
+- Reutiliza `tutorialTopics` e `tutorialCategories` de `src/data/tutorialData.ts`
+- Reutiliza os previews de `src/components/tutorial/previews/`
+- Usa `Dialog` do shadcn para o modal
+- Sem dependências novas
+- ~150 linhas de código novo
+
+### Resultado
+Um tutorial interativo em modal que guia o usuário passo a passo, sem sair da página atual — mais acessível e prático que navegar para uma página separada.
 
