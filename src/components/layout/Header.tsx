@@ -3,47 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import localLogo from "@/assets/rocha-sales-logo.png";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const isLandingPage = location.pathname === "/";
-
-  useEffect(() => {
-    fetchLogo();
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const fetchLogo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("site_assets")
-        .select("url")
-        .eq("type", "logo")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (!error && data) {
-        setLogoUrl(data.url);
-      }
-    } catch (error) {
-      // Use default logo icon if no logo found
-    }
-  };
 
   const scrollToSection = (sectionId: string) => {
     setIsMenuOpen(false);
@@ -86,7 +49,7 @@ const Header = () => {
           {/* Logo */}
           <button onClick={scrollToTop} className="flex items-center group cursor-pointer">
             <img 
-              src={logoUrl || localLogo} 
+              src={localLogo} 
               alt="Rocha Sales Seguros" 
               className={`w-auto object-contain transition-all duration-300 ${isScrolled ? "h-8 md:h-10" : "h-10 md:h-12"}`}
             />
