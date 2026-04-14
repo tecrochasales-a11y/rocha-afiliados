@@ -298,7 +298,7 @@ const Financeiro = () => {
               </p>
             </div>
 
-            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
                   <Clock className="w-5 h-5" />
@@ -311,6 +311,8 @@ const Financeiro = () => {
             </div>
 
             <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                   <CalendarClock className="w-5 h-5" />
                 </div>
               </div>
@@ -321,6 +323,8 @@ const Financeiro = () => {
             </div>
 
             <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center">
                   <TrendingDown className="w-5 h-5" />
                 </div>
               </div>

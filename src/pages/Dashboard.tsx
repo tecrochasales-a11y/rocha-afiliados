@@ -443,6 +443,8 @@ const Dashboard = () => {
             </div>
 
             <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
                   <CheckCircle className="w-5 h-5" />
                 </div>
               </div>
@@ -451,6 +453,8 @@ const Dashboard = () => {
             </div>
 
             <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
                   <DollarSign className="w-5 h-5" />
                 </div>
               </div>
@@ -460,7 +464,7 @@ const Dashboard = () => {
               </p>
             </div>
 
-            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <Clock className="w-5 h-5" />
