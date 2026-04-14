@@ -1,19 +1,16 @@
 
 
-## Plano: Alterar fonte do Hero para fonte serifada elegante
+## Plano: Usar logo local no Dashboard
 
-### Contexto
-A imagem da esquerda (referência) usa uma fonte serifada elegante nos títulos ("Excelência e Exclusividade em Planos de Saúde"). A imagem da direita (atual) usa Poppins (sans-serif). O objetivo é igualar o estilo tipográfico.
+### Problema
+O `Dashboard.tsx` ainda busca a logo do banco de dados (`site_assets`), que retorna a imagem antiga com fundo preto. O mesmo problema que já foi corrigido no `Header.tsx`.
 
-### Alterações
+### Alterações — `src/pages/Dashboard.tsx`
 
-**1. `src/index.css`** — Importar fonte serifada (Playfair Display) do Google Fonts, que é a mais próxima do estilo da referência.
-
-**2. `tailwind.config.ts`** — Adicionar `heading: ['Playfair Display', 'serif']` na configuração de `fontFamily`.
-
-**3. `src/index.css`** — Atualizar a regra de `h1-h6` para usar `'Playfair Display', serif`.
+1. **Adicionar import** do logo local: `import localLogo from "@/assets/rocha-sales-logo.png";`
+2. **Remover** o estado `logoUrl` e a lógica de fetch da logo do banco (linhas ~75, ~102-111)
+3. **Substituir** o bloco condicional `{logoUrl ? <img .../> : <div .../>}` por `<img src={localLogo} alt="Rocha Sales Seguros" className="h-10 w-auto object-contain" />`
 
 ### O que NÃO muda
-- Corpo de texto continua Inter
-- Nenhuma lógica ou layout alterado
+- Texto "Rocha Sales", navegação, menu, dados do dashboard — tudo intacto
 
