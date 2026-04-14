@@ -1,16 +1,12 @@
 
 
-## Plano: Reverter tema para modo claro (padrão)
+## Plano: Trocar filtros dourados/primary por cinza nos vídeos de depoimentos
 
-### Alteração — `src/hooks/useTheme.tsx`
+### Alteração — `src/components/landing/SuccessStoriesSection.tsx`
 
-Mudar o valor inicial de `"dark"` para `"light"`:
+1. **Linha 302** — Placeholder sem thumbnail: trocar `from-primary to-primary/70` por `from-gray-700 to-gray-500`
 
-```tsx
-const [theme, setTheme] = useState<"light" | "dark">(() => {
-  return "light";
-});
-```
+2. **Linha 306** — Overlay de legibilidade: trocar `from-primary/90 via-primary/40` por `from-gray-900/90 via-gray-700/40`
 
-O site voltará a abrir no modo claro por padrão.
+Isso remove o tom dourado dos filtros sobre os vídeos e substitui por cinza escuro, mantendo a legibilidade do texto e o botão de play inalterado.
 
