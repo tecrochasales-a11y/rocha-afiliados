@@ -100,7 +100,7 @@ const Perfil = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="container mx-auto px-4">
@@ -133,7 +133,7 @@ const Perfil = () => {
           </div>
 
           {/* Form Card */}
-          <div className="bg-card rounded-3xl shadow-medium p-8">
+          <div className="bg-card rounded-3xl shadow-medium p-8 glass-card">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="full_name" className="text-foreground font-medium">

@@ -58,11 +58,11 @@ const EsqueciSenha = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4 animate-gradient-shift" style={{ backgroundSize: "200% 200%" }}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary-foreground rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary rounded-full blur-3xl" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary-foreground rounded-full blur-3xl animate-float-slow" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary rounded-full blur-3xl animate-float-slow" style={{ animationDelay: "4s" }} />
       </div>
 
       <div className="w-full max-w-md relative z-10">
@@ -76,7 +76,7 @@ const EsqueciSenha = () => {
         </Link>
 
         {/* Card */}
-        <div className="bg-card rounded-3xl shadow-medium p-8 md:p-10">
+        <div className="bg-card rounded-3xl shadow-medium p-8 md:p-10 glass-card">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <div className="w-16 h-16 bg-gradient-hero rounded-2xl flex items-center justify-center shadow-soft mb-4">
