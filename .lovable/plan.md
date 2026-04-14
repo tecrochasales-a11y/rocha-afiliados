@@ -1,19 +1,22 @@
 
 
-## Plano: Remover fundo preto da logo
+## Plano: Corrigir logo — priorizar arquivo local
 
 ### Problema
-O arquivo `rocha-sales-logo.png` tem fundo preto na própria imagem (não é PNG transparente). O header exibe a imagem como está, mostrando o quadrado preto.
+O `Header.tsx` busca a logo na tabela `site_assets` do banco. Se encontra uma logo ativa, usa essa URL (`logoUrl`) em vez do arquivo local. A logo antiga (com fundo preto/quadrado) está salva no banco e está sobrescrevendo a nova.
 
-### Solução
-Aplicar `mix-blend-mode: screen` na tag `<img>` da logo no `Header.tsx`. Esse modo de blend faz com que pixels pretos fiquem invisíveis, efetivamente removendo o fundo preto e mantendo os elementos claros (dourado/branco) da logo.
+### Solução — 2 opções (faremos ambas para garantir)
 
-### Alteração — 1 arquivo
+1. **`src/components/layout/Header.tsx`**: Remover a lógica de `fetchLogo` e o estado `logoUrl`. Usar apenas o `localLogo` importado do arquivo local. Isso garante que a logo correta sempre apareça.
 
-**`src/components/layout/Header.tsx`**: Adicionar a classe `mix-blend-screen` (Tailwind) na `<img>` da logo (aprox. linha 88).
+2. **Banco de dados**: Desativar ou remover a logo antiga da tabela `site_assets` (setar `is_active = false`), para que mesmo se no futuro voltarmos a usar logos dinâmicas, a antiga não apareça.
 
-Alternativa melhor: se você tiver uma versão da logo com fundo **transparente**, envie-a e substituímos o arquivo — resultado mais limpo.
+### Alteração principal — Header.tsx
+- Remover `useState` de `logoUrl`
+- Remover `useEffect` + `fetchLogo`
+- Trocar `src={logoUrl || localLogo}` por `src={localLogo}`
 
 ### O que NÃO muda
-- Nenhuma lógica, integração ou layout
+- Layout, navegação, menu mobile — tudo intacto
+- O arquivo `rocha-sales-logo.png` já é a imagem correta
 
