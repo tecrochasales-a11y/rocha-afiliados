@@ -15,7 +15,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 9%;
 
-    --primary: 24 100% 50%;
+    --primary: 40 52% 54%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 40 52% 54%;
@@ -24,7 +24,7 @@
     --muted: 0 0% 94%;
     --muted-foreground: 0 0% 40%;
 
-    --accent: 24 100% 50%;
+    --accent: 40 52% 54%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -32,20 +32,20 @@
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 24 100% 50%;
+    --ring: 40 52% 54%;
 
     --radius: 0.75rem;
 
     /* Custom tokens */
-    --gradient-hero: linear-gradient(135deg, hsl(0 0% 9%) 0%, hsl(0 0% 15%) 50%, hsl(24 30% 18%) 100%);
-    --gradient-cta: linear-gradient(135deg, hsl(24 100% 45%) 0%, hsl(24 100% 55%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 9%) 0%, hsl(0 0% 15%) 50%, hsl(40 30% 18%) 100%);
+    --gradient-cta: linear-gradient(135deg, hsl(40 52% 48%) 0%, hsl(40 52% 58%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(40 52% 48%) 0%, hsl(45 60% 58%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 97%) 100%);
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.1) 0%, hsl(0 0% 100% / 0.05) 100%);
     
     --shadow-soft: 0 4px 20px -4px hsl(0 0% 9% / 0.1);
     --shadow-medium: 0 8px 30px -6px hsl(0 0% 9% / 0.18);
-    --shadow-glow: 0 0 40px hsl(24 100% 50% / 0.25);
+    --shadow-glow: 0 0 40px hsl(40 52% 54% / 0.25);
     --shadow-gold: 0 4px 20px hsl(40 52% 54% / 0.25);
 
     --sidebar-background: 0 0% 98%;
@@ -55,7 +55,7 @@
     --sidebar-accent: 0 0% 96%;
     --sidebar-accent-foreground: 0 0% 10%;
     --sidebar-border: 0 0% 91%;
-    --sidebar-ring: 24 100% 50%;
+    --sidebar-ring: 40 52% 54%;
   }
 
 
@@ -78,7 +78,7 @@
     --muted: 0 0% 18%;
     --muted-foreground: 0 0% 65%;
 
-    --accent: 24 100% 55%;
+    --accent: 40 52% 58%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 50%;
@@ -86,7 +86,7 @@
 
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 24 100% 50%;
+    --ring: 40 52% 54%;
   }
 }
 
@@ -241,8 +241,8 @@
 }
 
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 20px hsl(24 100% 50% / 0.2); }
-  50% { box-shadow: 0 0 40px hsl(24 100% 50% / 0.4); }
+  0%, 100% { box-shadow: 0 0 20px hsl(40 52% 54% / 0.2); }
+  50% { box-shadow: 0 0 40px hsl(40 52% 54% / 0.4); }
 }
 
 @keyframes shimmerSlide {
