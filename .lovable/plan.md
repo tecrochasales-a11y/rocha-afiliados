@@ -1,21 +1,19 @@
 
 
-## Plano: Destacar "Visão Geral" no sidebar e reorganizar cards abaixo
+## Plano: Alterar rodapé para tom cinza
 
-### O que muda
+### Alteração — `src/components/layout/Footer.tsx`
 
-#### 1. `src/components/tutorial/TutorialExplorer.tsx` — Sidebar
+Trocar as classes de cor do footer de `bg-primary text-primary-foreground` para tons de cinza escuro, mantendo a legibilidade:
 
-- **Destaque na categoria "Visão Geral"**: Adicionar um fundo sutil (ex: `bg-primary/5 border border-primary/20 rounded-xl p-2`) ao grupo "Visão Geral" para que ele se sobressaia visualmente em relação às outras categorias
-- O heading "VISÃO GERAL" ganha cor `text-primary` em vez do cinza padrão, com um ponto colorido ao lado (como no screenshot)
+- **Tag `<footer>`**: `bg-primary` → `bg-gray-800` e `text-primary-foreground` → `text-gray-100`
+- **Decoração de fundo**: trocar `bg-secondary` e `bg-accent` por `bg-gray-600`
+- **Textos secundários**: trocar `text-primary-foreground/80` → `text-gray-300`, `text-primary-foreground/70` → `text-gray-400`, `text-primary-foreground/60` → `text-gray-500`
+- **Ícones de contato**: manter `text-secondary` (dourado) nos ícones de telefone/email/localização para contraste
+- **Redes sociais**: `bg-primary-foreground/10` → `bg-gray-700`, hover `bg-primary-foreground/20` → `bg-gray-600`
+- **Divider**: `border-primary-foreground/15` → `border-gray-700`
+- **Logo fallback**: `bg-primary-foreground/20` → `bg-gray-700`
+- **Headings**: `text-primary-foreground` → `text-gray-100`
 
-#### 2. `src/components/tutorial/TutorialExplorer.tsx` — Área de detalhe
-
-- Mover os accordions (Descrição, Como usar, Dicas) para **cards separados em grid horizontal** abaixo do preview, em vez de accordions empilhados
-- Layout: grid de 2-3 colunas com cards compactos (ícone + título + conteúdo), semelhante a cards de FAQ
-- Isso torna a informação mais acessível sem precisar clicar para expandir
-
-### Resultado
-- "Visão Geral" se destaca visualmente no sidebar
-- As informações complementares ficam em cards visíveis abaixo do preview, sem necessidade de accordion
+O rodapé ficará com fundo cinza escuro consistente com o tema, sem o tom dourado.
 
