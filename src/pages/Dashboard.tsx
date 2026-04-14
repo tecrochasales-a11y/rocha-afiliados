@@ -375,7 +375,7 @@ const Dashboard = () => {
       <main className="pt-24 pb-12">
         <div className="container mx-auto px-4">
           {/* Welcome Section */}
-          <div className="mb-8">
+          <div className="mb-8 text-center">
             <h1 className="font-heading text-2xl md:text-3xl font-bold text-foreground mb-2">
               Olá, {firstName}! 👋
             </h1>
