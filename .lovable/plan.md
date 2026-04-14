@@ -1,19 +1,19 @@
 
 
-## Plano: Corrigir cor primária do modo escuro de laranja para dourado
+## Plano: Tornar imagem de fundo mais visível e reduzir fade inferior
 
-### Problema
-No modo escuro, a variável `--primary` está definida como `24 100% 50%` (laranja). Deveria ser o mesmo dourado da marca (`40 52% 54%`), igual ao modo claro.
+### Alterações — `src/components/landing/HeroSection.tsx`
 
-### Alteração — `src/index.css` (linha 72)
+1. **Reduzir opacidade do overlay escuro** (linha 16):
+   - De: `from-gray-900/85 via-gray-800/65 to-gray-700/50`
+   - Para: `from-gray-900/70 via-gray-800/45 to-gray-700/25`
+   - Isso deixa a imagem de fundo mais aparente
 
-```css
-/* Antes */
---primary: 24 100% 50%;
+2. **Reduzir o fade branco inferior** (linha 137):
+   - De: `h-32` para `h-16`
+   - De: `from-background` para `from-background/60`
+   - Fade mais sutil e menor
 
-/* Depois */
---primary: 40 52% 54%;
-```
-
-Apenas uma linha. Todos os elementos que usam `text-primary`, `bg-primary`, `border-primary` etc. no modo escuro passarão de laranja para dourado automaticamente.
+### O que NÃO muda
+- Conteúdo, botões, cards flutuantes, layout — tudo intacto
 
