@@ -13,7 +13,7 @@ const HeroSection = () => {
         className="absolute inset-0 w-full h-full object-cover object-top"
       />
       {/* Dark Overlay with gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/85 via-primary/65 to-primary/50" />
+      <div className="absolute inset-0 bg-gradient-to-r from-gray-900/85 via-gray-800/65 to-gray-700/50" />
 
       {/* Floating geometric shapes */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
