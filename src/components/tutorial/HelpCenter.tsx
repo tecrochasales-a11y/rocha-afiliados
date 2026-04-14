@@ -102,11 +102,6 @@ const HelpCenter = () => {
           ))}
         </div>
 
-        {/* Results count */}
-        <p className="text-sm text-muted-foreground">
-          {filteredTopics.length} {filteredTopics.length === 1 ? "tópico encontrado" : "tópicos encontrados"}
-        </p>
-
         {/* Content */}
         {viewMode === "explore" ? (
           <TutorialExplorer activeCategory={activeCategory} searchQuery={searchQuery} />

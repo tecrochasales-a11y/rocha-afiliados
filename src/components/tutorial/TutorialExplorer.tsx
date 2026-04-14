@@ -8,6 +8,9 @@ import { tutorialTopics, tutorialCategories, type TutorialTopic } from "@/data/t
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion";
 
 // Previews
 import { DashboardMetricsPreview, DashboardLinkPreview, DashboardLeadsPreview } from "./previews/DashboardPreview";
@@ -77,68 +80,85 @@ const TutorialExplorer = ({ activeCategory, searchQuery }: TutorialExplorerProps
     const categoryLabel = tutorialCategories.find((c) => c.key === topic.category)?.label;
 
     return (
-      <div key={topic.id} className="animate-fade-in space-y-5">
-        {/* Header */}
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-            <IconComponent size={24} />
+      <div key={topic.id} className="animate-fade-in flex flex-col gap-4">
+        {/* Compact header bar */}
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+            <IconComponent size={20} />
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-foreground">{topic.title}</h2>
-            {categoryLabel && (
-              <Badge variant="secondary" className="mt-1 text-xs">{categoryLabel}</Badge>
+          <h2 className="text-base font-semibold text-foreground truncate">{topic.title}</h2>
+          {categoryLabel && (
+            <Badge variant="secondary" className="text-xs shrink-0">{categoryLabel}</Badge>
+          )}
+        </div>
+
+        {/* Large preview area */}
+        <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-muted/30 to-muted/10 p-6 min-h-[350px] flex items-center justify-center transition-all duration-500">
+          <div className="w-full">
+            {previewMap[topic.id] || (
+              <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
+                Preview não disponível
+              </div>
             )}
           </div>
         </div>
 
-        {/* Preview mockup */}
-        <div className="rounded-xl border border-border/50 bg-muted/20 p-4 transition-all duration-500">
-          {previewMap[topic.id] || (
-            <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
-              Preview não disponível
-            </div>
+        {/* Collapsible info accordion */}
+        <Accordion type="multiple" className="w-full">
+          <AccordionItem value="description" className="border-border/40">
+            <AccordionTrigger className="py-3 text-sm hover:no-underline">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <Info size={14} /> Descrição
+              </span>
+            </AccordionTrigger>
+            <AccordionContent>
+              <p className="text-sm text-muted-foreground leading-relaxed">{topic.description}</p>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="howto" className="border-border/40">
+            <AccordionTrigger className="py-3 text-sm hover:no-underline">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <BookOpen size={14} /> Como usar
+              </span>
+            </AccordionTrigger>
+            <AccordionContent>
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{topic.howToUse}</p>
+            </AccordionContent>
+          </AccordionItem>
+
+          {topic.tips.length > 0 && (
+            <AccordionItem value="tips" className="border-border/40">
+              <AccordionTrigger className="py-3 text-sm hover:no-underline">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <Lightbulb size={14} /> Dicas
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <ul className="space-y-1.5">
+                  {topic.tips.map((tip, i) => (
+                    <li key={i} className="text-sm text-muted-foreground flex items-start gap-1.5">
+                      <span className="text-primary mt-0.5">•</span>{tip}
+                    </li>
+                  ))}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
           )}
-        </div>
 
-        {/* Description */}
-        <p className="text-sm text-muted-foreground leading-relaxed">{topic.description}</p>
-
-        {/* How to use */}
-        <div className="flex items-start gap-2">
-          <BookOpen size={16} className="text-primary mt-0.5 shrink-0" />
-          <div>
-            <h4 className="text-sm font-semibold text-foreground mb-1">Como usar</h4>
-            <p className="text-sm text-muted-foreground whitespace-pre-line">{topic.howToUse}</p>
-          </div>
-        </div>
-
-        {/* Tips */}
-        {topic.tips.length > 0 && (
-          <div className="flex items-start gap-2">
-            <Lightbulb size={16} className="text-amber-500 mt-0.5 shrink-0" />
-            <div>
-              <h4 className="text-sm font-semibold text-foreground mb-1">Dicas</h4>
-              <ul className="space-y-1">
-                {topic.tips.map((tip, i) => (
-                  <li key={i} className="text-sm text-muted-foreground flex items-start gap-1.5">
-                    <span className="text-primary mt-1">•</span>{tip}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* Notes */}
-        {topic.notes && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
-            <Info size={16} className="text-primary mt-0.5 shrink-0" />
-            <div>
-              <h4 className="text-sm font-semibold text-foreground mb-0.5">Observação</h4>
-              <p className="text-sm text-muted-foreground">{topic.notes}</p>
-            </div>
-          </div>
-        )}
+          {topic.notes && (
+            <AccordionItem value="notes" className="border-border/40">
+              <AccordionTrigger className="py-3 text-sm hover:no-underline">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <AlertCircle size={14} /> Observação
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <p className="text-sm text-muted-foreground">{topic.notes}</p>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+        </Accordion>
       </div>
     );
   };
@@ -146,12 +166,13 @@ const TutorialExplorer = ({ activeCategory, searchQuery }: TutorialExplorerProps
   return (
     <div className={cn(
       "grid gap-4",
-      isMobile ? "grid-cols-1" : "grid-cols-[280px_1fr]"
+      isMobile ? "grid-cols-1" : "grid-cols-[220px_1fr]"
     )}>
       {/* Sidebar menu */}
       <div className={cn(
-        "space-y-1 pr-2",
-        isMobile ? "flex flex-wrap gap-1.5" : "border-r border-border/50 max-h-[calc(100vh-220px)] overflow-y-auto"
+        isMobile
+          ? "flex flex-wrap gap-1.5"
+          : "space-y-0.5 border-r border-border/30 pr-3 max-h-[calc(100vh-220px)] overflow-y-auto"
       )}>
         {filteredTopics.map((topic) => {
           const Icon = iconMap[topic.icon] || HelpCircle;
@@ -162,20 +183,17 @@ const TutorialExplorer = ({ activeCategory, searchQuery }: TutorialExplorerProps
               key={topic.id}
               onClick={() => setSelectedTopicId(topic.id)}
               className={cn(
-                "flex items-center gap-2.5 text-left transition-all duration-200 rounded-lg",
+                "flex items-center gap-2 text-left transition-all duration-200 rounded-lg",
                 isMobile
                   ? "px-3 py-2 text-xs"
-                  : "w-full px-3 py-2.5 text-sm",
+                  : "w-full px-2.5 py-2 text-[13px]",
                 isActive
-                  ? "bg-primary/10 text-primary font-medium shadow-sm"
+                  ? "bg-primary/10 text-primary font-medium"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <Icon size={isMobile ? 14 : 16} className="shrink-0" />
+              <Icon size={isMobile ? 14 : 15} className="shrink-0" />
               <span className="truncate">{topic.title}</span>
-              {isActive && !isMobile && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-              )}
             </button>
           );
         })}
@@ -184,7 +202,7 @@ const TutorialExplorer = ({ activeCategory, searchQuery }: TutorialExplorerProps
       {/* Detail area */}
       <div className={cn(
         "min-h-[400px]",
-        !isMobile && "pl-4"
+        !isMobile && "pl-3"
       )}>
         {selectedTopic && renderDetail(selectedTopic)}
       </div>
