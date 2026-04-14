@@ -1,16 +1,16 @@
 
 
-## Plano: Forçar modo escuro para teste
+## Plano: Reverter tema para modo claro (padrão)
 
-### Alteração — `src/hooks/useTheme.tsx` (linha 4-7)
+### Alteração — `src/hooks/useTheme.tsx`
 
-Mudar o valor inicial padrão para `"dark"` em vez de ler do `localStorage` ou preferência do sistema:
+Mudar o valor inicial de `"dark"` para `"light"`:
 
 ```tsx
 const [theme, setTheme] = useState<"light" | "dark">(() => {
-  return "dark";
+  return "light";
 });
 ```
 
-Isso força o site a abrir em modo escuro. Quando terminar o teste, reverteremos para a lógica original.
+O site voltará a abrir no modo claro por padrão.
 
