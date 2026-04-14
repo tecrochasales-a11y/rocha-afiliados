@@ -88,7 +88,7 @@ const Header = () => {
             <img 
               src={logoUrl || localLogo} 
               alt="Rocha Sales Seguros" 
-              className={`w-auto object-contain transition-all duration-300 ${isScrolled ? "h-8 md:h-10" : "h-10 md:h-12"}`}
+              className={`w-auto object-contain mix-blend-screen transition-all duration-300 ${isScrolled ? "h-8 md:h-10" : "h-10 md:h-12"}`}
             />
           </button>
 
