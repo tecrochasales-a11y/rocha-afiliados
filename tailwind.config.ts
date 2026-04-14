@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Open Sans', 'sans-serif'],
-        heading: ['Montserrat', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
+        heading: ['Poppins', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -96,8 +96,8 @@ export default {
           "100%": { backgroundPosition: "0% 50%" },
         },
         "glow-pulse": {
-          "0%, 100%": { boxShadow: "0 0 20px hsl(152 62% 38% / 0.2)" },
-          "50%": { boxShadow: "0 0 40px hsl(152 62% 38% / 0.4)" },
+          "0%, 100%": { boxShadow: "0 0 20px hsl(24 100% 50% / 0.2)" },
+          "50%": { boxShadow: "0 0 40px hsl(24 100% 50% / 0.4)" },
         },
         "float-slow": {
           "0%, 100%": { transform: "translateY(0px) rotate(0deg)" },
