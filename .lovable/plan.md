@@ -1,26 +1,21 @@
 
 
-## Plano: Trocar filtro do hero de dourado para cinza
+## Plano: Adicionar logo PNG ao Header
 
-### Problema
-O overlay do hero usa `from-primary/85 via-primary/65 to-primary/50`, que agora é dourado. O usuário quer um tom de cinza para dar contraste.
+### O que será feito
+1. **Copiar a logo PNG** (`IMG_9693.PNG`) para `src/assets/rocha-sales-logo.png`
+2. **Atualizar `Header.tsx`**: Usar a logo PNG como fallback local (quando não houver logo dinâmica do banco). Importar a imagem como módulo ES6 e exibi-la no lugar do ícone Shield.
+3. **Remover o texto "Rocha Sales / SEGUROS"** ao lado da logo, já que a própria imagem PNG já contém o nome da marca — resultado mais limpo e profissional, como empresa grande.
 
-### Alteração — 1 arquivo
+### Arquivos modificados
 
-**`src/components/landing/HeroSection.tsx`** (linha 16):
-
-Trocar:
-```
-from-primary/85 via-primary/65 to-primary/50
-```
-Por:
-```
-from-gray-900/85 via-gray-800/65 to-gray-700/50
-```
-
-Isso aplica um overlay cinza escuro sobre a imagem de fundo, mantendo o texto legível e dando contraste elegante. O restante (textos, botões, cards flutuantes) permanece inalterado.
+| Arquivo | Mudança |
+|---------|---------|
+| `src/assets/rocha-sales-logo.png` | Novo arquivo (cópia da logo enviada) |
+| `src/components/layout/Header.tsx` | Importar logo local, usar como fallback no lugar do Shield. Remover texto duplicado "Rocha Sales / SEGUROS" para visual mais limpo. |
 
 ### O que NÃO muda
-- Nenhuma função, integração ou lógica
-- Apenas 1 classe CSS em 1 linha
+- Lógica de busca dinâmica da logo no banco (site_assets) permanece
+- Navegação, scroll, menu mobile — tudo intacto
+- Nenhuma integração ou função alterada
 
