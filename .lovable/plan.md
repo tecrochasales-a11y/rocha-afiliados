@@ -1,22 +1,23 @@
 
 
-## Plano: Corrigir logo — priorizar arquivo local
+## Plano: Header transparente com degradê e ajustes visuais
 
-### Problema
-O `Header.tsx` busca a logo na tabela `site_assets` do banco. Se encontra uma logo ativa, usa essa URL (`logoUrl`) em vez do arquivo local. A logo antiga (com fundo preto/quadrado) está salva no banco e está sobrescrevendo a nova.
+### Mudanças no `src/components/layout/Header.tsx`
 
-### Solução — 2 opções (faremos ambas para garantir)
+1. **Header transparente**: Remover `bg-card/95` e `bg-card/98`. Usar fundo totalmente transparente (sem `border-b` nem `shadow`). Ao scrollar, aplicar um fundo semi-transparente escuro com blur.
 
-1. **`src/components/layout/Header.tsx`**: Remover a lógica de `fetchLogo` e o estado `logoUrl`. Usar apenas o `localLogo` importado do arquivo local. Isso garante que a logo correta sempre apareça.
+2. **Degradê escuro no topo**: Adicionar um `::before` pseudo-elemento (via classe Tailwind `before:`) no header com gradiente de preto/escuro para transparente, criando contraste sutil no topo da página.
 
-2. **Banco de dados**: Desativar ou remover a logo antiga da tabela `site_assets` (setar `is_active = false`), para que mesmo se no futuro voltarmos a usar logos dinâmicas, a antiga não apareça.
+3. **Logo maior**: Aumentar de `h-10 md:h-12` para `h-14 md:h-16` (e scrollado de `h-8 md:h-10` para `h-10 md:h-12`).
 
-### Alteração principal — Header.tsx
-- Remover `useState` de `logoUrl`
-- Remover `useEffect` + `fetchLogo`
-- Trocar `src={logoUrl || localLogo}` por `src={localLogo}`
+4. **Textos de navegação brancos**: Trocar `text-muted-foreground` por `text-white` nos 3 botões de navegação desktop. Hover também branco com opacidade.
 
-### O que NÃO muda
-- Layout, navegação, menu mobile — tudo intacto
-- O arquivo `rocha-sales-logo.png` já é a imagem correta
+5. **Botão "Entrar" branco**: Ajustar para `text-white` também.
+
+6. **Menu mobile**: Manter fundo sólido escuro para legibilidade.
+
+### Arquivo alterado
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/layout/Header.tsx` | Fundo transparente, degradê superior, logo maior, textos brancos |
 
