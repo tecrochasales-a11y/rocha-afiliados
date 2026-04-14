@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import QRCodeGenerator from "@/components/QRCodeGenerator";
 import NotificationBell from "@/components/NotificationBell";
+import localLogo from "@/assets/rocha-sales-logo.png";
 
 interface Lead {
   id: string;
@@ -72,7 +73,7 @@ const Dashboard = () => {
   const [pendingBalance, setPendingBalance] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [commissionPct, setCommissionPct] = useState(30);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -99,17 +100,6 @@ const Dashboard = () => {
     setIsLoadingData(true);
 
     try {
-      // Fetch logo
-      const { data: logoData } = await supabase
-        .from("site_assets")
-        .select("url")
-        .eq("type", "logo")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .limit(1)
-        .single();
-      if (logoData) setLogoUrl(logoData.url);
-
       // Fetch commission percentage
       const { data: settingsData } = await supabase
         .from("app_settings")
@@ -302,17 +292,11 @@ const Dashboard = () => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3">
-              {logoUrl ? (
-                <img 
-                  src={logoUrl} 
-                  alt="Rocha Sales Seguros" 
-                  className="h-10 w-auto object-contain"
-                />
-              ) : (
-                <div className="w-10 h-10 bg-gradient-hero rounded-xl flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-primary-foreground" />
-                </div>
-              )}
+              <img 
+                src={localLogo} 
+                alt="Rocha Sales Seguros" 
+                className="h-10 w-auto object-contain"
+              />
               <span className="font-heading font-bold text-lg text-foreground hidden sm:block">
                 Rocha Sales
               </span>
