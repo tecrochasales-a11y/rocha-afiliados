@@ -1,23 +1,19 @@
 
 
-## Plano: Header transparente com degradê e ajustes visuais
+## Plano: Alterar fonte do Hero para fonte serifada elegante
 
-### Mudanças no `src/components/layout/Header.tsx`
+### Contexto
+A imagem da esquerda (referência) usa uma fonte serifada elegante nos títulos ("Excelência e Exclusividade em Planos de Saúde"). A imagem da direita (atual) usa Poppins (sans-serif). O objetivo é igualar o estilo tipográfico.
 
-1. **Header transparente**: Remover `bg-card/95` e `bg-card/98`. Usar fundo totalmente transparente (sem `border-b` nem `shadow`). Ao scrollar, aplicar um fundo semi-transparente escuro com blur.
+### Alterações
 
-2. **Degradê escuro no topo**: Adicionar um `::before` pseudo-elemento (via classe Tailwind `before:`) no header com gradiente de preto/escuro para transparente, criando contraste sutil no topo da página.
+**1. `src/index.css`** — Importar fonte serifada (Playfair Display) do Google Fonts, que é a mais próxima do estilo da referência.
 
-3. **Logo maior**: Aumentar de `h-10 md:h-12` para `h-14 md:h-16` (e scrollado de `h-8 md:h-10` para `h-10 md:h-12`).
+**2. `tailwind.config.ts`** — Adicionar `heading: ['Playfair Display', 'serif']` na configuração de `fontFamily`.
 
-4. **Textos de navegação brancos**: Trocar `text-muted-foreground` por `text-white` nos 3 botões de navegação desktop. Hover também branco com opacidade.
+**3. `src/index.css`** — Atualizar a regra de `h1-h6` para usar `'Playfair Display', serif`.
 
-5. **Botão "Entrar" branco**: Ajustar para `text-white` também.
-
-6. **Menu mobile**: Manter fundo sólido escuro para legibilidade.
-
-### Arquivo alterado
-| Arquivo | Mudança |
-|---------|---------|
-| `src/components/layout/Header.tsx` | Fundo transparente, degradê superior, logo maior, textos brancos |
+### O que NÃO muda
+- Corpo de texto continua Inter
+- Nenhuma lógica ou layout alterado
 
