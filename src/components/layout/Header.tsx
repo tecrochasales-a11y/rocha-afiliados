@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -14,6 +15,14 @@ const Header = () => {
 
   useEffect(() => {
     fetchLogo();
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const fetchLogo = async () => {
@@ -64,19 +73,25 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      isScrolled 
+        ? "bg-card/98 backdrop-blur-xl border-b border-border shadow-soft" 
+        : "bg-card/95 backdrop-blur-md border-b border-border"
+    }`}>
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className={`flex items-center justify-between transition-all duration-300 ${
+          isScrolled ? "h-14 md:h-16" : "h-16 md:h-20"
+        }`}>
           {/* Logo */}
           <button onClick={scrollToTop} className="flex items-center gap-3 group cursor-pointer">
             {logoUrl ? (
               <img 
                 src={logoUrl} 
                 alt="Rocha Sales Seguros" 
-                className="h-10 md:h-12 w-auto object-contain"
+                className={`w-auto object-contain transition-all duration-300 ${isScrolled ? "h-8 md:h-10" : "h-10 md:h-12"}`}
               />
             ) : (
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-hero rounded-xl flex items-center justify-center shadow-soft group-hover:shadow-medium transition-all duration-300">
+              <div className={`bg-gradient-hero rounded-xl flex items-center justify-center shadow-soft group-hover:shadow-medium transition-all duration-300 ${isScrolled ? "w-8 h-8 md:w-10 md:h-10" : "w-10 h-10 md:w-12 md:h-12"}`}>
                 <Shield className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
               </div>
             )}
@@ -94,19 +109,19 @@ const Header = () => {
           <nav className="hidden md:flex items-center gap-8">
             <button 
               onClick={() => scrollToSection("como-funciona")}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
             >
               Como Funciona
             </button>
             <button 
               onClick={() => scrollToSection("beneficios")}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
             >
               Benefícios
             </button>
             <button 
               onClick={() => scrollToSection("produtos")}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
             >
               Produtos
             </button>
@@ -138,7 +153,7 @@ const Header = () => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-card border-b border-border animate-slide-up">
+        <div className="md:hidden absolute top-full left-0 right-0 bg-card border-b border-border animate-slide-up shadow-medium">
           <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
             <button 
               onClick={() => scrollToSection("como-funciona")}

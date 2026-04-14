@@ -40,12 +40,18 @@ const Footer = () => {
   const copyright = extra.copyright || `© ${new Date().getFullYear()} Rocha Sales Seguros. Todos os direitos reservados.`;
 
   return (
-    <footer className="bg-primary text-primary-foreground">
-      <div className="container mx-auto px-4 py-12 md:py-16">
+    <footer className="bg-primary text-primary-foreground relative overflow-hidden">
+      {/* Subtle background decoration */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-secondary rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent rounded-full blur-3xl" />
+      </div>
+
+      <div className="container mx-auto px-4 py-12 md:py-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Logo & Description */}
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center gap-3 mb-4">
+            <Link to="/" className="flex items-center gap-3 mb-4 group">
               {logoUrl ? (
                 <img 
                   src={logoUrl} 
@@ -53,7 +59,7 @@ const Footer = () => {
                   className="h-10 w-auto object-contain"
                 />
               ) : (
-                <div className="w-10 h-10 bg-primary-foreground/20 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary-foreground/20 rounded-xl flex items-center justify-center group-hover:bg-primary-foreground/30 transition-colors">
                   <Shield className="w-5 h-5 text-primary-foreground" />
                 </div>
               )}
@@ -78,22 +84,22 @@ const Footer = () => {
             </h4>
             <ul className="space-y-3">
               <li>
-                <Link to="/#como-funciona" className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                <Link to="/#como-funciona" className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors hover:translate-x-1 inline-block">
                   Como Funciona
                 </Link>
               </li>
               <li>
-                <Link to="/#beneficios" className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                <Link to="/#beneficios" className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors hover:translate-x-1 inline-block">
                   Benefícios
                 </Link>
               </li>
               <li>
-                <Link to="/cadastro" className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                <Link to="/cadastro" className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors hover:translate-x-1 inline-block">
                   Seja um Afiliado
                 </Link>
               </li>
               <li>
-                <Link to="/login" className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                <Link to="/login" className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors hover:translate-x-1 inline-block">
                   Área do Afiliado
                 </Link>
               </li>
@@ -132,7 +138,7 @@ const Footer = () => {
                   href={instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center hover:bg-primary-foreground/20 transition-colors"
+                  className="w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center hover:bg-primary-foreground/20 hover:scale-110 transition-all duration-300"
                 >
                   <Instagram className="w-5 h-5" />
                 </a>
@@ -142,7 +148,7 @@ const Footer = () => {
                   href={facebookUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center hover:bg-primary-foreground/20 transition-colors"
+                  className="w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center hover:bg-primary-foreground/20 hover:scale-110 transition-all duration-300"
                 >
                   <Facebook className="w-5 h-5" />
                 </a>
@@ -152,7 +158,7 @@ const Footer = () => {
                   href={linkedinUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center hover:bg-primary-foreground/20 transition-colors"
+                  className="w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center hover:bg-primary-foreground/20 hover:scale-110 transition-all duration-300"
                 >
                   <Linkedin className="w-5 h-5" />
                 </a>
@@ -161,7 +167,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <hr className="border-primary-foreground/20 my-8" />
+        <hr className="border-primary-foreground/15 my-8" />
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-primary-foreground/60">
           <p>{copyright}</p>
