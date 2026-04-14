@@ -62,8 +62,8 @@ const HowItWorksSection = () => {
 
         {/* Steps */}
         <div className="relative">
-          {/* Connection Line - Desktop */}
-          <div className="hidden lg:block absolute top-24 left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-primary via-secondary to-accent" />
+          {/* Connection Line - Desktop with gradient animation */}
+          <div className="hidden lg:block absolute top-24 left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-primary via-secondary to-accent animate-gradient-shift" style={{ backgroundSize: "200% 200%" }} />
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {steps.map((step, index) => {
@@ -74,9 +74,9 @@ const HowItWorksSection = () => {
                 <div 
                   key={step.id} 
                   className="relative group"
-                  style={{ animationDelay: `${index * 0.1}s` }}
+                  style={{ animationDelay: `${index * 0.15}s` }}
                 >
-                  <div className="bg-card rounded-2xl p-8 shadow-soft hover:shadow-medium transition-all duration-300 h-full border border-border group-hover:border-secondary/30">
+                  <div className="bg-card rounded-2xl p-8 shadow-soft hover:shadow-medium transition-all duration-300 h-full border border-border group-hover:border-secondary/30 hover-lift">
                     {/* Step Number */}
                     <div className="absolute -top-4 left-8 w-8 h-8 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center font-heading font-bold text-sm shadow-glow">
                       {index + 1}

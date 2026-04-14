@@ -65,9 +65,9 @@ const TrustSection = () => {
               {trustPoints.map((point, index) => (
                 <div 
                   key={index}
-                  className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border border-border"
+                  className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border border-border hover:border-primary/20 hover:shadow-soft transition-all duration-300 group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
                     <point.icon className="w-5 h-5" />
                   </div>
                   <div>
@@ -87,13 +87,13 @@ const TrustSection = () => {
           <div className="bg-gradient-hero rounded-3xl p-8 md:p-10 text-primary-foreground relative overflow-hidden">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-secondary rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent rounded-full blur-3xl" />
+              <div className="absolute top-0 right-0 w-64 h-64 bg-secondary rounded-full blur-3xl animate-float-slow" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent rounded-full blur-3xl animate-float-slow" style={{ animationDelay: "4s" }} />
             </div>
 
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center shadow-glow">
                   <Award className="w-6 h-6 text-secondary-foreground" />
                 </div>
                 <div>
@@ -108,8 +108,8 @@ const TrustSection = () => {
 
               <ul className="space-y-4">
                 {credentials.map((credential, index) => (
-                  <li key={index} className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-secondary shrink-0" />
+                  <li key={index} className="flex items-center gap-3 group">
+                    <CheckCircle2 className="w-5 h-5 text-secondary shrink-0 group-hover:scale-110 transition-transform" />
                     <span className="text-primary-foreground/90">{credential}</span>
                   </li>
                 ))}
@@ -119,7 +119,7 @@ const TrustSection = () => {
               <div className="mt-8 pt-6 border-t border-primary-foreground/20">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center -space-x-2">
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center border-2 border-primary">
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center border-2 border-primary shadow-glow">
                       <Shield className="w-5 h-5 text-secondary-foreground" />
                     </div>
                     <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center border-2 border-primary">

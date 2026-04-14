@@ -156,7 +156,7 @@ const Notificacoes = () => {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="container mx-auto px-4">
@@ -217,7 +217,7 @@ const Notificacoes = () => {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`bg-card rounded-2xl border shadow-soft p-5 transition-all ${
+                  className={`bg-card rounded-2xl border shadow-soft p-5 transition-all duration-300 hover-lift ${
                     !notification.is_read 
                       ? "border-primary/30 bg-primary/5" 
                       : "border-border"

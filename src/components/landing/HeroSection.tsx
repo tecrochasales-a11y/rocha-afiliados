@@ -12,14 +12,21 @@ const HeroSection = () => {
         alt="Einstein Hospital - Rocha Sales Seguros"
         className="absolute inset-0 w-full h-full object-cover object-top"
       />
-      {/* Dark Overlay for readability - reduced opacity for better visibility */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/60 to-primary/50" />
+      {/* Dark Overlay with gradient */}
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/85 via-primary/65 to-primary/50" />
+
+      {/* Floating geometric shapes */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-[10%] w-64 h-64 rounded-full bg-secondary/10 blur-3xl animate-float-slow" />
+        <div className="absolute bottom-32 right-[15%] w-80 h-80 rounded-full bg-accent/10 blur-3xl animate-float-slow" style={{ animationDelay: "3s" }} />
+        <div className="absolute top-1/2 left-[60%] w-40 h-40 rounded-full bg-primary-foreground/5 blur-2xl animate-float-slow" style={{ animationDelay: "5s" }} />
+      </div>
 
       <div className="container mx-auto px-4 py-32 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Content */}
           <div className="text-center lg:text-left animate-slide-up">
-            <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 rounded-full px-4 py-2 mb-6">
+            <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-2 mb-6">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
@@ -43,9 +50,12 @@ const HeroSection = () => {
 
             <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
               <Link to="/cadastro">
-                <Button variant="hero" size="xl" className="w-full sm:w-auto">
-                  Quero ser Afiliado
-                  <ArrowRight className="w-5 h-5" />
+                <Button variant="hero" size="xl" className="w-full sm:w-auto relative overflow-hidden group">
+                  <span className="relative z-10 flex items-center gap-2">
+                    Quero ser Afiliado
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 shimmer" />
                 </Button>
               </Link>
               <Link to="/login">
@@ -75,10 +85,10 @@ const HeroSection = () => {
           {/* Visual Element */}
           <div className="relative hidden lg:block">
             <div className="relative w-full aspect-square max-w-lg mx-auto">
-              {/* Floating Cards */}
-              <div className="absolute top-10 left-0 bg-card rounded-2xl shadow-medium p-6 animate-float" style={{ animationDelay: "0s" }}>
+              {/* Floating Cards with glassmorphism */}
+              <div className="absolute top-10 left-0 glass-card rounded-2xl shadow-medium p-6 animate-float hover-lift" style={{ animationDelay: "0s" }}>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-secondary/20 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-secondary/15 rounded-xl flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-secondary" />
                   </div>
                   <div>
@@ -88,9 +98,9 @@ const HeroSection = () => {
                 </div>
               </div>
 
-              <div className="absolute top-1/3 right-0 bg-card rounded-2xl shadow-medium p-6 animate-float" style={{ animationDelay: "1s" }}>
+              <div className="absolute top-1/3 right-0 glass-card rounded-2xl shadow-medium p-6 animate-float hover-lift" style={{ animationDelay: "1s" }}>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-accent/20 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-accent/15 rounded-xl flex items-center justify-center">
                     <DollarSign className="w-6 h-6 text-accent" />
                   </div>
                   <div>
@@ -100,9 +110,9 @@ const HeroSection = () => {
                 </div>
               </div>
 
-              <div className="absolute bottom-10 left-10 bg-card rounded-2xl shadow-medium p-6 animate-float" style={{ animationDelay: "2s" }}>
+              <div className="absolute bottom-10 left-10 glass-card rounded-2xl shadow-medium p-6 animate-float hover-lift" style={{ animationDelay: "2s" }}>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/15 rounded-xl flex items-center justify-center">
                     <Users className="w-6 h-6 text-primary" />
                   </div>
                   <div>
@@ -113,8 +123,8 @@ const HeroSection = () => {
               </div>
 
               {/* Central Icon */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-primary-foreground/10 backdrop-blur rounded-3xl flex items-center justify-center border border-primary-foreground/20">
-                <div className="w-20 h-20 bg-secondary rounded-2xl flex items-center justify-center shadow-glow">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 glass rounded-3xl flex items-center justify-center">
+                <div className="w-20 h-20 bg-secondary rounded-2xl flex items-center justify-center shadow-glow animate-glow-pulse">
                   <DollarSign className="w-10 h-10 text-secondary-foreground" />
                 </div>
               </div>

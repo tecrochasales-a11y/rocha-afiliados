@@ -295,9 +295,9 @@ const Dashboard = () => {
   const firstName = displayName.split(" ")[0];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/30">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-card/98 backdrop-blur-xl border-b border-border shadow-soft">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -401,7 +401,7 @@ const Dashboard = () => {
           </div>
 
           {/* Referral Link Card */}
-          <div className="bg-gradient-hero rounded-2xl p-6 md:p-8 mb-8 relative overflow-hidden">
+          <div className="bg-gradient-hero rounded-2xl p-6 md:p-8 mb-8 relative overflow-hidden animate-gradient-shift" style={{ backgroundSize: "200% 200%" }}>
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-0 right-0 w-64 h-64 bg-secondary rounded-full blur-3xl" />
             </div>
@@ -432,7 +432,7 @@ const Dashboard = () => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <Users className="w-5 h-5" />
@@ -442,7 +442,7 @@ const Dashboard = () => {
               <p className="text-2xl font-heading font-bold text-foreground">{stats.totalLeads}</p>
             </div>
 
-            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
                   <CheckCircle className="w-5 h-5" />
@@ -452,7 +452,7 @@ const Dashboard = () => {
               <p className="text-2xl font-heading font-bold text-foreground">{stats.convertedLeads}</p>
             </div>
 
-            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
                   <DollarSign className="w-5 h-5" />
@@ -464,7 +464,7 @@ const Dashboard = () => {
               </p>
             </div>
 
-            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft">
+            <div className="bg-card rounded-2xl p-5 border border-border shadow-soft hover-lift">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <Clock className="w-5 h-5" />
@@ -507,7 +507,7 @@ const Dashboard = () => {
           </div>
 
           {/* Leads Table */}
-          <div className="bg-card rounded-2xl border border-border shadow-soft overflow-hidden">
+          <div className="bg-card rounded-2xl border border-border shadow-soft overflow-hidden hover:shadow-medium transition-shadow">
             <div className="p-4 sm:p-6 border-b border-border">
               <h3 className="font-heading font-semibold text-lg text-foreground">
                 Últimas Indicações
