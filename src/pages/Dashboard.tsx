@@ -385,33 +385,40 @@ const Dashboard = () => {
           </div>
 
           {/* Referral Link Card */}
-          <div className="bg-gradient-hero rounded-2xl p-6 md:p-8 mb-8 relative overflow-hidden animate-gradient-shift" style={{ backgroundSize: "200% 200%" }}>
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-secondary rounded-full blur-3xl" />
-            </div>
-            <div className="relative z-10">
-              <h2 className="font-heading text-lg font-semibold text-primary-foreground mb-2">
+          <div className="bg-card rounded-xl p-4 md:p-5 mb-8 border border-border shadow-soft">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="font-heading text-base font-semibold text-foreground">
                 Seu Link de Indicação
               </h2>
-              <p className="text-primary-foreground/70 text-sm mb-4">
-                Compartilhe este link para ganhar comissões por cada venda
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 bg-primary-foreground/10 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3">
-                  <ExternalLink className="w-5 h-5 text-primary-foreground/70 flex-shrink-0" />
-                  <span className="text-primary-foreground text-sm truncate">
-                    {referralLink || "Gerando link..."}
-                  </span>
-                </div>
-                <Button onClick={copyReferralLink} variant="hero" className="flex-shrink-0" disabled={!referralLink}>
+              <div className="flex items-center gap-2">
+                <Button onClick={copyReferralLink} variant="default" size="sm" disabled={!referralLink}>
                   <Copy className="w-4 h-4" />
                   Copiar Link
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowLink(!showLink)}
+                  className="text-muted-foreground"
+                >
+                  {showLink ? "Ocultar" : "Visualizar Link"}
+                  <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showLink ? "rotate-180" : ""}`} />
+                </Button>
+              </div>
+            </div>
+            {showLink && (
+              <div className="mt-3 pt-3 border-t border-border flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex-1 bg-muted rounded-lg px-4 py-2.5 flex items-center gap-3 min-w-0">
+                  <ExternalLink className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-sm text-foreground truncate">
+                    {referralLink || "Gerando link..."}
+                  </span>
+                </div>
                 {referralLink && (
                   <QRCodeGenerator referralLink={referralLink} affiliateName={profile?.full_name} />
                 )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Stats Grid */}
