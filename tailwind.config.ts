@@ -96,8 +96,8 @@ export default {
           "100%": { backgroundPosition: "0% 50%" },
         },
         "glow-pulse": {
-          "0%, 100%": { boxShadow: "0 0 20px hsl(24 100% 50% / 0.2)" },
-          "50%": { boxShadow: "0 0 40px hsl(24 100% 50% / 0.4)" },
+          "0%, 100%": { boxShadow: "0 0 20px hsl(40 52% 54% / 0.2)" },
+          "50%": { boxShadow: "0 0 40px hsl(40 52% 54% / 0.4)" },
         },
         "float-slow": {
           "0%, 100%": { transform: "translateY(0px) rotate(0deg)" },

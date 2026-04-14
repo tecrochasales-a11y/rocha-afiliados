@@ -37,8 +37,8 @@
     --radius: 0.75rem;
 
     /* Custom tokens */
-    --gradient-hero: linear-gradient(135deg, hsl(0 0% 9%) 0%, hsl(0 0% 15%) 50%, hsl(24 30% 18%) 100%);
-    --gradient-cta: linear-gradient(135deg, hsl(24 100% 45%) 0%, hsl(24 100% 55%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 9%) 0%, hsl(0 0% 15%) 50%, hsl(40 30% 18%) 100%);
+    --gradient-cta: linear-gradient(135deg, hsl(40 52% 48%) 0%, hsl(40 52% 58%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(40 52% 48%) 0%, hsl(45 60% 58%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 97%) 100%);
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.1) 0%, hsl(0 0% 100% / 0.05) 100%);
@@ -241,8 +241,8 @@
 }
 
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 20px hsl(24 100% 50% / 0.2); }
-  50% { box-shadow: 0 0 40px hsl(24 100% 50% / 0.4); }
+  0%, 100% { box-shadow: 0 0 20px hsl(40 52% 54% / 0.2); }
+  50% { box-shadow: 0 0 40px hsl(40 52% 54% / 0.4); }
 }
 
 @keyframes shimmerSlide {
