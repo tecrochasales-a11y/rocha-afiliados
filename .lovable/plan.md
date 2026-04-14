@@ -1,46 +1,28 @@
 
 
-## Plano: Aplicar fonte e cores do site Rocha Sales
+## Plano: Trocar laranja por dourado
 
-### O que muda
-Apenas **2 arquivos** serão editados para trocar fontes e ajustar a paleta de cores. Zero alterações em layout, funções, integrações ou lógica.
+### Problema
+O `--primary`, `--accent`, `--ring` e `--sidebar-ring` estão em `24 100% 50%` (laranja #FF6600). O usuário quer tudo em **dourado** (#C9A84C / `40 52% 54%`).
 
-### Cores extraídas do site rochasalesseguros.com.br
-- **Fundo escuro**: `#181818` (rgb 24,24,24)
-- **Accent/CTA**: `#FF6600` (laranja vibrante)
-- **Dourado (textos destaque)**: `#C9A84C`
-- **Fundo claro**: `#F8F8F8`
-- **Texto escuro**: `#181818`
-- **Texto muted**: `#666666`
+### Alterações — apenas `src/index.css`
 
-### Fontes extraídas
-- **Headings**: Poppins (substituindo Montserrat)
-- **Body**: Inter (substituindo Open Sans)
+Trocar os valores HSL de laranja para dourado nas variáveis CSS:
 
-### Arquivos modificados
+| Token | Valor atual (laranja) | Novo valor (dourado) |
+|-------|----------------------|---------------------|
+| `--primary` | `24 100% 50%` | `40 52% 54%` |
+| `--accent` | `24 100% 50%` | `40 52% 54%` |
+| `--ring` | `24 100% 50%` | `40 52% 54%` |
+| `--sidebar-ring` | `24 100% 50%` | `40 52% 54%` |
+| `--gradient-hero` (tint final) | `hsl(24 30% 18%)` | `hsl(40 30% 18%)` |
+| `--gradient-cta` | `hsl(24 100% 45%)…55%` | `hsl(40 52% 48%)…58%` |
+| `--shadow-glow` | `hsl(24 100% 50% / 0.25)` | `hsl(40 52% 54% / 0.25)` |
+| Dark mode `--accent` | `24 100% 55%` | `40 52% 58%` |
 
-| Arquivo | Mudança |
-|---------|---------|
-| `src/index.css` | Trocar `@import` do Google Fonts para Poppins + Inter. Ajustar variáveis CSS de cor (--primary, --secondary, --accent, gradientes, sombras) para a paleta do site. Trocar `font-family` no body e headings. |
-| `tailwind.config.ts` | Trocar `fontFamily.sans` para Inter e `fontFamily.heading` para Poppins. |
+Também atualizar no `tailwind.config.ts` os keyframes `glow-pulse` que referenciam `hsl(24 100% 50%)`.
 
 ### O que NÃO muda
-- Nenhum componente TSX
-- Nenhum layout ou estrutura
-- Nenhuma integração, hook, rota ou banco de dados
-- Painel admin e gestor intocados
-- Animações existentes permanecem
-
-### Mapeamento de cores
-
-| Token | Valor atual | Novo valor |
-|-------|-------------|------------|
-| `--primary` | `212 72% 22%` (azul marinho) | `24 100% 50%` (laranja #FF6600) |
-| `--secondary` | `152 62% 38%` (verde) | `40 52% 54%` (dourado #C9A84C) |
-| `--accent` | `38 92% 50%` (dourado) | `24 100% 50%` (laranja) |
-| `--foreground` | `215 30% 12%` | `0 0% 9%` (#181818) |
-| `--muted-foreground` | `215 15% 45%` | `0 0% 40%` (#666) |
-| `--gradient-hero` | azul marinho | tons de #181818 para laranja sutil |
-| `--gradient-cta` | verde | laranja (#FF6600) |
-| `--gradient-gold` | dourado | dourado (#C9A84C) |
+- Nenhum componente, layout, função ou integração
+- Apenas substituição de valores de cor em 2 arquivos
 
