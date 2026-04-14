@@ -73,6 +73,7 @@ const Dashboard = () => {
   const [pendingBalance, setPendingBalance] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [commissionPct, setCommissionPct] = useState(30);
+  const [showLink, setShowLink] = useState(false);
   
   
   const { toast } = useToast();
