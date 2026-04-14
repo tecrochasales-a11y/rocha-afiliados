@@ -7,6 +7,10 @@ import { useState, useEffect } from "react";
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const isLandingPage = location.pathname === "/";
 
   const scrollToSection = (sectionId: string) => {
     setIsMenuOpen(false);
