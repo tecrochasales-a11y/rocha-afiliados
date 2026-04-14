@@ -10,7 +10,7 @@ const HeroSection = () => {
       <img 
         src={einsteinBackground}
         alt="Einstein Hospital - Rocha Sales Seguros"
-        className="absolute inset-0 w-full h-full className="absolute inset-0 w-full h-full object-cover object-center""
+        className="absolute inset-0 w-full h-full object-cover object-center"
       />
       {/* Dark Overlay with gradient */}
       <div className="absolute inset-0 bg-gradient-to-r from-gray-900/70 via-gray-800/45 to-gray-700/25" />
