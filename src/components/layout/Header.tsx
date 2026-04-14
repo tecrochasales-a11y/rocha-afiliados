@@ -4,6 +4,17 @@ import { Menu, X } from "lucide-react";
 import localLogo from "@/assets/rocha-sales-logo.png";
 import { useState, useEffect } from "react";
 
+// Scroll detection hook
+const useScrollDetection = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+  return isScrolled;
+};
+
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
