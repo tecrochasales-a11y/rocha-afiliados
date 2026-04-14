@@ -8,9 +8,7 @@ import { tutorialTopics, tutorialCategories, type TutorialTopic } from "@/data/t
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion";
+// Accordion removed — info now shown as cards
 
 // Previews
 import { DashboardMetricsPreview, DashboardLinkPreview, DashboardLeadsPreview } from "./previews/DashboardPreview";
