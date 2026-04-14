@@ -15,7 +15,9 @@ import {
   X,
   ExternalLink,
   ChevronDown,
-  Loader2
+  Loader2,
+  Sun,
+  Moon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,6 +40,7 @@ import {
 import QRCodeGenerator from "@/components/QRCodeGenerator";
 import NotificationBell from "@/components/NotificationBell";
 import localLogo from "@/assets/rocha-sales-logo.png";
+import { useTheme } from "@/hooks/useTheme";
 
 interface Lead {
   id: string;
@@ -74,6 +77,7 @@ const Dashboard = () => {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [commissionPct, setCommissionPct] = useState(30);
   const [showLink, setShowLink] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   
   
   const { toast } = useToast();
@@ -306,6 +310,13 @@ const Dashboard = () => {
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-4">
               <NotificationBell />
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                aria-label="Alternar tema"
+              >
+                {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-2">
@@ -364,6 +375,13 @@ const Dashboard = () => {
               <Link to="/financeiro" className="text-sm font-medium text-foreground py-2" onClick={() => setIsMobileMenuOpen(false)}>
                 Financeiro
               </Link>
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-2 text-sm font-medium text-foreground py-2 text-left"
+              >
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {theme === "dark" ? "Modo Claro" : "Modo Escuro"}
+              </button>
               <button onClick={handleLogout} className="text-sm font-medium text-destructive py-2 text-left">
                 Sair
               </button>
