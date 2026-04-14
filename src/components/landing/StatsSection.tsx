@@ -45,11 +45,11 @@ const StatsSection = () => {
       ];
 
   return (
-    <section className="py-20 md:py-28 bg-gradient-hero relative overflow-hidden">
+    <section className="py-20 md:py-28 bg-gradient-hero relative overflow-hidden animate-gradient-shift" style={{ backgroundSize: "200% 200%" }}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-secondary rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-secondary rounded-full blur-3xl animate-float-slow" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent rounded-full blur-3xl animate-float-slow" style={{ animationDelay: "4s" }} />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
@@ -71,7 +71,7 @@ const StatsSection = () => {
             return (
               <div 
                 key={index}
-                className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-8 text-center border border-primary-foreground/20 hover:bg-primary-foreground/15 transition-all duration-300"
+                className="glass rounded-2xl p-8 text-center hover:bg-primary-foreground/15 transition-all duration-300 hover-lift"
               >
                 <div className="w-14 h-14 rounded-xl bg-secondary/20 text-secondary flex items-center justify-center mx-auto mb-4">
                   <IconComponent className="w-7 h-7" />

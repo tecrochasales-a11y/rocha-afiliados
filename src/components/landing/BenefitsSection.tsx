@@ -50,8 +50,12 @@ const BenefitsSection = () => {
   ];
 
   return (
-    <section id="beneficios" className="py-20 md:py-28 bg-muted/50 scroll-mt-20">
-      <div className="container mx-auto px-4">
+    <section id="beneficios" className="py-20 md:py-28 bg-muted/30 scroll-mt-20 relative overflow-hidden">
+      {/* Subtle background decoration */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+
+      <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <span className="inline-block px-4 py-1.5 rounded-full bg-accent/10 text-accent text-sm font-semibold mb-4">
@@ -73,9 +77,9 @@ const BenefitsSection = () => {
             return (
               <div 
                 key={benefit.id}
-                className="bg-card rounded-2xl p-6 shadow-soft hover:shadow-medium transition-all duration-300 border border-border hover:border-secondary/30 group"
+                className="bg-card rounded-2xl p-6 shadow-soft hover:shadow-medium transition-all duration-300 border border-border hover:border-secondary/30 group hover-lift"
               >
-                <div className="w-12 h-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center mb-4 group-hover:bg-secondary group-hover:text-secondary-foreground transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center mb-4 group-hover:bg-secondary group-hover:text-secondary-foreground transition-all duration-300 group-hover:shadow-glow">
                   <IconComponent className="w-6 h-6" />
                 </div>
                 <h3 className="font-heading font-semibold text-foreground mb-2">

@@ -26,10 +26,10 @@ const CTASection = () => {
   return (
     <section className="py-20 md:py-28 bg-background">
       <div className="container mx-auto px-4">
-        <div className="bg-gradient-hero rounded-3xl p-8 md:p-16 relative overflow-hidden">
+        <div className="bg-gradient-hero rounded-3xl p-8 md:p-16 relative overflow-hidden animate-gradient-shift" style={{ backgroundSize: "200% 200%" }}>
           <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-secondary rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-secondary rounded-full blur-3xl animate-float-slow" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent rounded-full blur-3xl animate-float-slow" style={{ animationDelay: "3s" }} />
           </div>
 
           <div className="relative z-10 max-w-3xl mx-auto text-center">
@@ -54,9 +54,12 @@ const CTASection = () => {
 
             <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
               <Link to="/cadastro">
-                <Button variant="hero" size="xl">
-                  {ctaText}
-                  <ArrowRight className="w-5 h-5" />
+                <Button variant="hero" size="xl" className="relative overflow-hidden group">
+                  <span className="relative z-10 flex items-center gap-2">
+                    {ctaText}
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 shimmer" />
                 </Button>
               </Link>
             </div>

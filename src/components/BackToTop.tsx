@@ -22,18 +22,22 @@ const BackToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  if (!isVisible) return null;
-
   return (
-    <Button
-      onClick={scrollToTop}
-      variant="secondary"
-      size="icon"
-      className="fixed bottom-6 right-6 z-50 rounded-full shadow-medium hover:shadow-glow transition-all duration-300 animate-fade-in"
-      aria-label="Voltar ao topo"
+    <div
+      className={`fixed bottom-6 right-6 z-50 transition-all duration-500 ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+      }`}
     >
-      <ChevronUp className="h-5 w-5" />
-    </Button>
+      <Button
+        onClick={scrollToTop}
+        variant="secondary"
+        size="icon"
+        className="rounded-full shadow-medium hover:shadow-glow hover:scale-110 transition-all duration-300"
+        aria-label="Voltar ao topo"
+      >
+        <ChevronUp className="h-5 w-5" />
+      </Button>
+    </div>
   );
 };
 
