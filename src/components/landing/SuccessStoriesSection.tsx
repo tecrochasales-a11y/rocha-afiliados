@@ -299,11 +299,11 @@ const SuccessStoriesSection = () => {
                               }}
                             />
                           ) : (
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/70" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-500" />
                           )}
 
                           {/* Readability overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/40 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-700/40 to-transparent" />
 
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
