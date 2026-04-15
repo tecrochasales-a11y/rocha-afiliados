@@ -11,6 +11,7 @@ import {
   ToggleRight,
   Users
 } from "lucide-react";
+import { PDVAffiliatesDialog } from "@/components/admin/PDVAffiliatesDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +62,7 @@ const AdminPDV = () => {
     manager_id: "",
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [affiliatesPdv, setAffiliatesPdv] = useState<PDV | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -332,6 +334,14 @@ const AdminPDV = () => {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => setAffiliatesPdv(pdv)}
+                            title="Gerenciar afiliados"
+                          >
+                            <Users className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => toggleActive(pdv)}
                             title={pdv.is_active ? "Desativar" : "Ativar"}
                           >
@@ -434,6 +444,15 @@ const AdminPDV = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        {affiliatesPdv && (
+          <PDVAffiliatesDialog
+            open={!!affiliatesPdv}
+            onOpenChange={(open) => !open && setAffiliatesPdv(null)}
+            pdvId={affiliatesPdv.id}
+            pdvName={affiliatesPdv.name}
+            onUpdate={fetchData}
+          />
+        )}
       </div>
     </AdminLayout>
   );
