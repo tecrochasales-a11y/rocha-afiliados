@@ -8,7 +8,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  Bell
+  Bell,
+  DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +30,7 @@ const navItems = [
   { path: "/gestor", label: "Dashboard", icon: LayoutDashboard },
   { path: "/gestor/afiliados", label: "Afiliados", icon: Users },
   { path: "/gestor/leads", label: "Leads", icon: FileText },
+  { path: "/gestor/vendas", label: "Vendas", icon: DollarSign },
 ];
 
 export const GestorLayout = ({ children }: GestorLayoutProps) => {

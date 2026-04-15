@@ -37,6 +37,7 @@ import AdminWhiteLabel from "./pages/admin/AdminWhiteLabel";
 import GestorDashboard from "./pages/gestor/GestorDashboard";
 import GestorAfiliados from "./pages/gestor/GestorAfiliados";
 import GestorLeads from "./pages/gestor/GestorLeads";
+import GestorVendas from "./pages/gestor/GestorVendas";
 import Indicacao from "./pages/Indicacao";
 import HelpCenter from "./components/tutorial/HelpCenter";
 import NotFound from "./pages/NotFound";
@@ -244,6 +245,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireGestor>
                   <GestorLeads />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/gestor/vendas" 
+              element={
+                <ProtectedRoute requireGestor>
+                  <GestorVendas />
                 </ProtectedRoute>
               } 
             />
