@@ -32,6 +32,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { PDVAffiliatesSection } from "@/components/admin/PDVAffiliatesSection";
 
 interface PDV {
   id: string;
@@ -370,7 +372,7 @@ const AdminPDV = () => {
 
         {/* Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingPdv ? "Editar PDV" : "Novo PDV"}
@@ -425,6 +427,16 @@ const AdminPDV = () => {
                   </p>
                 )}
               </div>
+
+              {editingPdv && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label>Afiliados Vinculados</Label>
+                    <PDVAffiliatesSection pdvId={editingPdv.id} onUpdate={fetchData} />
+                  </div>
+                </>
+              )}
             </div>
 
             <DialogFooter>
