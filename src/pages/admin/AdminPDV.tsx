@@ -334,6 +334,14 @@ const AdminPDV = () => {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => setAffiliatesPdv(pdv)}
+                            title="Gerenciar afiliados"
+                          >
+                            <Users className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => toggleActive(pdv)}
                             title={pdv.is_active ? "Desativar" : "Ativar"}
                           >
