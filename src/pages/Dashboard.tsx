@@ -416,12 +416,12 @@ const Dashboard = () => {
 
           {/* Referral Link Card */}
           <div className="bg-card rounded-xl p-4 md:p-5 mb-8 border border-border shadow-soft">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <h2 className="font-heading text-base font-semibold text-foreground">
                 Seu Link de Indicação
               </h2>
               <div className="flex items-center gap-2">
-                <Button onClick={copyReferralLink} variant="default" size="sm" disabled={!referralLink}>
+                <Button onClick={copyReferralLink} variant="default" size="sm" className="w-full sm:w-auto" disabled={!referralLink}>
                   <Copy className="w-4 h-4" />
                   Copiar Link
                 </Button>
@@ -429,7 +429,7 @@ const Dashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowLink(!showLink)}
-                  className="text-muted-foreground"
+                  className="text-muted-foreground w-full sm:w-auto"
                 >
                   {showLink ? "Ocultar" : "Visualizar Link"}
                   <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showLink ? "rotate-180" : ""}`} />
