@@ -150,7 +150,7 @@ const Dashboard = () => {
       // Fetch commissions
       const { data: commissionsData } = await supabase
         .from("commissions")
-        .select("amount, status")
+        .select("amount, status, lead_id")
         .eq("affiliate_id", user.id);
 
       if (commissionsData) {
@@ -167,6 +167,15 @@ const Dashboard = () => {
           totalEarned: paidCommissions,
           pendingEarnings: pendingCommissions,
         }));
+
+        // Build lead → total commission map
+        const commMap: Record<string, number> = {};
+        for (const c of commissionsData) {
+          if (c.lead_id && c.status !== "cancelled") {
+            commMap[c.lead_id] = (commMap[c.lead_id] || 0) + Number(c.amount);
+          }
+        }
+        setLeadCommissionsMap(commMap);
       }
 
       // Fetch balance (paid commissions - paid withdrawals)
