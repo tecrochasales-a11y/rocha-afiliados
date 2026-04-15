@@ -1,29 +1,43 @@
 
 
-## Plano: Corrigir comissão prevista + link cortado no mobile
+## Plano: Vincular afiliados a PDVs
 
-### Problema 1: Comissão Prevista errada
-A função `getProjectedCommissionDisplay` calcula `sale_value * commissionPct / 100`, mas o admin pode definir comissões com valores diferentes do percentual padrão. O lead "Vinicius Sales" tem `sale_value = 1600` e comissão real de R$ 30,00, mas o dashboard mostra `1600 * 30% = R$ 480,00`.
+### Problema
+Os PDVs mostram "0 afiliados" porque não há interface para vincular afiliados existentes a um PDV.
 
-**Correção em `src/pages/Dashboard.tsx`:**
-- Buscar as comissões associadas a cada lead (`commissions` table com `lead_id`)
-- Na coluna "Comissão Prevista", exibir a soma real das comissões do lead em vez de calcular `sale_value * %`
-- Se não houver comissão registrada mas o lead for convertido, mostrar "-" ou "Aguardando"
+### Solução
+Adicionar um dialog de gerenciamento de afiliados ao clicar no ícone de "Afiliados" (coluna Ações) de cada PDV.
 
-Tecnicamente:
-- Fazer um fetch de `commissions` agrupado por `lead_id` junto com os leads
-- Criar um mapa `leadId → totalCommission` 
-- Alterar `getProjectedCommissionDisplay` para consultar esse mapa
+### Alterações em `src/pages/admin/AdminPDV.tsx`
 
-### Problema 2: Link de indicação cortado no mobile
-O card "Seu Link de Indicação" não tem layout responsivo adequado — os botões "Copiar Link" e "Visualizar Link" ficam na mesma linha do título, sem quebra.
+1. **Novo botão na coluna Ações**: Ícone `Users` clicável que abre um dialog de afiliados do PDV
 
-**Correção em `src/pages/Dashboard.tsx`:**
-- No card do link (linha ~407-441), alterar o layout para empilhar verticalmente em telas pequenas:
-  - `flex-col sm:flex-row` no container dos botões
-  - Título ocupa linha inteira no mobile
-  - Botões ficam abaixo, com largura total (`w-full sm:w-auto`)
+2. **Novo dialog "Afiliados do PDV"**:
+   - Lista os afiliados já vinculados (profiles com `pdv_id` = PDV selecionado), com botão para desvincular
+   - Campo de busca para encontrar afiliados sem PDV (ou de outro PDV)
+   - Ao selecionar um afiliado, faz `UPDATE profiles SET pdv_id = <pdv_id> WHERE id = <affiliate_id>`
+   - Ao desvincular, faz `UPDATE profiles SET pdv_id = NULL WHERE id = <affiliate_id>`
 
-### Arquivos alterados
-- `src/pages/Dashboard.tsx`
+3. **Layout do dialog**:
+   - Seção superior: "Afiliados vinculados" — tabela compacta (nome, email, botão remover)
+   - Seção inferior: Input de busca + lista de afiliados disponíveis com botão "Adicionar"
+
+### Técnico
+- Busca de afiliados disponíveis: `SELECT * FROM profiles WHERE pdv_id IS NULL OR pdv_id != <current_pdv>` (filtrado por role affiliate via user_roles)
+- Update via `supabase.from('profiles').update({ pdv_id }).eq('id', affiliateId)`
+- RLS já permite admin atualizar profiles? Não — admin só tem SELECT. Será necessária uma **migration** para adicionar policy de UPDATE para admins na tabela `profiles`
+
+### Migration necessária
+```sql
+CREATE POLICY "Admins can update all profiles"
+ON public.profiles
+FOR UPDATE
+TO public
+USING (has_role(auth.uid(), 'admin'::app_role))
+WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+```
+
+### Arquivo alterado
+- `src/pages/admin/AdminPDV.tsx` — novo dialog + botão
+- Migration para RLS de update em profiles para admins
 
