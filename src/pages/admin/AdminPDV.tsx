@@ -444,6 +444,15 @@ const AdminPDV = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        {affiliatesPdv && (
+          <PDVAffiliatesDialog
+            open={!!affiliatesPdv}
+            onOpenChange={(open) => !open && setAffiliatesPdv(null)}
+            pdvId={affiliatesPdv.id}
+            pdvName={affiliatesPdv.name}
+            onUpdate={fetchData}
+          />
+        )}
       </div>
     </AdminLayout>
   );
