@@ -62,6 +62,7 @@ const AdminPDV = () => {
     manager_id: "",
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [affiliatesPdv, setAffiliatesPdv] = useState<PDV | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
