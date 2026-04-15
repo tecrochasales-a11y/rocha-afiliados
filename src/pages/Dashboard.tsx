@@ -77,6 +77,7 @@ const Dashboard = () => {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [commissionPct, setCommissionPct] = useState(30);
   const [showLink, setShowLink] = useState(false);
+  const [leadCommissionsMap, setLeadCommissionsMap] = useState<Record<string, number>>({});
   const { theme, toggleTheme } = useTheme();
   
   
