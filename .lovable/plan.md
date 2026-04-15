@@ -1,28 +1,29 @@
 
 
-## Plano: Footer cinza neutro + logo transparente
+## Plano: Corrigir comissão prevista + link cortado no mobile
 
-### 1. Corrigir tom de cinza (remover subtom azulado)
+### Problema 1: Comissão Prevista errada
+A função `getProjectedCommissionDisplay` calcula `sale_value * commissionPct / 100`, mas o admin pode definir comissões com valores diferentes do percentual padrão. O lead "Vinicius Sales" tem `sale_value = 1600` e comissão real de R$ 30,00, mas o dashboard mostra `1600 * 30% = R$ 480,00`.
 
-O `gray` padrão do Tailwind tem um leve subtom azulado. Para um cinza neutro puro, trocar para `neutral` em todo o footer:
+**Correção em `src/pages/Dashboard.tsx`:**
+- Buscar as comissões associadas a cada lead (`commissions` table com `lead_id`)
+- Na coluna "Comissão Prevista", exibir a soma real das comissões do lead em vez de calcular `sale_value * %`
+- Se não houver comissão registrada mas o lead for convertido, mostrar "-" ou "Aguardando"
 
-- `bg-gray-800` → `bg-neutral-800`
-- `text-gray-100` → `text-neutral-100`
-- `bg-gray-600` → `bg-neutral-600`
-- `bg-gray-700` → `bg-neutral-700`
-- `text-gray-300` → `text-neutral-300`
-- `text-gray-400` → `text-neutral-400`
-- `text-gray-500` → `text-neutral-500`
-- `border-gray-700` → `border-neutral-700`
-- Hover states: `bg-gray-600` → `bg-neutral-600`
+Tecnicamente:
+- Fazer um fetch de `commissions` agrupado por `lead_id` junto com os leads
+- Criar um mapa `leadId → totalCommission` 
+- Alterar `getProjectedCommissionDisplay` para consultar esse mapa
 
-### 2. Usar logo local com fundo transparente
+### Problema 2: Link de indicação cortado no mobile
+O card "Seu Link de Indicação" não tem layout responsivo adequado — os botões "Copiar Link" e "Visualizar Link" ficam na mesma linha do título, sem quebra.
 
-- Importar `src/assets/rocha-sales-logo.png` no footer (mesmo arquivo usado no Header e Dashboard)
-- Substituir a busca do banco de dados (`site_assets`) pela logo local
-- Remover o `useEffect` de fetch da logo
-- A imagem PNG já possui fundo transparente
+**Correção em `src/pages/Dashboard.tsx`:**
+- No card do link (linha ~407-441), alterar o layout para empilhar verticalmente em telas pequenas:
+  - `flex-col sm:flex-row` no container dos botões
+  - Título ocupa linha inteira no mobile
+  - Botões ficam abaixo, com largura total (`w-full sm:w-auto`)
 
-### Arquivo alterado
-- `src/components/layout/Footer.tsx`
+### Arquivos alterados
+- `src/pages/Dashboard.tsx`
 
