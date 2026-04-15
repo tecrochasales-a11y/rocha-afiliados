@@ -270,10 +270,6 @@ const Dashboard = () => {
   };
 
   const getProjectedCommissionDisplay = (lead: Lead) => {
-    if (!lead.sale_value) {
-      return <span className="text-muted-foreground">-</span>;
-    }
-
     if (lead.status === "lost" || lead.payment_status === "cancelled") {
       return <span className="text-destructive">Cancelada</span>;
     }
@@ -282,7 +278,12 @@ const Dashboard = () => {
       return <span className="text-muted-foreground">-</span>;
     }
 
-    return `R$ ${(Number(lead.sale_value) * commissionPct / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    const totalFromCommissions = leadCommissionsMap[lead.id];
+    if (totalFromCommissions != null) {
+      return `R$ ${totalFromCommissions.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    }
+
+    return <span className="text-muted-foreground">Aguardando</span>;
   };
 
   if (isLoading || isLoadingData) {
