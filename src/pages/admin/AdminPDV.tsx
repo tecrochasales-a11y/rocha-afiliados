@@ -11,6 +11,7 @@ import {
   ToggleRight,
   Users
 } from "lucide-react";
+import { PDVAffiliatesDialog } from "@/components/admin/PDVAffiliatesDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
