@@ -77,6 +77,7 @@ const Dashboard = () => {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [commissionPct, setCommissionPct] = useState(30);
   const [showLink, setShowLink] = useState(false);
+  const [leadCommissionsMap, setLeadCommissionsMap] = useState<Record<string, number>>({});
   const { theme, toggleTheme } = useTheme();
   
   
@@ -149,7 +150,7 @@ const Dashboard = () => {
       // Fetch commissions
       const { data: commissionsData } = await supabase
         .from("commissions")
-        .select("amount, status")
+        .select("amount, status, lead_id")
         .eq("affiliate_id", user.id);
 
       if (commissionsData) {
@@ -166,6 +167,15 @@ const Dashboard = () => {
           totalEarned: paidCommissions,
           pendingEarnings: pendingCommissions,
         }));
+
+        // Build lead → total commission map
+        const commMap: Record<string, number> = {};
+        for (const c of commissionsData) {
+          if (c.lead_id && c.status !== "cancelled") {
+            commMap[c.lead_id] = (commMap[c.lead_id] || 0) + Number(c.amount);
+          }
+        }
+        setLeadCommissionsMap(commMap);
       }
 
       // Fetch balance (paid commissions - paid withdrawals)
@@ -260,10 +270,6 @@ const Dashboard = () => {
   };
 
   const getProjectedCommissionDisplay = (lead: Lead) => {
-    if (!lead.sale_value) {
-      return <span className="text-muted-foreground">-</span>;
-    }
-
     if (lead.status === "lost" || lead.payment_status === "cancelled") {
       return <span className="text-destructive">Cancelada</span>;
     }
@@ -272,7 +278,12 @@ const Dashboard = () => {
       return <span className="text-muted-foreground">-</span>;
     }
 
-    return `R$ ${(Number(lead.sale_value) * commissionPct / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    const totalFromCommissions = leadCommissionsMap[lead.id];
+    if (totalFromCommissions != null) {
+      return `R$ ${totalFromCommissions.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    }
+
+    return <span className="text-muted-foreground">Aguardando</span>;
   };
 
   if (isLoading || isLoadingData) {
@@ -405,12 +416,12 @@ const Dashboard = () => {
 
           {/* Referral Link Card */}
           <div className="bg-card rounded-xl p-4 md:p-5 mb-8 border border-border shadow-soft">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <h2 className="font-heading text-base font-semibold text-foreground">
                 Seu Link de Indicação
               </h2>
               <div className="flex items-center gap-2">
-                <Button onClick={copyReferralLink} variant="default" size="sm" disabled={!referralLink}>
+                <Button onClick={copyReferralLink} variant="default" size="sm" className="w-full sm:w-auto" disabled={!referralLink}>
                   <Copy className="w-4 h-4" />
                   Copiar Link
                 </Button>
@@ -418,7 +429,7 @@ const Dashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowLink(!showLink)}
-                  className="text-muted-foreground"
+                  className="text-muted-foreground w-full sm:w-auto"
                 >
                   {showLink ? "Ocultar" : "Visualizar Link"}
                   <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showLink ? "rotate-180" : ""}`} />
