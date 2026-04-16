@@ -17,7 +17,8 @@ import {
   ChevronDown,
   Loader2,
   Sun,
-  Moon
+  Moon,
+  Layout
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
