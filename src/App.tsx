@@ -39,6 +39,7 @@ import GestorAfiliados from "./pages/gestor/GestorAfiliados";
 import GestorLeads from "./pages/gestor/GestorLeads";
 import GestorVendas from "./pages/gestor/GestorVendas";
 import Indicacao from "./pages/Indicacao";
+import BannerCreator from "./pages/BannerCreator";
 import HelpCenter from "./components/tutorial/HelpCenter";
 import NotFound from "./pages/NotFound";
 
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/termos" element={<Termos />} />
             <Route path="/privacidade" element={<Privacidade />} />
             <Route path="/ref/:trackingCode" element={<Indicacao />} />
+            <Route path="/banner-creator" element={<ProtectedRoute><BannerCreator /></ProtectedRoute>} />
             <Route 
               path="/dashboard" 
               element={

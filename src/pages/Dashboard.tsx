@@ -445,7 +445,15 @@ const Dashboard = () => {
                   </span>
                 </div>
                 {referralLink && (
-                  <QRCodeGenerator referralLink={referralLink} affiliateName={profile?.full_name} />
+                  <div className="flex items-center gap-2">
+                    <QRCodeGenerator referralLink={referralLink} affiliateName={profile?.full_name} />
+                    <Link to="/banner-creator">
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Layout className="w-4 h-4" />
+                        <span className="hidden sm:inline">Criar Banner</span>
+                      </Button>
+                    </Link>
+                  </div>
                 )}
               </div>
             )}
