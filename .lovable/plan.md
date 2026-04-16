@@ -1,83 +1,39 @@
 
 
-## Plano: Módulo Criador de Banner Card com QR Code
+## Plano: Tornar o Criador de Banner visível no Dashboard
 
-### Análise
-- O QR Code é derivado do `tracking_code` do perfil: `{origin}/ref/{tracking_code}`
-- Usa `qrcode.react` (já instalado)
-- Auth e profile já disponíveis via `useAuth()`
-- Nenhuma alteração em tabelas, RLS, integrações ou páginas existentes
+### Problema
+O botão "Criar Banner" está escondido dentro da seção colapsável "Visualizar Link", tornando-o difícil de encontrar.
 
-### Implementação (2 arquivos novos, 1 edição mínima)
+### Solução
+Adicionar um card dedicado para o Criador de Banner na área principal do Dashboard, visível sem precisar expandir nada. Será posicionado logo após o card "Seu Link de Indicação", como um card de ação rápida.
 
-#### 1. Novo `src/pages/BannerCreator.tsx`
+### Alteração em `src/pages/Dashboard.tsx`
 
-Página completa com editor de banner card:
+Após o card "Seu Link de Indicação" (linha ~461), adicionar um card de acesso ao Banner Creator:
 
-**Painel esquerdo — Controles de edição:**
-- Inputs: título, subtítulo, descrição, frase de destaque, CTA
-- Seletor de layout (3-4 variações: QR à direita, QR centralizado, QR no topo, layout horizontal)
-- Seletor de alinhamento de texto (esquerda, centro, direita)
-- Seletor de esquema de cores (dourado/escuro padrão, claro, escuro puro, azul corporativo)
-- Botões: Baixar PNG, Compartilhar
-
-**Painel direito — Preview em tempo real:**
-- Card 1080x1350px (proporção de post Instagram)
-- Título, subtítulo, descrição renderizados conforme inputs
-- QR Code automático via `useAuth().profile.tracking_code`
-- Rodapé com imagem stock (imagem padrão do sistema ou placeholder elegante)
-- Identidade visual Rocha Sales (cores dourado #C9A84C, fonte Playfair Display)
-
-**Exportação:**
-- Usa `html-to-canvas` (ou canvas nativo) para gerar PNG do card
-- Download direto no dispositivo
-- Opção de compartilhar via Web Share API
-
-**Segurança do QR Code:**
-- Usa apenas `useAuth().profile.tracking_code` da sessão logada
-- Nenhuma query extra ao banco
-- Fallback visual se tracking_code ausente
-
-**Responsivo:**
-- Em mobile, controles acima e preview abaixo (empilhado)
-
-#### 2. Edição em `src/App.tsx`
-
-Adicionar uma única rota:
 ```tsx
-<Route path="/banner-creator" element={<ProtectedRoute><BannerCreator /></ProtectedRoute>} />
+{/* Banner Creator Card */}
+<Link to="/banner-creator" className="block mb-8">
+  <div className="bg-card rounded-xl p-5 border border-border shadow-soft hover-lift cursor-pointer transition-all hover:border-primary/30">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+          <Layout className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="font-heading font-semibold text-foreground">Criar Banner Personalizado</h3>
+          <p className="text-sm text-muted-foreground">Crie artes promocionais com seu QR Code</p>
+        </div>
+      </div>
+      <ExternalLink className="w-5 h-5 text-muted-foreground" />
+    </div>
+  </div>
+</Link>
 ```
 
-#### 3. Acesso no Dashboard
+O botão pequeno dentro da seção colapsável será mantido como atalho secundário.
 
-Adicionar um botão/link discreto no Dashboard (na seção do link de indicação) para acessar `/banner-creator`, sem alterar layout ou lógica existente.
-
-### Dependência
-- Instalar `html2canvas` para exportar o card como imagem PNG
-
-### O que NÃO será alterado
-- Nenhuma tabela ou RLS
-- Nenhuma integração/webhook
-- Nenhuma página existente (exceto link de acesso no Dashboard)
-- Nenhuma lógica de autenticação
-- Nenhum componente existente
-
-### Layouts disponíveis
-
-```text
-Layout 1 (Clássico)      Layout 2 (Centralizado)    Layout 3 (Horizontal)
-┌──────────────────┐     ┌──────────────────┐       ┌──────────────────┐
-│  TÍTULO          │     │     TÍTULO       │       │ TÍTULO   [QR]    │
-│  Subtítulo       │     │    Subtítulo     │       │ Subtítulo        │
-│  Descrição       │     │                  │       │ Descrição        │
-│            [QR]  │     │      [QR]        │       │ CTA              │
-│  CTA             │     │                  │       │                  │
-│ ─────────────────│     │      CTA         │       │ ─────────────────│
-│  [imagem rodapé] │     │ [imagem rodapé]  │       │  [imagem rodapé] │
-└──────────────────┘     └──────────────────┘       └──────────────────┘
-```
-
-### Arquivos
-- **Novo**: `src/pages/BannerCreator.tsx`
-- **Editado**: `src/App.tsx` (1 rota), `src/pages/Dashboard.tsx` (1 botão de acesso)
+### Arquivo alterado
+- `src/pages/Dashboard.tsx` — adicionar card de acesso ao Banner Creator
 
