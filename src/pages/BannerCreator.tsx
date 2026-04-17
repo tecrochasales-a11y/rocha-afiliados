@@ -29,8 +29,8 @@ import {
   Building2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import portoLogo from "@/assets/insurers/porto.svg";
-import sulamericaLogo from "@/assets/insurers/sulamerica.svg";
+import portoLogo from "@/assets/insurers/porto.png";
+import sulamericaLogo from "@/assets/insurers/sulamerica.jpg";
 import bradescoLogo from "@/assets/insurers/bradesco.svg";
 import amilLogo from "@/assets/insurers/amil.svg";
 
