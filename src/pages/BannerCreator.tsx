@@ -61,6 +61,23 @@ const FIXED_MESSAGE = "Descubra como reduzir em até 30% o valor do seu plano de
 const FIXED_CTA = "Escaneie o QR Code";
 const FIXED_HIGHLIGHT = "✨ Consultoria 100% gratuita";
 
+const FONT_OPTIONS = [
+  { key: "playfair", label: "Playfair Display (padrão)", css: "'Playfair Display', serif" },
+  { key: "inter", label: "Inter", css: "'Inter', sans-serif" },
+  { key: "poppins", label: "Poppins", css: "'Poppins', sans-serif" },
+  { key: "montserrat", label: "Montserrat", css: "'Montserrat', sans-serif" },
+  { key: "roboto", label: "Roboto", css: "'Roboto', sans-serif" },
+  { key: "lora", label: "Lora", css: "'Lora', serif" },
+  { key: "merriweather", label: "Merriweather", css: "'Merriweather', serif" },
+];
+
+const DEFAULT_TEXT_COLORS = {
+  badge: "#C9A84C",
+  title: "#FFFFFF",
+  subtitle: "#E5E7EB",
+  footerLabel: "#6B7280",
+};
+
 interface BannerConfig {
   title: string;
   layout: LayoutType;
@@ -73,6 +90,9 @@ interface BannerConfig {
   bgOverlay: number;
   showInsurers: boolean;
   selectedInsurers: string[];
+  fontFamily: string;
+  useCustomTextColors: boolean;
+  textColors: { badge: string; title: string; subtitle: string; footerLabel: string };
 }
 
 interface SavedTemplate {
@@ -94,6 +114,9 @@ const DEFAULT_CONFIG: BannerConfig = {
   bgOverlay: 50,
   showInsurers: true,
   selectedInsurers: ["porto", "sulamerica", "bradesco", "amil"],
+  fontFamily: "'Playfair Display', serif",
+  useCustomTextColors: false,
+  textColors: { ...DEFAULT_TEXT_COLORS },
 };
 
 const BannerCreator = () => {
@@ -203,6 +226,7 @@ const BannerCreator = () => {
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
+      if (document.fonts?.ready) await document.fonts.ready;
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
@@ -220,6 +244,7 @@ const BannerCreator = () => {
   const handleShare = async () => {
     if (!cardRef.current) return;
     try {
+      if (document.fonts?.ready) await document.fonts.ready;
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
@@ -258,22 +283,27 @@ const BannerCreator = () => {
     );
   };
 
+  const badgeColor = config.useCustomTextColors ? config.textColors.badge : colors.accent;
+  const titleColor = config.useCustomTextColors ? config.textColors.title : colors.text;
+  const subtitleColor = config.useCustomTextColors ? config.textColors.subtitle : colors.desc;
+  const footerLabelColor = config.useCustomTextColors ? config.textColors.footerLabel : "#6b7280";
+
   const TextBlock = () => (
-    <div style={{ textAlign: config.textAlign }}>
-      <p style={{ color: colors.accent, fontSize: 13, fontWeight: 600, marginBottom: 8, letterSpacing: 0.5 }}>
+    <div style={{ textAlign: config.textAlign, fontFamily: config.fontFamily }}>
+      <p style={{ color: badgeColor, fontSize: 13, fontWeight: 600, marginBottom: 8, letterSpacing: 0.5, fontFamily: config.fontFamily }}>
         {FIXED_HIGHLIGHT}
       </p>
       <h2 style={{
-        color: colors.text,
+        color: titleColor,
         fontSize: config.layout === "horizontal" ? 26 : 30,
         fontWeight: 700,
         lineHeight: 1.15,
         marginBottom: 12,
-        fontFamily: "'Playfair Display', serif",
+        fontFamily: config.fontFamily,
       }}>
         {config.title}
       </h2>
-      <p style={{ color: colors.desc, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+      <p style={{ color: subtitleColor, fontSize: 13, lineHeight: 1.5, marginBottom: 16, fontFamily: config.fontFamily }}>
         {FIXED_MESSAGE}
       </p>
       <div>
@@ -302,7 +332,7 @@ const BannerCreator = () => {
         padding: "12px 24px",
         borderTop: `3px solid ${colors.accent}`,
       }}>
-        <p style={{ fontSize: 9, color: "#6b7280", textAlign: "center", marginBottom: 8, letterSpacing: 1, fontWeight: 600 }}>
+        <p style={{ fontSize: 9, color: footerLabelColor, textAlign: "center", marginBottom: 8, letterSpacing: 1, fontWeight: 600, fontFamily: config.fontFamily }}>
           TRABALHAMOS COM AS MELHORES OPERADORAS
         </p>
         <div style={{ display: "flex", flexWrap: "nowrap", justifyContent: "space-around", alignItems: "center", width: "100%" }}>
@@ -552,6 +582,72 @@ const BannerCreator = () => {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+
+              {/* Tipografia & Cores dos Textos */}
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
+                <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
+                  <Type className="w-4 h-4" /> Tipografia & Cores dos Textos
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Família da fonte</Label>
+                  <select
+                    value={config.fontFamily}
+                    onChange={(e) => update("fontFamily", e.target.value)}
+                    className="w-full h-9 px-2 rounded-md border border-border bg-background text-sm text-foreground"
+                  >
+                    {FONT_OPTIONS.map((f) => (
+                      <option key={f.key} value={f.css} style={{ fontFamily: f.css }}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <Label className="text-xs">Personalizar cores dos textos</Label>
+                  <Switch
+                    checked={config.useCustomTextColors}
+                    onCheckedChange={(v) => update("useCustomTextColors", v)}
+                  />
+                </div>
+
+                {config.useCustomTextColors && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {([
+                        ["badge", "Destaque (badge)"],
+                        ["title", "Título"],
+                        ["subtitle", "Subtítulo"],
+                        ["footerLabel", "Rótulo rodapé"],
+                      ] as const).map(([k, label]) => (
+                        <div key={k} className="space-y-1">
+                          <Label className="text-xs">{label}</Label>
+                          <input
+                            type="color"
+                            value={config.textColors[k]}
+                            onChange={(e) =>
+                              update("textColors", { ...config.textColors, [k]: e.target.value })
+                            }
+                            className="w-full h-9 rounded border border-border bg-background cursor-pointer"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-1"
+                      onClick={() => {
+                        update("fontFamily", "'Playfair Display', serif");
+                        update("textColors", { ...DEFAULT_TEXT_COLORS });
+                        update("useCustomTextColors", false);
+                      }}
+                    >
+                      Restaurar padrão
+                    </Button>
+                  </>
                 )}
               </div>
 
