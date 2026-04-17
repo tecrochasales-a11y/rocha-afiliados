@@ -1,13 +1,16 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Download,
   Share2,
@@ -17,115 +20,200 @@ import {
   Palette,
   AlertTriangle,
   Loader2,
+  Image as ImageIcon,
+  Upload,
+  Save,
+  Trash2,
+  X,
+  Bookmark,
+  Building2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import localLogo from "@/assets/rocha-sales-logo.png";
+import portoLogo from "@/assets/insurers/porto.svg";
+import sulamericaLogo from "@/assets/insurers/sulamerica.svg";
+import bradescoLogo from "@/assets/insurers/bradesco.svg";
+import amilLogo from "@/assets/insurers/amil.svg";
+import unimedLogo from "@/assets/insurers/unimed.svg";
 
 type LayoutType = "classic" | "centered" | "horizontal";
-type ColorScheme = "gold-dark" | "light" | "dark" | "blue";
+type ColorScheme = "gold-dark" | "light" | "dark" | "blue" | "custom";
 type TextAlign = "left" | "center" | "right";
 
-const COLOR_SCHEMES: Record<ColorScheme, { bg: string; text: string; accent: string; qrBg: string; qrFg: string; ctaBg: string; ctaText: string; subtitle: string; desc: string; label: string }> = {
-  "gold-dark": {
-    bg: "#1a1a2e",
-    text: "#ffffff",
-    accent: "#C9A84C",
-    qrBg: "#ffffff",
-    qrFg: "#1a1a2e",
-    ctaBg: "#C9A84C",
-    ctaText: "#1a1a2e",
-    subtitle: "#C9A84C",
-    desc: "#d1d5db",
-    label: "Dourado Escuro",
-  },
-  light: {
-    bg: "#f8f6f0",
-    text: "#1a1a2e",
-    accent: "#C9A84C",
-    qrBg: "#ffffff",
-    qrFg: "#1a1a2e",
-    ctaBg: "#C9A84C",
-    ctaText: "#ffffff",
-    subtitle: "#C9A84C",
-    desc: "#4b5563",
-    label: "Claro Elegante",
-  },
-  dark: {
-    bg: "#0f0f0f",
-    text: "#ffffff",
-    accent: "#C9A84C",
-    qrBg: "#ffffff",
-    qrFg: "#0f0f0f",
-    ctaBg: "#C9A84C",
-    ctaText: "#0f0f0f",
-    subtitle: "#e5c76b",
-    desc: "#9ca3af",
-    label: "Escuro Puro",
-  },
-  blue: {
-    bg: "#0c1b3a",
-    text: "#ffffff",
-    accent: "#60a5fa",
-    qrBg: "#ffffff",
-    qrFg: "#0c1b3a",
-    ctaBg: "#3b82f6",
-    ctaText: "#ffffff",
-    subtitle: "#93c5fd",
-    desc: "#94a3b8",
-    label: "Azul Corporativo",
-  },
+type SchemeColors = {
+  bg: string; text: string; accent: string; qrBg: string; qrFg: string;
+  ctaBg: string; ctaText: string; subtitle: string; desc: string; label: string;
+};
+
+const COLOR_SCHEMES: Record<Exclude<ColorScheme, "custom">, SchemeColors> = {
+  "gold-dark": { bg: "#1a1a2e", text: "#ffffff", accent: "#C9A84C", qrBg: "#ffffff", qrFg: "#1a1a2e", ctaBg: "#C9A84C", ctaText: "#1a1a2e", subtitle: "#C9A84C", desc: "#d1d5db", label: "Dourado Escuro" },
+  light: { bg: "#f8f6f0", text: "#1a1a2e", accent: "#C9A84C", qrBg: "#ffffff", qrFg: "#1a1a2e", ctaBg: "#C9A84C", ctaText: "#ffffff", subtitle: "#C9A84C", desc: "#4b5563", label: "Claro Elegante" },
+  dark: { bg: "#0f0f0f", text: "#ffffff", accent: "#C9A84C", qrBg: "#ffffff", qrFg: "#0f0f0f", ctaBg: "#C9A84C", ctaText: "#0f0f0f", subtitle: "#e5c76b", desc: "#9ca3af", label: "Escuro Puro" },
+  blue: { bg: "#0c1b3a", text: "#ffffff", accent: "#60a5fa", qrBg: "#ffffff", qrFg: "#0c1b3a", ctaBg: "#3b82f6", ctaText: "#ffffff", subtitle: "#93c5fd", desc: "#94a3b8", label: "Azul Corporativo" },
+};
+
+const INSURERS = [
+  { key: "porto", name: "Porto", logo: portoLogo },
+  { key: "sulamerica", name: "SulAmérica", logo: sulamericaLogo },
+  { key: "bradesco", name: "Bradesco", logo: bradescoLogo },
+  { key: "amil", name: "Amil", logo: amilLogo },
+  { key: "unimed", name: "Unimed", logo: unimedLogo },
+];
+
+const FIXED_MESSAGE = "Descubra como reduzir em até 30% o valor do seu plano de saúde com uma consultoria online personalizada.";
+const FIXED_CTA = "Escaneie o QR Code";
+const FIXED_HIGHLIGHT = "✨ Consultoria 100% gratuita";
+
+interface BannerConfig {
+  title: string;
+  layout: LayoutType;
+  colorScheme: ColorScheme;
+  textAlign: TextAlign;
+  customColors: { bg: string; text: string; accent: string };
+  logoData: string | null;
+  logoSize: number;
+  bgImageData: string | null;
+  bgOverlay: number;
+  showInsurers: boolean;
+  selectedInsurers: string[];
+}
+
+interface SavedTemplate {
+  id: string;
+  name: string;
+  config: BannerConfig;
+  created_at: string;
+}
+
+const DEFAULT_CONFIG: BannerConfig = {
+  title: "Proteja quem você ama",
+  layout: "classic",
+  colorScheme: "gold-dark",
+  textAlign: "left",
+  customColors: { bg: "#1a1a2e", text: "#ffffff", accent: "#C9A84C" },
+  logoData: null,
+  logoSize: 70,
+  bgImageData: null,
+  bgOverlay: 50,
+  showInsurers: true,
+  selectedInsurers: ["porto", "sulamerica", "bradesco", "amil", "unimed"],
 };
 
 const BannerCreator = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { toast } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+
+  const [config, setConfig] = useState<BannerConfig>(DEFAULT_CONFIG);
+  const [templates, setTemplates] = useState<SavedTemplate[]>([]);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   const referralLink = profile?.tracking_code
     ? `${window.location.origin}/ref/${profile.tracking_code}`
     : "";
 
-  // Editor state
-  const [title, setTitle] = useState("Proteja quem você ama");
-  const [subtitle, setSubtitle] = useState("Seguros sob medida para você");
-  const [description, setDescription] = useState("Faça sua cotação gratuita e descubra as melhores opções de seguro para sua família e empresa.");
-  const [highlight, setHighlight] = useState("✨ Consultoria 100% gratuita");
-  const [cta, setCta] = useState("Escaneie o QR Code");
-  const [layout, setLayout] = useState<LayoutType>("classic");
-  const [colorScheme, setColorScheme] = useState<ColorScheme>("gold-dark");
-  const [textAlign, setTextAlign] = useState<TextAlign>("left");
+  const update = <K extends keyof BannerConfig>(key: K, value: BannerConfig[K]) =>
+    setConfig((c) => ({ ...c, [key]: value }));
 
-  const colors = COLOR_SCHEMES[colorScheme];
+  // Resolve effective colors
+  const colors: SchemeColors = config.colorScheme === "custom"
+    ? {
+        bg: config.customColors.bg,
+        text: config.customColors.text,
+        accent: config.customColors.accent,
+        qrBg: "#ffffff",
+        qrFg: config.customColors.bg,
+        ctaBg: config.customColors.accent,
+        ctaText: config.customColors.bg,
+        subtitle: config.customColors.accent,
+        desc: config.customColors.text + "cc",
+        label: "Personalizado",
+      }
+    : COLOR_SCHEMES[config.colorScheme];
+
+  // Load templates
+  const loadTemplates = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("banner_templates")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      setTemplates(data.map((t) => ({
+        id: t.id,
+        name: t.name,
+        config: t.config as unknown as BannerConfig,
+        created_at: t.created_at,
+      })));
+    }
+  }, [user]);
+
+  useEffect(() => { loadTemplates(); }, [loadTemplates]);
+
+  // File handlers
+  const handleFileUpload = (file: File, key: "logoData" | "bgImageData") => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Use imagens até 5MB.", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => update(key, e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  // Save template
+  const handleSaveTemplate = async () => {
+    if (!user) return;
+    if (!templateName.trim()) {
+      toast({ title: "Nome obrigatório", description: "Dê um nome ao seu padrão.", variant: "destructive" });
+      return;
+    }
+    setSavingTemplate(true);
+    const { error } = await supabase.from("banner_templates").insert({
+      user_id: user.id,
+      name: templateName.trim(),
+      config: config as never,
+    });
+    setSavingTemplate(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Padrão salvo!", description: `"${templateName}" salvo com sucesso.` });
+      setTemplateName("");
+      loadTemplates();
+    }
+  };
+
+  const handleApplyTemplate = (t: SavedTemplate) => {
+    setConfig({ ...DEFAULT_CONFIG, ...t.config });
+    toast({ title: "Padrão aplicado", description: t.name });
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    const { error } = await supabase.from("banner_templates").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao excluir", variant: "destructive" });
+    } else {
+      toast({ title: "Padrão excluído" });
+      loadTemplates();
+    }
+  };
 
   const handleExport = async () => {
     if (!cardRef.current) return;
     setIsExporting(true);
-
     try {
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: null,
-        logging: false,
-      });
-
+      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-
-      toast({
-        title: "Banner exportado!",
-        description: "A imagem foi salva no seu dispositivo.",
-      });
+      toast({ title: "Banner exportado!", description: "A imagem foi salva no seu dispositivo." });
     } catch (error) {
       console.error("Export error:", error);
-      toast({
-        title: "Erro ao exportar",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao exportar", description: "Tente novamente.", variant: "destructive" });
     } finally {
       setIsExporting(false);
     }
@@ -133,17 +221,10 @@ const BannerCreator = () => {
 
   const handleShare = async () => {
     if (!cardRef.current) return;
-
     try {
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: null,
-      });
-
+      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
-
         if (navigator.share && navigator.canShare) {
           const file = new File([blob], "banner.png", { type: "image/png" });
           const shareData = { files: [file], title: "Meu Banner" };
@@ -152,8 +233,6 @@ const BannerCreator = () => {
             return;
           }
         }
-
-        // Fallback: download
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.download = "banner.png";
@@ -161,181 +240,148 @@ const BannerCreator = () => {
         link.click();
         URL.revokeObjectURL(url);
       }, "image/png");
-    } catch {
-      // user cancelled
-    }
+    } catch { /* cancelled */ }
   };
 
-  // QR Code block
-  const QRBlock = ({ size = 140 }: { size?: number }) => (
-    <div style={{ background: colors.qrBg, borderRadius: 16, padding: 12, display: "inline-block" }}>
-      <QRCodeSVG
-        value={referralLink || "https://example.com"}
-        size={size}
-        level="H"
-        bgColor={colors.qrBg}
-        fgColor={colors.qrFg}
-        includeMargin={false}
-      />
+  // ─── Banner blocks ───
+  const QRBlock = ({ size = 130 }: { size?: number }) => (
+    <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
+      <QRCodeSVG value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor={colors.qrFg} includeMargin={false} />
     </div>
   );
 
-  // Text block
+  const LogoBlock = () => {
+    if (!config.logoData) return null;
+    const justify = config.textAlign === "center" ? "center" : config.textAlign === "right" ? "flex-end" : "flex-start";
+    return (
+      <div style={{ display: "flex", justifyContent: justify, marginBottom: 16 }}>
+        <img src={config.logoData} alt="Logo" style={{ height: config.logoSize, maxWidth: "70%", objectFit: "contain" }} crossOrigin="anonymous" />
+      </div>
+    );
+  };
+
   const TextBlock = () => (
-    <div style={{ textAlign }}>
-      {highlight && (
-        <p style={{ color: colors.accent, fontSize: 14, fontWeight: 600, marginBottom: 8, letterSpacing: 0.5 }}>
-          {highlight}
-        </p>
-      )}
+    <div style={{ textAlign: config.textAlign }}>
+      <p style={{ color: colors.accent, fontSize: 13, fontWeight: 600, marginBottom: 8, letterSpacing: 0.5 }}>
+        {FIXED_HIGHLIGHT}
+      </p>
       <h2 style={{
         color: colors.text,
-        fontSize: layout === "horizontal" ? 28 : 32,
+        fontSize: config.layout === "horizontal" ? 26 : 30,
         fontWeight: 700,
-        lineHeight: 1.2,
-        marginBottom: 10,
+        lineHeight: 1.15,
+        marginBottom: 12,
         fontFamily: "'Playfair Display', serif",
       }}>
-        {title}
+        {config.title}
       </h2>
-      {subtitle && (
-        <p style={{
-          color: colors.subtitle,
-          fontSize: 18,
-          fontWeight: 600,
-          marginBottom: 10,
+      <p style={{ color: colors.desc, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+        {FIXED_MESSAGE}
+      </p>
+      <div>
+        <span style={{
+          display: "inline-block",
+          background: colors.ctaBg,
+          color: colors.ctaText,
+          padding: "9px 20px",
+          borderRadius: 8,
+          fontSize: 13,
+          fontWeight: 700,
+          letterSpacing: 0.3,
         }}>
-          {subtitle}
-        </p>
-      )}
-      {description && (
-        <p style={{
-          color: colors.desc,
-          fontSize: 14,
-          lineHeight: 1.5,
-          marginBottom: 16,
-        }}>
-          {description}
-        </p>
-      )}
-      {cta && (
-        <div style={{ textAlign }}>
-          <span style={{
-            display: "inline-block",
-            background: colors.ctaBg,
-            color: colors.ctaText,
-            padding: "10px 24px",
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: 0.3,
-          }}>
-            {cta}
-          </span>
-        </div>
-      )}
+          {FIXED_CTA}
+        </span>
+      </div>
     </div>
   );
 
-  // Footer image placeholder
-  const FooterImage = () => (
-    <div style={{
-      width: "100%",
-      height: 180,
-      background: `linear-gradient(135deg, ${colors.accent}22, ${colors.accent}44)`,
-      borderRadius: "0 0 16px 16px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden",
-      position: "relative",
-    }}>
+  const InsurerStrip = () => {
+    if (!config.showInsurers || config.selectedInsurers.length === 0) return null;
+    const visible = INSURERS.filter((i) => config.selectedInsurers.includes(i.key));
+    return (
       <div style={{
-        position: "absolute",
-        inset: 0,
-        background: `linear-gradient(to top, ${colors.bg}cc, transparent)`,
-      }} />
-      <img
-        src={localLogo}
-        alt="Logo"
-        style={{ height: 60, objectFit: "contain", position: "relative", zIndex: 1, opacity: 0.7 }}
-        crossOrigin="anonymous"
-      />
-    </div>
-  );
+        background: "#ffffff",
+        padding: "12px 16px",
+        borderTop: `3px solid ${colors.accent}`,
+      }}>
+        <p style={{ fontSize: 9, color: "#6b7280", textAlign: "center", marginBottom: 6, letterSpacing: 1, fontWeight: 600 }}>
+          TRABALHAMOS COM AS MELHORES OPERADORAS
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", alignItems: "center" }}>
+          {visible.map((ins) => (
+            <img key={ins.key} src={ins.logo} alt={ins.name} style={{ height: 22, objectFit: "contain" }} crossOrigin="anonymous" />
+          ))}
+        </div>
+      </div>
+    );
+  };
 
-  // Layout renderers
-  const renderClassic = () => (
+  const CardWrapper = ({ children }: { children: React.ReactNode }) => (
     <div style={{
       width: 400,
-      minHeight: 500,
-      background: colors.bg,
+      minHeight: 540,
       borderRadius: 16,
+      overflow: "hidden",
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
+      background: config.bgImageData ? `url(${config.bgImageData}) center/cover no-repeat` : colors.bg,
+      position: "relative",
     }}>
-      <div style={{ padding: "32px 28px 24px", flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20 }}>
-          <div style={{ flex: 1 }}>
-            <TextBlock />
-          </div>
-        </div>
-        <div style={{ marginTop: 24, display: "flex", justifyContent: textAlign === "right" ? "flex-end" : textAlign === "center" ? "center" : "flex-start" }}>
+      {config.bgImageData && (
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: colors.bg,
+          opacity: config.bgOverlay / 100,
+        }} />
+      )}
+      <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column" }}>
+        {children}
+      </div>
+    </div>
+  );
+
+  const renderClassic = () => (
+    <CardWrapper>
+      <div style={{ padding: "28px 26px 22px", flex: 1 }}>
+        <LogoBlock />
+        <TextBlock />
+        <div style={{ marginTop: 22, display: "flex", justifyContent: config.textAlign === "right" ? "flex-end" : config.textAlign === "center" ? "center" : "flex-start" }}>
           <QRBlock />
         </div>
       </div>
-      <FooterImage />
-    </div>
+      <InsurerStrip />
+    </CardWrapper>
   );
 
   const renderCentered = () => (
-    <div style={{
-      width: 400,
-      minHeight: 500,
-      background: colors.bg,
-      borderRadius: 16,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      textAlign: "center",
-    }}>
-      <div style={{ padding: "32px 28px 24px", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+    <CardWrapper>
+      <div style={{ padding: "28px 26px 22px", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <LogoBlock />
         <TextBlock />
-        <div style={{ marginTop: 24 }}>
-          <QRBlock size={160} />
+        <div style={{ marginTop: 22 }}>
+          <QRBlock size={150} />
         </div>
       </div>
-      <FooterImage />
-    </div>
+      <InsurerStrip />
+    </CardWrapper>
   );
 
   const renderHorizontal = () => (
-    <div style={{
-      width: 400,
-      minHeight: 500,
-      background: colors.bg,
-      borderRadius: 16,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-    }}>
-      <div style={{ padding: "32px 24px 24px", flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 20 }}>
-          <div style={{ flex: 1 }}>
-            <TextBlock />
-          </div>
-          <div style={{ flexShrink: 0, paddingTop: 4 }}>
-            <QRBlock size={120} />
-          </div>
+    <CardWrapper>
+      <div style={{ padding: "28px 22px 22px", flex: 1 }}>
+        <LogoBlock />
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 18 }}>
+          <div style={{ flex: 1 }}><TextBlock /></div>
+          <div style={{ flexShrink: 0, paddingTop: 4 }}><QRBlock size={110} /></div>
         </div>
       </div>
-      <FooterImage />
-    </div>
+      <InsurerStrip />
+    </CardWrapper>
   );
 
   const renderCard = () => {
-    switch (layout) {
+    switch (config.layout) {
       case "centered": return renderCentered();
       case "horizontal": return renderHorizontal();
       default: return renderClassic();
@@ -352,7 +398,6 @@ const BannerCreator = () => {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-card/98 backdrop-blur-xl border-b border-border shadow-soft">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
           <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
@@ -376,73 +421,96 @@ const BannerCreator = () => {
           )}
 
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* Controls Panel */}
-            <div className="w-full lg:w-[380px] flex-shrink-0 space-y-6">
-              {/* Texts */}
-              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-4">
+            {/* Controls */}
+            <div className="w-full lg:w-[400px] flex-shrink-0 space-y-5">
+              {/* Title */}
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
                 <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
-                  <Type className="w-4 h-4" />
-                  Textos
+                  <Type className="w-4 h-4" /> Título Principal
                 </div>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="title" className="text-xs">Título</Label>
-                    <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título principal" />
-                  </div>
-                  <div>
-                    <Label htmlFor="subtitle" className="text-xs">Subtítulo</Label>
-                    <Input id="subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Subtítulo" />
-                  </div>
-                  <div>
-                    <Label htmlFor="description" className="text-xs">Descrição</Label>
-                    <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descrição curta" rows={3} />
-                  </div>
-                  <div>
-                    <Label htmlFor="highlight" className="text-xs">Frase de Destaque</Label>
-                    <Input id="highlight" value={highlight} onChange={(e) => setHighlight(e.target.value)} placeholder="Ex: ✨ Consultoria gratuita" />
-                  </div>
-                  <div>
-                    <Label htmlFor="cta" className="text-xs">CTA (Chamada)</Label>
-                    <Input id="cta" value={cta} onChange={(e) => setCta(e.target.value)} placeholder="Ex: Escaneie o QR Code" />
-                  </div>
+                <Input
+                  value={config.title}
+                  onChange={(e) => update("title", e.target.value)}
+                  placeholder="Ex: Proteja quem você ama"
+                />
+                <p className="text-xs text-muted-foreground">
+                  A mensagem institucional e o CTA são fixos para garantir padronização profissional.
+                </p>
+              </div>
+
+              {/* Logo */}
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
+                <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
+                  <ImageIcon className="w-4 h-4" /> Logo Personalizada
                 </div>
+                <div className="flex gap-2">
+                  <label className="flex-1">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "logoData")} />
+                    <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border bg-background hover:border-primary cursor-pointer text-sm text-muted-foreground transition-colors">
+                      <Upload className="w-4 h-4" />
+                      {config.logoData ? "Trocar logo" : "Enviar logo"}
+                    </div>
+                  </label>
+                  {config.logoData && (
+                    <Button variant="ghost" size="icon" onClick={() => update("logoData", null)} title="Remover logo">
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                {config.logoData && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Tamanho da logo: {config.logoSize}px</Label>
+                    <Slider value={[config.logoSize]} min={40} max={120} step={2} onValueChange={(v) => update("logoSize", v[0])} />
+                  </div>
+                )}
+              </div>
+
+              {/* Background */}
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
+                <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
+                  <ImageIcon className="w-4 h-4" /> Imagem de Fundo
+                </div>
+                <div className="flex gap-2">
+                  <label className="flex-1">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "bgImageData")} />
+                    <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border bg-background hover:border-primary cursor-pointer text-sm text-muted-foreground transition-colors">
+                      <Upload className="w-4 h-4" />
+                      {config.bgImageData ? "Trocar imagem" : "Enviar imagem"}
+                    </div>
+                  </label>
+                  {config.bgImageData && (
+                    <Button variant="ghost" size="icon" onClick={() => update("bgImageData", null)} title="Remover fundo">
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                {config.bgImageData && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Escurecimento (legibilidade): {config.bgOverlay}%</Label>
+                    <Slider value={[config.bgOverlay]} min={0} max={85} step={5} onValueChange={(v) => update("bgOverlay", v[0])} />
+                  </div>
+                )}
               </div>
 
               {/* Layout */}
-              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-4">
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
                 <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
-                  <Layout className="w-4 h-4" />
-                  Layout
+                  <Layout className="w-4 h-4" /> Layout
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {(["classic", "centered", "horizontal"] as LayoutType[]).map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => setLayout(l)}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
-                        layout === l
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:border-primary/50"
-                      }`}
-                    >
+                    <button key={l} onClick={() => update("layout", l)}
+                      className={`px-2 py-2 rounded-lg text-xs font-medium border transition-all ${config.layout === l ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/50"}`}>
                       {l === "classic" ? "Clássico" : l === "centered" ? "Central" : "Lado a Lado"}
                     </button>
                   ))}
                 </div>
-
                 <div>
                   <Label className="text-xs">Alinhamento do Texto</Label>
                   <div className="grid grid-cols-3 gap-2 mt-1">
                     {(["left", "center", "right"] as TextAlign[]).map((a) => (
-                      <button
-                        key={a}
-                        onClick={() => setTextAlign(a)}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
-                          textAlign === a
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border bg-background text-muted-foreground hover:border-primary/50"
-                        }`}
-                      >
+                      <button key={a} onClick={() => update("textAlign", a)}
+                        className={`px-2 py-2 rounded-lg text-xs font-medium border transition-all ${config.textAlign === a ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/50"}`}>
                         {a === "left" ? "Esquerda" : a === "center" ? "Centro" : "Direita"}
                       </button>
                     ))}
@@ -451,55 +519,121 @@ const BannerCreator = () => {
               </div>
 
               {/* Colors */}
-              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-4">
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
                 <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
-                  <Palette className="w-4 h-4" />
-                  Cores
+                  <Palette className="w-4 h-4" /> Cores
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {(Object.entries(COLOR_SCHEMES) as [ColorScheme, typeof COLOR_SCHEMES[ColorScheme]][]).map(([key, scheme]) => (
-                    <button
-                      key={key}
-                      onClick={() => setColorScheme(key)}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium border transition-all ${
-                        colorScheme === key
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:border-primary/50"
-                      }`}
-                    >
+                  {(Object.entries(COLOR_SCHEMES) as [Exclude<ColorScheme, "custom">, SchemeColors][]).map(([key, scheme]) => (
+                    <button key={key} onClick={() => update("colorScheme", key)}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium border transition-all ${config.colorScheme === key ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/50"}`}>
                       <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: scheme.bg, border: `2px solid ${scheme.accent}` }} />
                       {scheme.label}
                     </button>
                   ))}
+                  <button onClick={() => update("colorScheme", "custom")}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium border transition-all col-span-2 ${config.colorScheme === "custom" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/50"}`}>
+                    <Palette className="w-4 h-4" /> Paleta Personalizada
+                  </button>
                 </div>
+                {config.colorScheme === "custom" && (
+                  <div className="grid grid-cols-3 gap-2 pt-2">
+                    {([
+                      ["bg", "Fundo"],
+                      ["text", "Texto"],
+                      ["accent", "Destaque"],
+                    ] as const).map(([k, label]) => (
+                      <div key={k} className="space-y-1">
+                        <Label className="text-xs">{label}</Label>
+                        <input
+                          type="color"
+                          value={config.customColors[k]}
+                          onChange={(e) => update("customColors", { ...config.customColors, [k]: e.target.value })}
+                          className="w-full h-9 rounded border border-border bg-background cursor-pointer"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Export buttons */}
+              {/* Insurers */}
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
+                    <Building2 className="w-4 h-4" /> Faixa de Seguradoras
+                  </div>
+                  <Switch checked={config.showInsurers} onCheckedChange={(v) => update("showInsurers", v)} />
+                </div>
+                {config.showInsurers && (
+                  <div className="space-y-2">
+                    {INSURERS.map((ins) => (
+                      <label key={ins.key} className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                        <Checkbox
+                          checked={config.selectedInsurers.includes(ins.key)}
+                          onCheckedChange={(checked) => {
+                            const next = checked
+                              ? [...config.selectedInsurers, ins.key]
+                              : config.selectedInsurers.filter((k) => k !== ins.key);
+                            update("selectedInsurers", next);
+                          }}
+                        />
+                        {ins.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Templates */}
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
+                <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
+                  <Bookmark className="w-4 h-4" /> Padrões Salvos
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nome do padrão"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                  />
+                  <Button onClick={handleSaveTemplate} disabled={savingTemplate} size="icon" title="Salvar padrão atual">
+                    {savingTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  </Button>
+                </div>
+                {templates.length > 0 ? (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {templates.map((t) => (
+                      <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-background border border-border">
+                        <button onClick={() => handleApplyTemplate(t)} className="flex-1 text-left text-sm text-foreground hover:text-primary truncate">
+                          {t.name}
+                        </button>
+                        <button onClick={() => handleDeleteTemplate(t.id)} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Nenhum padrão salvo ainda.</p>
+                )}
+              </div>
+
+              {/* Export */}
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2"
-                  onClick={handleShare}
-                >
-                  <Share2 className="w-4 h-4" />
-                  Compartilhar
+                <Button variant="outline" className="flex-1 gap-2" onClick={handleShare}>
+                  <Share2 className="w-4 h-4" /> Compartilhar
                 </Button>
-                <Button
-                  variant="hero"
-                  className="flex-1 gap-2"
-                  onClick={handleExport}
-                  disabled={isExporting}
-                >
+                <Button variant="hero" className="flex-1 gap-2" onClick={handleExport} disabled={isExporting}>
                   {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                   Baixar PNG
                 </Button>
               </div>
             </div>
 
-            {/* Preview Panel */}
+            {/* Preview */}
             <div className="flex-1 flex flex-col items-center">
               <p className="text-sm text-muted-foreground mb-4">Preview em tempo real</p>
-              <div className="bg-muted/50 rounded-2xl p-6 border border-border inline-block">
+              <div className="bg-muted/50 rounded-2xl p-6 border border-border inline-block sticky top-24">
                 <div ref={cardRef}>
                   {renderCard()}
                 </div>
