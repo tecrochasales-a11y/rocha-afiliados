@@ -1,37 +1,30 @@
 
-## Plano: Logos reais das seguradoras (com símbolo) + remover Unimed + tamanho maior
+## Plano: Baixar logos oficiais reais das seguradoras
 
-O usuário quer logos oficiais reais (com o símbolo/ícone característico de cada marca, não apenas texto), remover Unimed da lista e exibir as logos em tamanho maior na faixa do rodapé.
+Substituir os SVGs desenhados manualmente pelas logos oficiais reais (PNG transparente) das seguradoras, no estilo do exemplo Bradesco enviado (símbolo + wordmark com tipografia original da marca).
 
 ### Abordagem
-Como tentativas anteriores de baixar das fontes externas falharam (429 / file not found), vou criar SVGs vetoriais inline mais elaborados, desenhando o símbolo característico + wordmark de cada marca diretamente no SVG. Isso garante:
-- Sem dependência de rede
-- Renderização consistente no preview e no export (html2canvas)
-- Cores e proporções fiéis às marcas
+Buscar e baixar as logos oficiais via Google/fontes confiáveis (Wikimedia, sites oficiais, repositórios de logos como seeklogo/brandsoftheworld) em formato PNG transparente de alta resolução. Salvar em `src/assets/insurers/` substituindo os SVGs atuais.
 
-### Mudanças
-
-**1. Substituir SVGs (4 arquivos, com símbolo + wordmark)**
-- `porto.svg` — escudo azul Porto + texto "Porto"
-- `sulamerica.svg` — símbolo laranja SulAmérica + texto "SulAmérica"
-- `bradesco.svg` — símbolo árvore vermelho Bradesco + texto "Bradesco Saúde"
-- `amil.svg` — símbolo verde Amil + texto "Amil"
-
-**2. Remover Unimed**
-- Deletar `src/assets/unimed.svg` (raiz, lixo de tentativa anterior)
-- Em `BannerCreator.tsx`: remover entrada `unimed` do array `INSURERS`
-- Remover do default `selectedInsurers` no estado inicial
-
-**3. Aumentar tamanho das logos**
-- `BannerCreator.tsx`: altura das imgs de `32px` → `48px`
-- Padding da faixa: `14px 16px` → `18px 20px`
-- Gap: `12px` → `20px`
+### Passos de execução
+1. **websearch--web_search** para localizar URLs diretas das logos oficiais:
+   - Bradesco Saúde
+   - Porto Seguro
+   - SulAmérica
+   - Amil
+2. **code--fetch_website** ou download direto para baixar cada PNG transparente
+3. **Salvar** como `src/assets/insurers/{nome}.png` (substituindo .svg atuais)
+4. **Atualizar `BannerCreator.tsx`**: trocar imports de `.svg` para `.png` no array `INSURERS`
+5. **Manter** altura 48px, padding e gap atuais — fundo branco da faixa já destaca bem
+6. **Fallback**: se algum download falhar, mantém o SVG atual daquela marca específica
 
 ### Arquivos
-- **Editados**: `src/assets/insurers/porto.svg`, `src/assets/insurers/sulamerica.svg`, `src/assets/insurers/bradesco.svg`, `src/assets/insurers/amil.svg`, `src/pages/BannerCreator.tsx`
-- **Deletados (lixo)**: `amil.svg`, `bradesco.svg`, `sulamerica.svg`, `unimed.svg` na raiz do projeto, e `src/assets/insurers/unimed.svg`
+- **Novos/Substituídos**: `src/assets/insurers/bradesco.png`, `porto.png`, `sulamerica.png`, `amil.png`
+- **Editado**: `src/pages/BannerCreator.tsx` (apenas linhas dos imports)
+- **Removidos** (se downloads OK): `src/assets/insurers/*.svg` antigos
 
 ### Garantias
-- Sem alteração de lógica, integrações ou banco
-- Mesmos paths de import (exceto unimed que sai)
-- Templates já salvos com unimed continuarão funcionando (filtro silencioso ignora chaves inexistentes)
+- Apenas troca visual de assets — nenhuma lógica alterada
+- Mesma estrutura de array, mesmas keys
+- Templates salvos no banco continuam funcionando
+- Sem mudanças em DB, RLS, integrações ou outros componentes
