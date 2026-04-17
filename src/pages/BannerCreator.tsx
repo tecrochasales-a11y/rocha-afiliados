@@ -33,7 +33,6 @@ import portoLogo from "@/assets/insurers/porto.svg";
 import sulamericaLogo from "@/assets/insurers/sulamerica.svg";
 import bradescoLogo from "@/assets/insurers/bradesco.svg";
 import amilLogo from "@/assets/insurers/amil.svg";
-import unimedLogo from "@/assets/insurers/unimed.svg";
 
 type LayoutType = "classic" | "centered" | "horizontal";
 type ColorScheme = "gold-dark" | "light" | "dark" | "blue" | "custom";
