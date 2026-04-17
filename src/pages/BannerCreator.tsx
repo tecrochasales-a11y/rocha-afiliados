@@ -36,6 +36,7 @@ import portoLogo from "@/assets/insurers/porto.png";
 import sulamericaLogo from "@/assets/insurers/sulamerica.jpg";
 import bradescoLogo from "@/assets/insurers/bradesco.png";
 import amilLogo from "@/assets/insurers/amil.svg";
+import rochaLogo from "@/assets/rocha-sales-logo.png";
 
 type LayoutType = "classic" | "centered" | "horizontal";
 type ColorScheme = "gold-dark" | "light" | "dark" | "blue" | "custom";
