@@ -782,23 +782,28 @@ const BannerCreator = () => {
               <div className="bg-muted/50 rounded-2xl p-6 border border-border inline-block sticky top-24">
                 <div ref={cardRef} style={{ position: "relative" }}>
                   {renderCard()}
-                  <img
-                    src={rochaLogo}
-                    alt=""
-                    aria-hidden
-                    crossOrigin="anonymous"
-                    style={{
-                      position: "absolute",
-                      bottom: 12,
-                      right: 12,
-                      width: 80,
-                      height: "auto",
-                      opacity: 0.18,
-                      pointerEvents: "none",
-                      userSelect: "none",
-                      mixBlendMode: "luminosity",
-                    }}
-                  />
+                  {(() => {
+                    const watermarkOnLeft = !!config.logoData && config.textAlign === "right";
+                    return (
+                      <img
+                        src={rochaLogo}
+                        alt=""
+                        aria-hidden
+                        crossOrigin="anonymous"
+                        style={{
+                          position: "absolute",
+                          bottom: 14,
+                          ...(watermarkOnLeft ? { left: 14 } : { right: 14 }),
+                          width: 95,
+                          height: "auto",
+                          opacity: 0.45,
+                          pointerEvents: "none",
+                          userSelect: "none",
+                          filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.35))",
+                        }}
+                      />
+                    );
+                  })()}
                 </div>
               </div>
             </div>
