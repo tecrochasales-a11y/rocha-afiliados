@@ -226,6 +226,7 @@ const BannerCreator = () => {
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
+      if (document.fonts?.ready) await document.fonts.ready;
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
@@ -243,6 +244,7 @@ const BannerCreator = () => {
   const handleShare = async () => {
     if (!cardRef.current) return;
     try {
+      if (document.fonts?.ready) await document.fonts.ready;
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
