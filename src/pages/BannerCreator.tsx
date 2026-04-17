@@ -585,6 +585,72 @@ const BannerCreator = () => {
                 )}
               </div>
 
+              {/* Tipografia & Cores dos Textos */}
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
+                <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
+                  <Type className="w-4 h-4" /> Tipografia & Cores dos Textos
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Família da fonte</Label>
+                  <select
+                    value={config.fontFamily}
+                    onChange={(e) => update("fontFamily", e.target.value)}
+                    className="w-full h-9 px-2 rounded-md border border-border bg-background text-sm text-foreground"
+                  >
+                    {FONT_OPTIONS.map((f) => (
+                      <option key={f.key} value={f.css} style={{ fontFamily: f.css }}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <Label className="text-xs">Personalizar cores dos textos</Label>
+                  <Switch
+                    checked={config.useCustomTextColors}
+                    onCheckedChange={(v) => update("useCustomTextColors", v)}
+                  />
+                </div>
+
+                {config.useCustomTextColors && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {([
+                        ["badge", "Destaque (badge)"],
+                        ["title", "Título"],
+                        ["subtitle", "Subtítulo"],
+                        ["footerLabel", "Rótulo rodapé"],
+                      ] as const).map(([k, label]) => (
+                        <div key={k} className="space-y-1">
+                          <Label className="text-xs">{label}</Label>
+                          <input
+                            type="color"
+                            value={config.textColors[k]}
+                            onChange={(e) =>
+                              update("textColors", { ...config.textColors, [k]: e.target.value })
+                            }
+                            className="w-full h-9 rounded border border-border bg-background cursor-pointer"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-1"
+                      onClick={() => {
+                        update("fontFamily", "'Playfair Display', serif");
+                        update("textColors", { ...DEFAULT_TEXT_COLORS });
+                        update("useCustomTextColors", false);
+                      }}
+                    >
+                      Restaurar padrão
+                    </Button>
+                  </>
+                )}
+              </div>
+
               {/* Insurers */}
               <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
                 <div className="flex items-center justify-between">
