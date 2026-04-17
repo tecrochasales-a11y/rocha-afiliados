@@ -330,7 +330,7 @@ const BannerCreator = () => {
         padding: "12px 24px",
         borderTop: `3px solid ${colors.accent}`,
       }}>
-        <p style={{ fontSize: 9, color: "#6b7280", textAlign: "center", marginBottom: 8, letterSpacing: 1, fontWeight: 600 }}>
+        <p style={{ fontSize: 9, color: footerLabelColor, textAlign: "center", marginBottom: 8, letterSpacing: 1, fontWeight: 600, fontFamily: config.fontFamily }}>
           TRABALHAMOS COM AS MELHORES OPERADORAS
         </p>
         <div style={{ display: "flex", flexWrap: "nowrap", justifyContent: "space-around", alignItems: "center", width: "100%" }}>
