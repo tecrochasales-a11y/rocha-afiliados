@@ -1,33 +1,39 @@
 
-## Plano: Melhorar o color picker da seção Tipografia & Cores
+## Plano: Marca d'água fixa + QR Code com linhas pretas fixas
 
-O usuário está usando os `<input type="color">` nativos (mostrado no print) e quer uma experiência mais polida. Vou substituir pelo componente `react-colorful` (popover customizado) com swatches de cores da marca + hex input + preview.
+### 1. QR Code — linhas internas sempre pretas
+No `QRBlock` (linha 322-326 de `BannerCreator.tsx`), trocar `fgColor={colors.qrFg}` por `fgColor="#000000"` fixo. Mantém o fundo branco (`colors.qrBg`) para contraste e leitura garantida em qualquer tema/cor escolhida.
 
-### Implementação
+### 2. Marca d'água fixa da corretora no preview
+Adicionar uma marca d'água discreta sobreposta ao banner usando o logo local `src/assets/rocha-sales-logo.png` (regra da memória: uso exclusivo do logo PNG local).
 
-Em `src/pages/BannerCreator.tsx`, criar componente `ColorPickerField`:
+**Características:**
+- Posição: canto inferior direito do preview do banner (não conflita com texto/CTA que ficam à esquerda)
+- Tamanho: ~80px de largura
+- Opacidade: `0.18` (sutil, não compete com o conteúdo)
+- `pointer-events: none` e `user-select: none` (não interfere na interação)
+- `mix-blend-mode: screen` em banners escuros / `multiply` claros — uso `luminosity` como meio-termo neutro
+- **Fixa**: sem controle de edição para o usuário (sempre presente, sempre no mesmo lugar)
+- Incluída no export (html2canvas) — renderiza dentro do `bannerRef`, então já é capturada automaticamente
 
-- **Trigger**: botão pequeno mostrando swatch da cor atual + label hex (ex: `■ #C9A84C`), com `transition-all hover:scale-105 hover:shadow-md`
-- **Popover** (Radix `Popover` já existe no projeto): abre com animação `scale-in`/`fade-in` (já configuradas no tailwind)
-  - `HexColorPicker` do `react-colorful` (área visual hue/saturation)
-  - Input de texto para hex manual (com validação)
-  - 6 swatches da paleta da marca: `#C9A84C` (dourado), `#FFFFFF`, `#181818`, `#0A2540` (azul Porto), `#E30613` (vermelho Bradesco), `#FF6B00` (laranja SulAmérica) — clique aplica imediatamente
-  - Cada swatch com `hover:scale-110 transition-transform ring-2 ring-transparent hover:ring-primary`
+**Implementação:**
+- Import: `import rochaLogo from "@/assets/rocha-sales-logo.png"`
+- Adicionar `<img>` absoluto dentro do container do preview do banner, logo antes do fechamento:
+  ```tsx
+  <img src={rochaLogo} alt="" aria-hidden
+    style={{
+      position: "absolute", bottom: 12, right: 12,
+      width: 80, height: "auto", opacity: 0.18,
+      pointerEvents: "none", userSelect: "none",
+      mixBlendMode: "luminosity"
+    }}
+  />
+  ```
 
-### Dependência
-- Instalar `react-colorful` (leve, ~2.8KB, sem deps)
-
-### Substituições
-Trocar os 4 `<input type="color">` (badge, title, subtitle, footerLabel) pelo novo `ColorPickerField`. Mesma API: `value` + `onChange(hex)`.
-
-### Bônus de UX
-- Botão "Restaurar padrão" ganha ícone `RotateCcw` + animação de rotação no hover
-- Card da seção "Tipografia & Cores" com `animate-fade-in` ao montar
-
-### Arquivos
-- **Editado**: `src/pages/BannerCreator.tsx` (novo componente interno + 4 substituições)
-- **Dependência nova**: `react-colorful`
+### Arquivo
+- **Editado**: `src/pages/BannerCreator.tsx` (1 linha no QRBlock + 1 import + 1 bloco `<img>` no preview)
 
 ### Garantias
-- Mesmo state e mesma persistência — apenas a UI do picker muda
-- Sem mudanças em DB, lógica de export ou outras seções
+- Sem mudanças em DB, templates, lógica ou outras seções
+- Marca d'água aparece tanto no preview quanto no PNG exportado
+- QR Code sempre escaneável (preto sobre branco, independente das cores customizadas)
