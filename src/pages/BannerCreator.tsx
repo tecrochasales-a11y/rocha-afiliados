@@ -636,7 +636,7 @@ const BannerCreator = () => {
               </div>
 
               {/* Tipografia & Cores dos Textos */}
-              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3 animate-fade-in">
                 <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
                   <Type className="w-4 h-4" /> Tipografia & Cores dos Textos
                 </div>
@@ -674,13 +674,11 @@ const BannerCreator = () => {
                       ] as const).map(([k, label]) => (
                         <div key={k} className="space-y-1">
                           <Label className="text-xs">{label}</Label>
-                          <input
-                            type="color"
+                          <ColorPickerField
                             value={config.textColors[k]}
-                            onChange={(e) =>
-                              update("textColors", { ...config.textColors, [k]: e.target.value })
+                            onChange={(hex) =>
+                              update("textColors", { ...config.textColors, [k]: hex })
                             }
-                            className="w-full h-9 rounded border border-border bg-background cursor-pointer"
                           />
                         </div>
                       ))}
@@ -688,13 +686,14 @@ const BannerCreator = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full mt-1"
+                      className="w-full mt-1 group"
                       onClick={() => {
                         update("fontFamily", "'Playfair Display', serif");
                         update("textColors", { ...DEFAULT_TEXT_COLORS });
                         update("useCustomTextColors", false);
                       }}
                     >
+                      <RotateCcw className="w-3.5 h-3.5 mr-1.5 transition-transform duration-500 group-hover:-rotate-180" />
                       Restaurar padrão
                     </Button>
                   </>
