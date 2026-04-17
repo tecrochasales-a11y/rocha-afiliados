@@ -625,11 +625,9 @@ const BannerCreator = () => {
                     ] as const).map(([k, label]) => (
                       <div key={k} className="space-y-1">
                         <Label className="text-xs">{label}</Label>
-                        <input
-                          type="color"
+                        <ColorPickerField
                           value={config.customColors[k]}
-                          onChange={(e) => update("customColors", { ...config.customColors, [k]: e.target.value })}
-                          className="w-full h-9 rounded border border-border bg-background cursor-pointer"
+                          onChange={(hex) => update("customColors", { ...config.customColors, [k]: hex })}
                         />
                       </div>
                     ))}
