@@ -11,7 +11,8 @@ import {
   CreditCard, 
   Key, 
   Loader2,
-  Save
+  Save,
+  Copy
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -133,7 +134,7 @@ const Perfil = () => {
           </div>
 
           {/* Form Card */}
-          <div className="bg-card rounded-3xl shadow-medium p-8 glass-card">
+          <div className="bg-card text-card-foreground border border-border rounded-3xl shadow-medium p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="full_name" className="text-foreground font-medium">
@@ -166,7 +167,7 @@ const Perfil = () => {
                     name="email"
                     type="email"
                     value={formData.email}
-                    className="pl-10 h-12 bg-background border-border"
+                    className="pl-10 h-12 bg-background border-border text-foreground"
                     disabled
                   />
                 </div>
@@ -243,9 +244,26 @@ const Perfil = () => {
                   <Label className="text-foreground font-medium text-sm">
                     Seu Código de Indicação
                   </Label>
-                  <p className="text-2xl font-heading font-bold text-primary mt-1">
-                    {profile.tracking_code}
-                  </p>
+                  <div className="flex items-center justify-between gap-3 mt-1">
+                    <p className="text-2xl font-heading font-bold text-primary">
+                      {profile.tracking_code}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(profile.tracking_code!);
+                        toast({
+                          title: "Código copiado!",
+                          description: "Seu código de indicação foi copiado.",
+                        });
+                      }}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copiar
+                    </Button>
+                  </div>
                 </div>
               )}
 
