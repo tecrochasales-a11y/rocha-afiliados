@@ -792,7 +792,7 @@ const BannerCreator = () => {
                         crossOrigin="anonymous"
                         style={{
                           position: "absolute",
-                          bottom: insurerStripHeight + 2,
+                          bottom: insurerStripHeight - 8,
                           left: 14,
                           width: 70,
                           height: "auto",
