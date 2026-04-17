@@ -134,7 +134,7 @@ const Perfil = () => {
           </div>
 
           {/* Form Card */}
-          <div className="bg-card rounded-3xl shadow-medium p-8 glass-card">
+          <div className="bg-card text-card-foreground border border-border rounded-3xl shadow-medium p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="full_name" className="text-foreground font-medium">
