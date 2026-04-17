@@ -36,6 +36,7 @@ import portoLogo from "@/assets/insurers/porto.png";
 import sulamericaLogo from "@/assets/insurers/sulamerica.jpg";
 import bradescoLogo from "@/assets/insurers/bradesco.png";
 import amilLogo from "@/assets/insurers/amil.svg";
+import rochaLogo from "@/assets/rocha-sales-logo.png";
 
 type LayoutType = "classic" | "centered" | "horizontal";
 type ColorScheme = "gold-dark" | "light" | "dark" | "blue" | "custom";
@@ -321,7 +322,7 @@ const BannerCreator = () => {
   // ─── Banner blocks ───
   const QRBlock = ({ size = 130 }: { size?: number }) => (
     <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
-      <QRCodeSVG value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor={colors.qrFg} includeMargin={false} />
+      <QRCodeSVG value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor="#000000" includeMargin={false} />
     </div>
   );
 
@@ -777,8 +778,25 @@ const BannerCreator = () => {
             <div className="flex-1 flex flex-col items-center">
               <p className="text-sm text-muted-foreground mb-4">Preview em tempo real</p>
               <div className="bg-muted/50 rounded-2xl p-6 border border-border inline-block sticky top-24">
-                <div ref={cardRef}>
+                <div ref={cardRef} style={{ position: "relative" }}>
                   {renderCard()}
+                  <img
+                    src={rochaLogo}
+                    alt=""
+                    aria-hidden
+                    crossOrigin="anonymous"
+                    style={{
+                      position: "absolute",
+                      bottom: 12,
+                      right: 12,
+                      width: 80,
+                      height: "auto",
+                      opacity: 0.18,
+                      pointerEvents: "none",
+                      userSelect: "none",
+                      mixBlendMode: "luminosity",
+                    }}
+                  />
                 </div>
               </div>
             </div>
