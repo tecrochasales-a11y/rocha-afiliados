@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -280,6 +280,7 @@ const BannerCreator = () => {
     setIsExporting(true);
     try {
       if (document.fonts?.ready) await document.fonts.ready;
+      await new Promise((r) => setTimeout(r, 80));
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
@@ -298,6 +299,7 @@ const BannerCreator = () => {
     if (!cardRef.current) return;
     try {
       if (document.fonts?.ready) await document.fonts.ready;
+      await new Promise((r) => setTimeout(r, 80));
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
@@ -322,7 +324,7 @@ const BannerCreator = () => {
   // ─── Banner blocks ───
   const QRBlock = ({ size = 130 }: { size?: number }) => (
     <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
-      <QRCodeSVG value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor="#000000" includeMargin={false} />
+      <QRCodeCanvas value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor="#000000" includeMargin={false} />
     </div>
   );
 
