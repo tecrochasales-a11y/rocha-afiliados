@@ -61,6 +61,23 @@ const FIXED_MESSAGE = "Descubra como reduzir em até 30% o valor do seu plano de
 const FIXED_CTA = "Escaneie o QR Code";
 const FIXED_HIGHLIGHT = "✨ Consultoria 100% gratuita";
 
+const FONT_OPTIONS = [
+  { key: "playfair", label: "Playfair Display (padrão)", css: "'Playfair Display', serif" },
+  { key: "inter", label: "Inter", css: "'Inter', sans-serif" },
+  { key: "poppins", label: "Poppins", css: "'Poppins', sans-serif" },
+  { key: "montserrat", label: "Montserrat", css: "'Montserrat', sans-serif" },
+  { key: "roboto", label: "Roboto", css: "'Roboto', sans-serif" },
+  { key: "lora", label: "Lora", css: "'Lora', serif" },
+  { key: "merriweather", label: "Merriweather", css: "'Merriweather', serif" },
+];
+
+const DEFAULT_TEXT_COLORS = {
+  badge: "#C9A84C",
+  title: "#FFFFFF",
+  subtitle: "#E5E7EB",
+  footerLabel: "#6B7280",
+};
+
 interface BannerConfig {
   title: string;
   layout: LayoutType;
@@ -73,6 +90,9 @@ interface BannerConfig {
   bgOverlay: number;
   showInsurers: boolean;
   selectedInsurers: string[];
+  fontFamily: string;
+  useCustomTextColors: boolean;
+  textColors: { badge: string; title: string; subtitle: string; footerLabel: string };
 }
 
 interface SavedTemplate {
@@ -94,6 +114,9 @@ const DEFAULT_CONFIG: BannerConfig = {
   bgOverlay: 50,
   showInsurers: true,
   selectedInsurers: ["porto", "sulamerica", "bradesco", "amil"],
+  fontFamily: "'Playfair Display', serif",
+  useCustomTextColors: false,
+  textColors: { ...DEFAULT_TEXT_COLORS },
 };
 
 const BannerCreator = () => {
