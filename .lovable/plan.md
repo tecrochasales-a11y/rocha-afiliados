@@ -1,19 +1,19 @@
 
-## Plano: trocar lado da marca d'água
+## Plano: marca d'água fixa no canto inferior esquerdo, acima da faixa branca
 
-Hoje a marca d'água fica no **canto oposto à logo do afiliado** (logo à direita → marca embaixo à esquerda; caso contrário → embaixo à direita).
+Atualmente a marca d'água tem posição dinâmica (esquerda/direita conforme logo). O usuário quer:
+- **Fixa** no canto **inferior esquerdo**
+- **Acima da faixa branca** (rodapé branco do banner com as logos das seguradoras)
 
-O usuário pediu para trocar de lugar. Proposta: **inverter a lógica** para que a marca d'água fique no **mesmo lado vertical da logo** (ou seja, trocar o canto atual).
-
-- `textAlign === "right"` (logo à direita) → marca d'água em **bottom-right**
-- `textAlign === "left"` ou `center` ou sem logo → marca d'água em **bottom-left**
+### Investigação
+Preciso confirmar em `src/pages/BannerCreator.tsx`:
+1. Altura da faixa branca inferior (rodapé das seguradoras) para calcular o `bottom` correto
+2. Posição atual da marca d'água
 
 ### Mudança
-Em `src/pages/BannerCreator.tsx`, inverter a condição `watermarkOnLeft`:
-```tsx
-const watermarkOnLeft = !(!!config.logoData && config.textAlign === "right");
-```
-(ou simplesmente trocar `left`/`right` no objeto de estilo).
+- Remover lógica `watermarkOnLeft` dinâmica
+- Fixar `left: 14`
+- Ajustar `bottom` para um valor acima da altura da faixa branca (ex.: `bottom: [altura da faixa + 10]px`)
 
 ### Arquivo
-- `src/pages/BannerCreator.tsx` — 1 linha alterada.
+- `src/pages/BannerCreator.tsx` — bloco `<img>` da marca d'água
