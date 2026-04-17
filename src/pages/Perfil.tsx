@@ -167,7 +167,7 @@ const Perfil = () => {
                     name="email"
                     type="email"
                     value={formData.email}
-                    className="pl-10 h-12 bg-background border-border"
+                    className="pl-10 h-12 bg-background border-border text-foreground"
                     disabled
                   />
                 </div>
