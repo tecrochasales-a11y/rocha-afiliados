@@ -239,7 +239,7 @@ const Perfil = () => {
 
               {/* Tracking Code */}
               {profile?.tracking_code && (
-                <div className="bg-muted/30 rounded-xl p-4">
+                <div className="bg-background border border-border rounded-xl p-4">
                   <Label className="text-foreground font-medium text-sm">
                     Seu Código de Indicação
                   </Label>
