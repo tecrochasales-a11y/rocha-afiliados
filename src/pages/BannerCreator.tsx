@@ -11,7 +11,10 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { HexColorPicker } from "react-colorful";
 import {
+  RotateCcw,
   Download,
   Share2,
   ArrowLeft,
@@ -77,6 +80,55 @@ const DEFAULT_TEXT_COLORS = {
   subtitle: "#E5E7EB",
   footerLabel: "#6B7280",
 };
+
+const BRAND_SWATCHES = [
+  "#C9A84C", "#FFFFFF", "#181818",
+  "#0A2540", "#E30613", "#FF6B00",
+];
+
+function ColorPickerField({ value, onChange }: { value: string; onChange: (hex: string) => void }) {
+  const safe = /^#([0-9A-Fa-f]{6})$/.test(value) ? value : "#000000";
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="w-full h-9 flex items-center gap-2 px-2 rounded-md border border-border bg-background text-xs text-foreground transition-all hover:shadow-md hover:border-primary/60 hover:scale-[1.02]"
+        >
+          <span
+            className="w-5 h-5 rounded border border-border shadow-inner shrink-0"
+            style={{ backgroundColor: safe }}
+          />
+          <span className="font-mono uppercase tracking-wide">{safe}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-3 space-y-3 animate-scale-in" align="start">
+        <HexColorPicker color={safe} onChange={onChange} style={{ width: "100%", height: 140 }} />
+        <Input
+          value={safe}
+          onChange={(e) => {
+            const raw = e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`;
+            if (/^#[0-9A-Fa-f]{0,6}$/.test(raw) && raw.length === 7) onChange(raw.toUpperCase());
+          }}
+          className="h-8 text-xs font-mono uppercase"
+          maxLength={7}
+        />
+        <div className="grid grid-cols-6 gap-1.5">
+          {BRAND_SWATCHES.map((sw) => (
+            <button
+              key={sw}
+              type="button"
+              onClick={() => onChange(sw)}
+              className="w-7 h-7 rounded border border-border ring-2 ring-transparent hover:ring-primary transition-transform hover:scale-110"
+              style={{ backgroundColor: sw }}
+              aria-label={sw}
+            />
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface BannerConfig {
   title: string;
@@ -573,11 +625,9 @@ const BannerCreator = () => {
                     ] as const).map(([k, label]) => (
                       <div key={k} className="space-y-1">
                         <Label className="text-xs">{label}</Label>
-                        <input
-                          type="color"
+                        <ColorPickerField
                           value={config.customColors[k]}
-                          onChange={(e) => update("customColors", { ...config.customColors, [k]: e.target.value })}
-                          className="w-full h-9 rounded border border-border bg-background cursor-pointer"
+                          onChange={(hex) => update("customColors", { ...config.customColors, [k]: hex })}
                         />
                       </div>
                     ))}
@@ -586,7 +636,7 @@ const BannerCreator = () => {
               </div>
 
               {/* Tipografia & Cores dos Textos */}
-              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3">
+              <div className="bg-card rounded-xl p-5 border border-border shadow-soft space-y-3 animate-fade-in">
                 <div className="flex items-center gap-2 text-foreground font-heading font-semibold">
                   <Type className="w-4 h-4" /> Tipografia & Cores dos Textos
                 </div>
@@ -624,13 +674,11 @@ const BannerCreator = () => {
                       ] as const).map(([k, label]) => (
                         <div key={k} className="space-y-1">
                           <Label className="text-xs">{label}</Label>
-                          <input
-                            type="color"
+                          <ColorPickerField
                             value={config.textColors[k]}
-                            onChange={(e) =>
-                              update("textColors", { ...config.textColors, [k]: e.target.value })
+                            onChange={(hex) =>
+                              update("textColors", { ...config.textColors, [k]: hex })
                             }
-                            className="w-full h-9 rounded border border-border bg-background cursor-pointer"
                           />
                         </div>
                       ))}
@@ -638,13 +686,14 @@ const BannerCreator = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full mt-1"
+                      className="w-full mt-1 group"
                       onClick={() => {
                         update("fontFamily", "'Playfair Display', serif");
                         update("textColors", { ...DEFAULT_TEXT_COLORS });
                         update("useCustomTextColors", false);
                       }}
                     >
+                      <RotateCcw className="w-3.5 h-3.5 mr-1.5 transition-transform duration-500 group-hover:-rotate-180" />
                       Restaurar padrão
                     </Button>
                   </>
