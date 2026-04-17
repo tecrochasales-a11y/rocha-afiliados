@@ -55,7 +55,6 @@ const INSURERS = [
   { key: "sulamerica", name: "SulAmérica", logo: sulamericaLogo },
   { key: "bradesco", name: "Bradesco", logo: bradescoLogo },
   { key: "amil", name: "Amil", logo: amilLogo },
-  { key: "unimed", name: "Unimed", logo: unimedLogo },
 ];
 
 const FIXED_MESSAGE = "Descubra como reduzir em até 30% o valor do seu plano de saúde com uma consultoria online personalizada.";
@@ -94,7 +93,7 @@ const DEFAULT_CONFIG: BannerConfig = {
   bgImageData: null,
   bgOverlay: 50,
   showInsurers: true,
-  selectedInsurers: ["porto", "sulamerica", "bradesco", "amil", "unimed"],
+  selectedInsurers: ["porto", "sulamerica", "bradesco", "amil"],
 };
 
 const BannerCreator = () => {
@@ -300,15 +299,15 @@ const BannerCreator = () => {
     return (
       <div style={{
         background: "#ffffff",
-        padding: "14px 16px",
+        padding: "18px 20px",
         borderTop: `3px solid ${colors.accent}`,
       }}>
-        <p style={{ fontSize: 9, color: "#6b7280", textAlign: "center", marginBottom: 8, letterSpacing: 1, fontWeight: 600 }}>
+        <p style={{ fontSize: 9, color: "#6b7280", textAlign: "center", marginBottom: 10, letterSpacing: 1, fontWeight: 600 }}>
           TRABALHAMOS COM AS MELHORES OPERADORAS
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", alignItems: "center" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, justifyContent: "center", alignItems: "center" }}>
           {visible.map((ins) => (
-            <img key={ins.key} src={ins.logo} alt={ins.name} style={{ height: 32, objectFit: "contain" }} crossOrigin="anonymous" />
+            <img key={ins.key} src={ins.logo} alt={ins.name} style={{ height: 48, objectFit: "contain" }} crossOrigin="anonymous" />
           ))}
         </div>
       </div>
