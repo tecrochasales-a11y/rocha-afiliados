@@ -783,7 +783,7 @@ const BannerCreator = () => {
                 <div ref={cardRef} style={{ position: "relative" }}>
                   {renderCard()}
                   {(() => {
-                    const watermarkOnLeft = !(!!config.logoData && config.textAlign === "right");
+                    const insurerStripHeight = config.showInsurers && config.selectedInsurers.length > 0 ? 110 : 0;
                     return (
                       <img
                         src={rochaLogo}
@@ -792,8 +792,8 @@ const BannerCreator = () => {
                         crossOrigin="anonymous"
                         style={{
                           position: "absolute",
-                          bottom: 14,
-                          ...(watermarkOnLeft ? { left: 14 } : { right: 14 }),
+                          bottom: insurerStripHeight + 10,
+                          left: 14,
                           width: 95,
                           height: "auto",
                           opacity: 0.45,
