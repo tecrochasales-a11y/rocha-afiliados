@@ -81,6 +81,55 @@ const DEFAULT_TEXT_COLORS = {
   footerLabel: "#6B7280",
 };
 
+const BRAND_SWATCHES = [
+  "#C9A84C", "#FFFFFF", "#181818",
+  "#0A2540", "#E30613", "#FF6B00",
+];
+
+function ColorPickerField({ value, onChange }: { value: string; onChange: (hex: string) => void }) {
+  const safe = /^#([0-9A-Fa-f]{6})$/.test(value) ? value : "#000000";
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="w-full h-9 flex items-center gap-2 px-2 rounded-md border border-border bg-background text-xs text-foreground transition-all hover:shadow-md hover:border-primary/60 hover:scale-[1.02]"
+        >
+          <span
+            className="w-5 h-5 rounded border border-border shadow-inner shrink-0"
+            style={{ backgroundColor: safe }}
+          />
+          <span className="font-mono uppercase tracking-wide">{safe}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-3 space-y-3 animate-scale-in" align="start">
+        <HexColorPicker color={safe} onChange={onChange} style={{ width: "100%", height: 140 }} />
+        <Input
+          value={safe}
+          onChange={(e) => {
+            const raw = e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`;
+            if (/^#[0-9A-Fa-f]{0,6}$/.test(raw) && raw.length === 7) onChange(raw.toUpperCase());
+          }}
+          className="h-8 text-xs font-mono uppercase"
+          maxLength={7}
+        />
+        <div className="grid grid-cols-6 gap-1.5">
+          {BRAND_SWATCHES.map((sw) => (
+            <button
+              key={sw}
+              type="button"
+              onClick={() => onChange(sw)}
+              className="w-7 h-7 rounded border border-border ring-2 ring-transparent hover:ring-primary transition-transform hover:scale-110"
+              style={{ backgroundColor: sw }}
+              aria-label={sw}
+            />
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface BannerConfig {
   title: string;
   layout: LayoutType;
