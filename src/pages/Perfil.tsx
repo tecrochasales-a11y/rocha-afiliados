@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
-  Shield, 
   ArrowLeft, 
   User, 
   Mail, 
@@ -17,6 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import rochaSalesLogo from "@/assets/rocha-sales-logo.png";
 
 const Perfil = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -121,8 +121,8 @@ const Perfil = () => {
         <div className="container mx-auto px-4 max-w-2xl">
           {/* Header */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-20 h-20 bg-gradient-hero rounded-2xl flex items-center justify-center shadow-soft mb-4">
-              <Shield className="w-10 h-10 text-primary-foreground" />
+            <div className="w-20 h-20 flex items-center justify-center mb-4">
+              <img src={rochaSalesLogo} alt="Rocha Sales" className="w-20 h-20 object-contain" />
             </div>
             <h1 className="font-heading text-2xl font-bold text-foreground">
               Meu Perfil
@@ -148,7 +148,7 @@ const Perfil = () => {
                     placeholder="Seu nome completo"
                     value={formData.full_name}
                     onChange={handleChange}
-                    className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
+                    className="pl-10 h-12 bg-background border-border focus:border-primary"
                     required
                     disabled={isLoading}
                   />
@@ -166,7 +166,7 @@ const Perfil = () => {
                     name="email"
                     type="email"
                     value={formData.email}
-                    className="pl-10 h-12 bg-muted/30 border-border"
+                    className="pl-10 h-12 bg-background border-border"
                     disabled
                   />
                 </div>
@@ -189,7 +189,7 @@ const Perfil = () => {
                       placeholder="(11) 99999-9999"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
+                      className="pl-10 h-12 bg-background border-border focus:border-primary"
                       disabled={isLoading}
                     />
                   </div>
@@ -208,7 +208,7 @@ const Perfil = () => {
                       placeholder="000.000.000-00"
                       value={formData.cpf}
                       onChange={handleChange}
-                      className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
+                      className="pl-10 h-12 bg-background border-border focus:border-primary"
                       disabled={isLoading}
                     />
                   </div>
@@ -228,7 +228,7 @@ const Perfil = () => {
                     placeholder="CPF, e-mail ou telefone"
                     value={formData.pix_key}
                     onChange={handleChange}
-                    className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
+                    className="pl-10 h-12 bg-background border-border focus:border-primary"
                     disabled={isLoading}
                   />
                 </div>
@@ -239,7 +239,7 @@ const Perfil = () => {
 
               {/* Tracking Code */}
               {profile?.tracking_code && (
-                <div className="bg-muted/30 rounded-xl p-4">
+                <div className="bg-background border border-border rounded-xl p-4">
                   <Label className="text-foreground font-medium text-sm">
                     Seu Código de Indicação
                   </Label>
