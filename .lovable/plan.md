@@ -1,30 +1,25 @@
 
-## Plano: Baixar logos oficiais reais das seguradoras
+## Plano: Faixa de seguradoras igual ao exemplo
 
-Substituir os SVGs desenhados manualmente pelas logos oficiais reais (PNG transparente) das seguradoras, no estilo do exemplo Bradesco enviado (símbolo + wordmark com tipografia original da marca).
+A imagem de referência mostra: faixa branca fina, logos coloridas oficiais (Porto azul, SulAmérica laranja, Bradesco vermelho, Amil roxo) bem visíveis, espaçadas uniformemente, ocupando a largura total do banner.
 
-### Abordagem
-Buscar e baixar as logos oficiais via Google/fontes confiáveis (Wikimedia, sites oficiais, repositórios de logos como seeklogo/brandsoftheworld) em formato PNG transparente de alta resolução. Salvar em `src/assets/insurers/` substituindo os SVGs atuais.
+Atualmente já temos os 4 assets corretos (`porto.png`, `sulamerica.jpg`, `bradesco.svg`, `amil.svg`). Falta ajustar a aparência da faixa para combinar exatamente com o exemplo.
 
-### Passos de execução
-1. **websearch--web_search** para localizar URLs diretas das logos oficiais:
-   - Bradesco Saúde
-   - Porto Seguro
-   - SulAmérica
-   - Amil
-2. **code--fetch_website** ou download direto para baixar cada PNG transparente
-3. **Salvar** como `src/assets/insurers/{nome}.png` (substituindo .svg atuais)
-4. **Atualizar `BannerCreator.tsx`**: trocar imports de `.svg` para `.png` no array `INSURERS`
-5. **Manter** altura 48px, padding e gap atuais — fundo branco da faixa já destaca bem
-6. **Fallback**: se algum download falhar, mantém o SVG atual daquela marca específica
+### Ajustes em `src/pages/BannerCreator.tsx` (apenas a faixa do rodapé)
 
-### Arquivos
-- **Novos/Substituídos**: `src/assets/insurers/bradesco.png`, `porto.png`, `sulamerica.png`, `amil.png`
-- **Editado**: `src/pages/BannerCreator.tsx` (apenas linhas dos imports)
-- **Removidos** (se downloads OK): `src/assets/insurers/*.svg` antigos
+1. **Fundo**: branco puro `#FFFFFF` (já está, manter)
+2. **Altura das logos**: aumentar de `48px` → `56px` para ficar tão proeminente quanto no exemplo
+3. **Distribuição**: usar `justify-content: space-around` em vez de `center` com gap, para distribuir uniformemente na largura
+4. **Padding vertical**: reduzir para `12px` (faixa mais fina/elegante como o exemplo)
+5. **Padding horizontal**: `24px` para respiro nas bordas
+6. **Remover `flex-wrap`**: forçar linha única para sempre ficar como o exemplo (4 logos lado a lado)
+7. **`max-width` por logo**: limitar a `22%` cada para evitar que uma fique gigante e quebre o equilíbrio
 
 ### Garantias
-- Apenas troca visual de assets — nenhuma lógica alterada
-- Mesma estrutura de array, mesmas keys
-- Templates salvos no banco continuam funcionando
-- Sem mudanças em DB, RLS, integrações ou outros componentes
+- Apenas CSS inline da faixa do rodapé é alterado
+- Nenhuma lógica, asset, ou estrutura tocada
+- Templates salvos continuam funcionando
+- Export (html2canvas) preserva o layout
+
+### Arquivo
+- **Editado**: `src/pages/BannerCreator.tsx` (apenas o bloco JSX/style do footer de seguradoras)
