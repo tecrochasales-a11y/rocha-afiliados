@@ -783,7 +783,7 @@ const BannerCreator = () => {
                 <div ref={cardRef} style={{ position: "relative" }}>
                   {renderCard()}
                   {(() => {
-                    const watermarkOnLeft = !!config.logoData && config.textAlign === "right";
+                    const watermarkOnLeft = !(!!config.logoData && config.textAlign === "right");
                     return (
                       <img
                         src={rochaLogo}
