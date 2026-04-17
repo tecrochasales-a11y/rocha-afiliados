@@ -1,39 +1,30 @@
 
-## Plano: Marca d'água fixa + QR Code com linhas pretas fixas
+## Plano: Incluir QR Code no PNG exportado
 
-### 1. QR Code — linhas internas sempre pretas
-No `QRBlock` (linha 322-326 de `BannerCreator.tsx`), trocar `fgColor={colors.qrFg}` por `fgColor="#000000"` fixo. Mantém o fundo branco (`colors.qrBg`) para contraste e leitura garantida em qualquer tema/cor escolhida.
+### Problema
+Ao exportar o banner como PNG, o QR Code não está aparecendo na imagem final (mesmo estando visível no preview).
 
-### 2. Marca d'água fixa da corretora no preview
-Adicionar uma marca d'água discreta sobreposta ao banner usando o logo local `src/assets/rocha-sales-logo.png` (regra da memória: uso exclusivo do logo PNG local).
+### Investigação necessária
+Preciso verificar em `src/pages/BannerCreator.tsx`:
+1. Onde está o `QRBlock` no DOM — se está dentro do `cardRef` (capturado pelo html2canvas) ou fora
+2. Como o `html2canvas` é chamado no `handleExport`
+3. Se o `QRCodeSVG` está renderizando como SVG (html2canvas tem problemas com SVGs complexos em alguns casos)
 
-**Características:**
-- Posição: canto inferior direito do preview do banner (não conflita com texto/CTA que ficam à esquerda)
-- Tamanho: ~80px de largura
-- Opacidade: `0.18` (sutil, não compete com o conteúdo)
-- `pointer-events: none` e `user-select: none` (não interfere na interação)
-- `mix-blend-mode: screen` em banners escuros / `multiply` claros — uso `luminosity` como meio-termo neutro
-- **Fixa**: sem controle de edição para o usuário (sempre presente, sempre no mesmo lugar)
-- Incluída no export (html2canvas) — renderiza dentro do `bannerRef`, então já é capturada automaticamente
+### Causa provável
+Duas hipóteses:
+- **A**: O QR Code está posicionado fora do container `cardRef` capturado
+- **B**: O `html2canvas` não está serializando bem o `<svg>` do `qrcode.react` — solução é converter para canvas/PNG antes da captura, ou usar `QRCodeCanvas` em vez de `QRCodeSVG`
 
-**Implementação:**
-- Import: `import rochaLogo from "@/assets/rocha-sales-logo.png"`
-- Adicionar `<img>` absoluto dentro do container do preview do banner, logo antes do fechamento:
-  ```tsx
-  <img src={rochaLogo} alt="" aria-hidden
-    style={{
-      position: "absolute", bottom: 12, right: 12,
-      width: 80, height: "auto", opacity: 0.18,
-      pointerEvents: "none", userSelect: "none",
-      mixBlendMode: "luminosity"
-    }}
-  />
-  ```
+### Solução
+1. Trocar `QRCodeSVG` por `QRCodeCanvas` (mesmo pacote `qrcode.react`) — canvas é capturado nativamente pelo html2canvas sem problemas de serialização SVG
+2. Garantir que o QRBlock está dentro do `cardRef` (se não estiver, mover)
+3. Manter `fgColor="#000000"` fixo e `bgColor` branco (já feito anteriormente)
+4. No `handleExport`, antes de chamar `html2canvas`, aguardar `document.fonts.ready` (já está) e adicionar pequeno delay de 50ms para garantir render do canvas do QR
 
 ### Arquivo
-- **Editado**: `src/pages/BannerCreator.tsx` (1 linha no QRBlock + 1 import + 1 bloco `<img>` no preview)
+- **Editado**: `src/pages/BannerCreator.tsx` (troca de import `QRCodeSVG` → `QRCodeCanvas` + ajuste do componente; eventual reposicionamento se estiver fora do cardRef)
 
 ### Garantias
-- Sem mudanças em DB, templates, lógica ou outras seções
-- Marca d'água aparece tanto no preview quanto no PNG exportado
-- QR Code sempre escaneável (preto sobre branco, independente das cores customizadas)
+- Zero impacto visual no preview (canvas renderiza idêntico ao SVG)
+- QR Code aparece no PNG exportado e permanece escaneável
+- Sem mudanças em outras seções, DB ou templates salvos
