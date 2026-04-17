@@ -281,22 +281,27 @@ const BannerCreator = () => {
     );
   };
 
+  const badgeColor = config.useCustomTextColors ? config.textColors.badge : colors.accent;
+  const titleColor = config.useCustomTextColors ? config.textColors.title : colors.text;
+  const subtitleColor = config.useCustomTextColors ? config.textColors.subtitle : colors.desc;
+  const footerLabelColor = config.useCustomTextColors ? config.textColors.footerLabel : "#6b7280";
+
   const TextBlock = () => (
-    <div style={{ textAlign: config.textAlign }}>
-      <p style={{ color: colors.accent, fontSize: 13, fontWeight: 600, marginBottom: 8, letterSpacing: 0.5 }}>
+    <div style={{ textAlign: config.textAlign, fontFamily: config.fontFamily }}>
+      <p style={{ color: badgeColor, fontSize: 13, fontWeight: 600, marginBottom: 8, letterSpacing: 0.5, fontFamily: config.fontFamily }}>
         {FIXED_HIGHLIGHT}
       </p>
       <h2 style={{
-        color: colors.text,
+        color: titleColor,
         fontSize: config.layout === "horizontal" ? 26 : 30,
         fontWeight: 700,
         lineHeight: 1.15,
         marginBottom: 12,
-        fontFamily: "'Playfair Display', serif",
+        fontFamily: config.fontFamily,
       }}>
         {config.title}
       </h2>
-      <p style={{ color: colors.desc, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+      <p style={{ color: subtitleColor, fontSize: 13, lineHeight: 1.5, marginBottom: 16, fontFamily: config.fontFamily }}>
         {FIXED_MESSAGE}
       </p>
       <div>
