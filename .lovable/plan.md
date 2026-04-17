@@ -1,17 +1,42 @@
 
-## Plano: Substituir logo Bradesco pela imagem enviada
+## Plano: Personalização de cor e fonte dos textos do banner
 
-Trocar o asset atual `src/assets/insurers/bradesco.svg` pela nova imagem PNG oficial enviada pelo usuário (símbolo + wordmark "bradesco" em vermelho, fundo transparente).
+Adicionar controles para o usuário customizar **cor do texto** e **família da fonte** dos textos do banner (badge "Consultoria 100% gratuita", título "Proteja quem você ama", subtítulo, label do CTA e label "TRABALHAMOS COM AS MELHORES OPERADORAS"), mantendo o estilo atual como padrão.
 
-### Passos
-1. Copiar `user-uploads://image-107.png` para `src/assets/insurers/bradesco.png`
-2. Em `src/pages/BannerCreator.tsx`: alterar o import de `bradesco.svg` para `bradesco.png`
-3. Deletar `src/assets/insurers/bradesco.svg` antigo
+### Controles novos no painel de edição (BannerCreator.tsx)
 
-### Observação sobre layout
-A nova logo Bradesco é vertical (símbolo em cima, texto embaixo) — diferente das outras 3 que são horizontais. No rodapé com altura fixa de 56px e `maxWidth: 22%`, ela aparecerá menor proporcionalmente. Mantenho o layout atual; se ficar desbalanceada visualmente, ajusto depois conforme feedback.
+Adicionar nova seção "Tipografia & Cores" com:
+
+1. **Família da fonte** (Select) — aplica a todos os textos:
+   - Playfair Display (padrão atual — títulos)
+   - Inter
+   - Poppins
+   - Montserrat
+   - Roboto
+   - Lora
+   - Merriweather
+
+2. **Cor por texto** (4 color pickers `<input type="color">`):
+   - Cor do badge (padrão: dourado `#C9A84C`)
+   - Cor do título (padrão: branco `#FFFFFF`)
+   - Cor do subtítulo (padrão: branco translúcido — usar `#FFFFFF` com opacity)
+   - Cor do label do rodapé "TRABALHAMOS COM..." (padrão: dourado/azul atual)
+
+3. **Botão "Restaurar padrão"** — reseta as 4 cores e fonte para os valores atuais.
+
+### Implementação
+
+- Adicionar estados: `fontFamily`, `badgeColor`, `titleColor`, `subtitleColor`, `footerLabelColor`
+- Aplicar `style={{ fontFamily, color: ... }}` em cada elemento de texto correspondente no preview
+- Carregar as fontes via Google Fonts no `index.html` (link `<link>` com as 6 famílias adicionais) — Playfair, Inter e Poppins já estão no projeto
+- Persistir nos templates salvos: incluir os 5 novos campos no objeto template (banco/localStorage onde já salva)
+- Garantir que o export (html2canvas) capture as fontes — pré-carregar via `document.fonts.ready` antes do snapshot
 
 ### Arquivos
-- **Novo**: `src/assets/insurers/bradesco.png`
-- **Editado**: `src/pages/BannerCreator.tsx` (1 linha de import)
-- **Deletado**: `src/assets/insurers/bradesco.svg`
+- **Editado**: `src/pages/BannerCreator.tsx` (estados + UI de controles + style nos textos do preview + persistência template)
+- **Editado**: `index.html` (link Google Fonts para Montserrat, Roboto, Lora, Merriweather)
+
+### Garantias
+- Padrões mantidos = visual idêntico ao atual se usuário não alterar nada
+- Sem mudanças em DB schema (campos extras vão dentro do JSON do template já existente)
+- Sem alteração nas logos das seguradoras nem no QR Code
