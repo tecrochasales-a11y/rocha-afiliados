@@ -244,9 +244,26 @@ const Perfil = () => {
                   <Label className="text-foreground font-medium text-sm">
                     Seu Código de Indicação
                   </Label>
-                  <p className="text-2xl font-heading font-bold text-primary mt-1">
-                    {profile.tracking_code}
-                  </p>
+                  <div className="flex items-center justify-between gap-3 mt-1">
+                    <p className="text-2xl font-heading font-bold text-primary">
+                      {profile.tracking_code}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(profile.tracking_code!);
+                        toast({
+                          title: "Código copiado!",
+                          description: "Seu código de indicação foi copiado.",
+                        });
+                      }}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copiar
+                    </Button>
+                  </div>
                 </div>
               )}
 
