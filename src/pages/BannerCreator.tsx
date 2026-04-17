@@ -299,15 +299,15 @@ const BannerCreator = () => {
     return (
       <div style={{
         background: "#ffffff",
-        padding: "18px 20px",
+        padding: "12px 24px",
         borderTop: `3px solid ${colors.accent}`,
       }}>
-        <p style={{ fontSize: 9, color: "#6b7280", textAlign: "center", marginBottom: 10, letterSpacing: 1, fontWeight: 600 }}>
+        <p style={{ fontSize: 9, color: "#6b7280", textAlign: "center", marginBottom: 8, letterSpacing: 1, fontWeight: 600 }}>
           TRABALHAMOS COM AS MELHORES OPERADORAS
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, justifyContent: "center", alignItems: "center" }}>
+        <div style={{ display: "flex", flexWrap: "nowrap", justifyContent: "space-around", alignItems: "center", width: "100%" }}>
           {visible.map((ins) => (
-            <img key={ins.key} src={ins.logo} alt={ins.name} style={{ height: 48, objectFit: "contain" }} crossOrigin="anonymous" />
+            <img key={ins.key} src={ins.logo} alt={ins.name} style={{ height: 56, maxWidth: "22%", objectFit: "contain" }} crossOrigin="anonymous" />
           ))}
         </div>
       </div>
