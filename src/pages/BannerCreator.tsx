@@ -301,15 +301,15 @@ const BannerCreator = () => {
     return (
       <div style={{
         background: "#ffffff",
-        padding: "12px 16px",
+        padding: "14px 16px",
         borderTop: `3px solid ${colors.accent}`,
       }}>
-        <p style={{ fontSize: 9, color: "#6b7280", textAlign: "center", marginBottom: 6, letterSpacing: 1, fontWeight: 600 }}>
+        <p style={{ fontSize: 9, color: "#6b7280", textAlign: "center", marginBottom: 8, letterSpacing: 1, fontWeight: 600 }}>
           TRABALHAMOS COM AS MELHORES OPERADORAS
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", alignItems: "center" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", alignItems: "center" }}>
           {visible.map((ins) => (
-            <img key={ins.key} src={ins.logo} alt={ins.name} style={{ height: 22, objectFit: "contain" }} crossOrigin="anonymous" />
+            <img key={ins.key} src={ins.logo} alt={ins.name} style={{ height: 32, objectFit: "contain" }} crossOrigin="anonymous" />
           ))}
         </div>
       </div>
