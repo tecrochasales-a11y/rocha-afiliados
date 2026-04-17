@@ -121,8 +121,8 @@ const Perfil = () => {
         <div className="container mx-auto px-4 max-w-2xl">
           {/* Header */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-20 h-20 bg-gradient-hero rounded-2xl flex items-center justify-center shadow-soft mb-4">
-              <Shield className="w-10 h-10 text-primary-foreground" />
+            <div className="w-20 h-20 flex items-center justify-center mb-4">
+              <img src={rochaSalesLogo} alt="Rocha Sales" className="w-20 h-20 object-contain" />
             </div>
             <h1 className="font-heading text-2xl font-bold text-foreground">
               Meu Perfil
