@@ -31,7 +31,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import portoLogo from "@/assets/insurers/porto.png";
 import sulamericaLogo from "@/assets/insurers/sulamerica.jpg";
-import bradescoLogo from "@/assets/insurers/bradesco.svg";
+import bradescoLogo from "@/assets/insurers/bradesco.png";
 import amilLogo from "@/assets/insurers/amil.svg";
 
 type LayoutType = "classic" | "centered" | "horizontal";
