@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
-  Shield, 
   ArrowLeft, 
   User, 
   Mail, 
@@ -17,6 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import rochaSalesLogo from "@/assets/rocha-sales-logo.png";
 
 const Perfil = () => {
   const [isLoading, setIsLoading] = useState(false);
