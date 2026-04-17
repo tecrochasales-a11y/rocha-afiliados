@@ -148,7 +148,7 @@ const Perfil = () => {
                     placeholder="Seu nome completo"
                     value={formData.full_name}
                     onChange={handleChange}
-                    className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
+                    className="pl-10 h-12 bg-background border-border focus:border-primary"
                     required
                     disabled={isLoading}
                   />
@@ -166,7 +166,7 @@ const Perfil = () => {
                     name="email"
                     type="email"
                     value={formData.email}
-                    className="pl-10 h-12 bg-muted/30 border-border"
+                    className="pl-10 h-12 bg-background border-border"
                     disabled
                   />
                 </div>
@@ -189,7 +189,7 @@ const Perfil = () => {
                       placeholder="(11) 99999-9999"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
+                      className="pl-10 h-12 bg-background border-border focus:border-primary"
                       disabled={isLoading}
                     />
                   </div>
@@ -208,7 +208,7 @@ const Perfil = () => {
                       placeholder="000.000.000-00"
                       value={formData.cpf}
                       onChange={handleChange}
-                      className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
+                      className="pl-10 h-12 bg-background border-border focus:border-primary"
                       disabled={isLoading}
                     />
                   </div>
@@ -228,7 +228,7 @@ const Perfil = () => {
                     placeholder="CPF, e-mail ou telefone"
                     value={formData.pix_key}
                     onChange={handleChange}
-                    className="pl-10 h-12 bg-muted/50 border-border focus:border-primary"
+                    className="pl-10 h-12 bg-background border-border focus:border-primary"
                     disabled={isLoading}
                   />
                 </div>
