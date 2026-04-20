@@ -278,40 +278,25 @@ const BannerCreator = () => {
 
   const waitForCardAssets = async (node: HTMLElement) => {
     const images = Array.from(node.querySelectorAll("img"));
+
     await Promise.all(
       images.map((img) => {
-        const loaded = img.complete && img.naturalWidth > 0
-          ? Promise.resolve()
-          : new Promise<void>((resolve) => {
-              img.addEventListener("load", () => resolve(), { once: true });
-              img.addEventListener("error", () => resolve(), { once: true });
-            });
-        return loaded.then(() => (img.decode ? img.decode().catch(() => {}) : undefined));
+        const loaded =
+          img.complete && img.naturalWidth > 0
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                img.addEventListener("load", () => resolve(), { once: true });
+                img.addEventListener("error", () => resolve(), { once: true });
+              });
+
+        return loaded.then(
+          () => img.decode?.().catch(() => {}) ?? Promise.resolve()
+        );
       })
     );
+
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     await new Promise((r) => requestAnimationFrame(() => r(null)));
-  };
-
-  const waitForCanvases = async (node: HTMLElement) => {
-    const canvases = Array.from(node.querySelectorAll("canvas"));
-    if (canvases.length === 0) return;
-
-    await Promise.all(
-      canvases.map(
-        (canvas) =>
-          new Promise<void>((resolve) => {
-            const tryResolve = () => {
-              if (canvas.width > 0 && canvas.height > 0) {
-                requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-              } else {
-                requestAnimationFrame(tryResolve);
-              }
-            };
-            tryResolve();
-          })
-      )
-    );
   };
 
   const handleExport = async () => {
@@ -320,7 +305,6 @@ const BannerCreator = () => {
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await waitForCardAssets(cardRef.current);
-      await waitForCanvases(cardRef.current);
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null, logging: false });
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
@@ -340,7 +324,6 @@ const BannerCreator = () => {
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await waitForCardAssets(cardRef.current);
-      await waitForCanvases(cardRef.current);
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
