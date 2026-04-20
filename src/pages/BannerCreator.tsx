@@ -323,11 +323,26 @@ const BannerCreator = () => {
   };
 
   // ─── Banner blocks ───
-  const QRBlock = ({ size = 130 }: { size?: number }) => (
-    <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
-      <QRCodeSVG value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor="#000000" includeMargin={false} />
-    </div>
-  );
+  const QRBlock = ({ size = 130 }: { size?: number }) => {
+    const dataUrl = useMemo(() => {
+      const svg = renderToStaticMarkup(
+        <QRCodeSVG
+          value={referralLink || "https://example.com"}
+          size={size}
+          level="H"
+          bgColor={colors.qrBg}
+          fgColor="#000000"
+          includeMargin={false}
+        />
+      );
+      return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+    }, [size]);
+    return (
+      <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
+        <img src={dataUrl} width={size} height={size} alt="QR" style={{ display: "block" }} />
+      </div>
+    );
+  };
 
   const LogoBlock = () => {
     if (!config.logoData) return null;
