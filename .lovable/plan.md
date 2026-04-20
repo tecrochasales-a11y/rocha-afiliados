@@ -1,36 +1,42 @@
 
+## Plano: corrigir QR ausente no PNG customizado
 
-## Fix: QR code quebrado no preview
+### Causa provável
+O QR do banner é renderizado como `<img src="data:image/svg+xml;base64,...">`, mas o export atual em `src/pages/BannerCreator.tsx` espera só `80ms` antes de chamar `html2canvas`.  
+Quando o usuário altera layout, cores, logo ou fundo e baixa logo em seguida, o card re-renderiza e algumas imagens ainda não terminaram de carregar/decodificar no DOM — principalmente o QR. No preview ele aparece, mas no snapshot pode sair em branco.
 
-### Causa
-`renderToStaticMarkup(<QRCodeSVG />)` gera um `<svg>` **sem** o atributo `xmlns="http://www.w3.org/2000/svg"`. Quando esse SVG é embutido em um `data:image/svg+xml;base64,...` e carregado via `<img>`, o browser rejeita (imagem quebrada — exatamente o ícone visto no print). No preview anterior funcionava porque era SVG inline no DOM, onde o xmlns é opcional.
+### Correção em `src/pages/BannerCreator.tsx`
+1. Criar um helper local para aguardar todos os assets visuais do banner antes do export:
+   - varrer `cardRef.current.querySelectorAll("img")`
+   - aguardar `load` de imagens ainda não concluídas
+   - chamar `img.decode()` quando disponível
+   - aguardar 1 `requestAnimationFrame` extra após a estabilização visual
 
-### Correção em `src/pages/BannerCreator.tsx` (linhas 327–339)
-Injetar o namespace no SVG string antes do base64, e trocar `btoa(unescape(encodeURIComponent(...)))` por uma codificação segura:
+2. Aplicar esse helper em ambos:
+   - `handleExport`
+   - `handleShare`
 
-```tsx
-const dataUrl = useMemo(() => {
-  let svg = renderToStaticMarkup(
-    <QRCodeSVG
-      value={referralLink || "https://example.com"}
-      size={size}
-      level="H"
-      bgColor={colors.qrBg}
-      fgColor="#000000"
-      includeMargin={false}
-    />
-  );
-  // Garantir xmlns — obrigatório para <img src="data:image/svg+xml;...">
-  if (!svg.includes("xmlns=")) {
-    svg = svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ');
-  }
-  const encoded = window.btoa(unescape(encodeURIComponent(svg)));
-  return `data:image/svg+xml;base64,${encoded}`;
-}, [size, referralLink, colors.qrBg]);
-```
+3. Manter o `QRBlock` como `<img>` com data URL, mas reforçar a estabilidade:
+   - preservar o `xmlns` já injetado no SVG
+   - manter dependências corretas do `useMemo`
+   - adicionar atributos leves no `<img>` do QR (`decoding="sync"` e/ou estilo estável) para reduzir risco de snapshot prematuro
 
-Também adicionar `referralLink` e `colors.qrBg` nas dependências do `useMemo` (faltando atualmente — o QR não regeneraria ao trocar link/cor).
+### Verificação da customização do banner
+Na mesma revisão, conferir no código do `BannerCreator` se o fluxo de personalização continua consistente após a correção:
+1. QR continua atualizando quando muda o link/cor
+2. logo personalizada mantém proporção
+3. faixa de seguradoras continua sem esticar
+4. fundo customizado + overlay não cobre o conteúdo
+5. export usa o mesmo estado visual exibido no preview
 
-### Arquivos alterados
-- `src/pages/BannerCreator.tsx` (apenas `QRBlock`)
+### Validação após implementar
+Testar no preview, no mínimo, estes cenários:
+1. banner padrão
+2. banner com layout centralizado
+3. banner com logo personalizada
+4. banner com fundo personalizado
+5. banner com seguradoras ativadas/desativadas
+6. download PNG logo após alterar personalizações, confirmando que o QR permanece visível
 
+### Arquivo a alterar
+- `src/pages/BannerCreator.tsx`
