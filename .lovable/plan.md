@@ -1,96 +1,69 @@
 
-## Plano: aplicar correção mínima no QR do download
+## Plano: adicionar espera extra antes do download do banner
 
-### Arquivo correto
-Aplicar a alteração em:
+### Arquivo
+Aplicar somente em:
 
 ```text
 src/pages/BannerCreator.tsx
 ```
 
-O projeto é React + Vite, então não existe `src/app/banner-creator/page.tsx`.
-
-### Mudanças exatas
-
-#### 1. Substituir `waitForCardAssets`
-Trocar a função atual por uma versão que aguarda:
+### Estado atual identificado
+A função `waitForCardAssets` já está com a versão que aguarda:
 
 - carregamento das imagens
-- `img.decode()` quando disponível
+- `img.decode()`
 - dois ciclos de `requestAnimationFrame`
 
-Isso garante que imagens SVG/data URI usadas no banner estejam decodificadas antes do `html2canvas`.
+Também não há mais `waitForCanvases` no trecho atual.
 
-Função final:
+### Mudança necessária
 
-```tsx
-const waitForCardAssets = async (node: HTMLElement) => {
-  const images = Array.from(node.querySelectorAll("img"));
-
-  await Promise.all(
-    images.map((img) => {
-      const loaded =
-        img.complete && img.naturalWidth > 0
-          ? Promise.resolve()
-          : new Promise<void>((resolve) => {
-              img.addEventListener("load", () => resolve(), { once: true });
-              img.addEventListener("error", () => resolve(), { once: true });
-            });
-
-      return loaded.then(
-        () => img.decode?.().catch(() => {}) ?? Promise.resolve()
-      );
-    })
-  );
-
-  await new Promise((r) => requestAnimationFrame(() => r(null)));
-  await new Promise((r) => requestAnimationFrame(() => r(null)));
-};
-```
-
-#### 2. Remover `waitForCanvases`
-Remover completamente a função:
+#### 1. Adicionar `waitBeforeCapture`
+Logo após `waitForCardAssets`, adicionar:
 
 ```tsx
-const waitForCanvases = async (...)
+const waitBeforeCapture = () =>
+  new Promise((r) => setTimeout(r, 500));
 ```
 
-Ela não será mais necessária neste fluxo.
-
-#### 3. Remover chamadas de `waitForCanvases`
-Remover estas linhas:
+#### 2. Atualizar `handleExport`
+Adicionar a chamada logo depois de:
 
 ```tsx
-await waitForCanvases(cardRef.current);
+await waitForCardAssets(cardRef.current);
 ```
 
-Dos dois pontos:
-
-- `handleExport`
-- `handleShare`
-
-A sequência final deve ficar apenas:
+Sequência final:
 
 ```tsx
 if (document.fonts?.ready) await document.fonts.ready;
 await waitForCardAssets(cardRef.current);
-const canvas = await html2canvas(...);
+await waitBeforeCapture();
+
+const canvas = await html2canvas(cardRef.current, {
+  scale: 2,
+  useCORS: true,
+  allowTaint: false,
+  backgroundColor: null,
+  logging: false,
+});
 ```
 
 ### O que não será alterado
 - Não alterar layout dos banners
 - Não alterar estilos
+- Não alterar QR Code
 - Não alterar `html2canvas`
-- Não alterar `QRCodeCanvas`
 - Não alterar lógica de templates
-- Não alterar botões ou textos
-- Não modificar nenhuma outra funcionalidade
+- Não alterar textos ou botões
+- Não modificar outras funcionalidades
 
 ### Validação
-Depois de aplicar, testar download PNG nos três layouts:
+Depois da alteração, testar o download PNG nos três layouts:
 
 1. Clássico
 2. Central
 3. Lado a Lado
 
-Confirmar que o QR aparece no arquivo baixado e continua escaneável.
+Confirmar que o QR aparece no arquivo baixado e permanece escaneável.
