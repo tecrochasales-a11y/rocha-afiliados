@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { Link } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { QRCodeCanvas } from "qrcode.react";
+import QRCode from "qrcode";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
