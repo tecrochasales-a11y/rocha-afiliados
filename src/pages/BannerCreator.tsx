@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { Link } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { QRCodeCanvas } from "qrcode.react";
+import QRCode from "qrcode";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -343,21 +343,13 @@ const BannerCreator = () => {
   };
 
   const buildQrDataUrl = useCallback(
-    (size: number, bgColor: string, fgColor: string) => {
-      let svg = renderToStaticMarkup(
-        <QRCodeSVG
-          value={referralLink || "https://example.com"}
-          size={size}
-          level="H"
-          bgColor={bgColor}
-          fgColor={fgColor}
-          includeMargin={false}
-        />
-      );
-      if (!svg.includes("xmlns=")) {
-        svg = svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ');
-      }
-      return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+    async (size: number, bgColor: string, fgColor: string) => {
+      return await QRCode.toDataURL(referralLink || "https://example.com", {
+        width: size,
+        margin: 0,
+        errorCorrectionLevel: "H",
+        color: { dark: fgColor, light: bgColor },
+      });
     },
     [referralLink]
   );
@@ -379,12 +371,33 @@ const BannerCreator = () => {
     const x = (qrRect.left - cardRect.left) * scaleX;
     const y = (qrRect.top - cardRect.top) * scaleY;
 
-    // White rounded background matching QRBlock wrapper
+    const targetSize = Math.round(Math.max(innerW, innerH));
+    let dataUrl: string;
+    try {
+      dataUrl = await buildQrDataUrl(targetSize, colors.qrBg || "#ffffff", "#000000");
+    } catch (err) {
+      console.warn("QR build failed:", err);
+      return canvas;
+    }
+
+    const img = new Image();
+    const loaded = await new Promise<boolean>((resolve) => {
+      img.onload = () => resolve(true);
+      img.onerror = (e) => {
+        console.warn("QR image load failed:", e);
+        resolve(false);
+      };
+      img.src = dataUrl;
+    });
+    if (!loaded) return canvas;
+    try { if (img.decode) await img.decode(); } catch { /* noop */ }
+
+    // Draw white rounded background only after QR is ready
     const radius = 14 * scaleX;
-    ctx.save();
-    ctx.fillStyle = colors.qrBg || "#ffffff";
     const rw = qrRect.width * scaleX;
     const rh = qrRect.height * scaleY;
+    ctx.save();
+    ctx.fillStyle = colors.qrBg || "#ffffff";
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.lineTo(x + rw - radius, y);
@@ -399,34 +412,28 @@ const BannerCreator = () => {
     ctx.fill();
     ctx.restore();
 
-    const targetSize = Math.round(Math.max(innerW, innerH));
-    const dataUrl = buildQrDataUrl(targetSize, colors.qrBg || "#ffffff", "#000000");
-    await new Promise<void>((resolve) => {
-      const img = new Image();
-      img.onload = async () => {
-        try { if (img.decode) await img.decode(); } catch { /* noop */ }
-        ctx.drawImage(img, x + padding, y + padding, innerW, innerH);
-        resolve();
-      };
-      img.onerror = () => resolve();
-      img.src = dataUrl;
-    });
-
+    ctx.drawImage(img, x + padding, y + padding, innerW, innerH);
     return canvas;
   };
 
   // ─── Banner blocks ───
-  const QRBlock = ({ size = 130 }: { size?: number }) => {
-    const dataUrl = useMemo(
-      () => buildQrDataUrl(size, colors.qrBg, "#000000"),
-      [size, colors.qrBg]
-    );
-    return (
-      <div ref={qrWrapperRef} style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
-        <img src={dataUrl} width={size} height={size} alt="QR" decoding="sync" style={{ display: "block" }} />
-      </div>
-    );
-  };
+  const QRBlock = ({ size = 130 }: { size?: number }) => (
+    <div
+      ref={qrWrapperRef}
+      style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}
+    >
+      <QRCodeCanvas
+        value={referralLink || "https://example.com"}
+        size={size}
+        level="H"
+        bgColor={colors.qrBg}
+        fgColor="#000000"
+        includeMargin={false}
+        style={{ display: "block", width: size, height: size }}
+      />
+    </div>
+  );
+
 
   const LogoBlock = () => {
     if (!config.logoData) return null;
