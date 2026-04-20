@@ -1,24 +1,20 @@
 
-## Plano: corrigir QR ausente no download do banner
+## Plano: aplicar correção mínima do QR no download
 
-### Arquivo correto
-O componente do projeto está em:
+### Escopo
+Aplicar somente as 3 mudanças solicitadas no componente correto do projeto:
 
 ```text
 src/pages/BannerCreator.tsx
 ```
 
-Não em `src/app/banner-creator/page.tsx`, porque este projeto usa React + Vite, não Next.js.
+Observação: o projeto é React + Vite, então não existe `src/app/banner-creator/page.tsx`.
 
-### Causa
-O QR Code é renderizado por `QRCodeCanvas`, que gera um `<canvas>` interno. Mesmo aparecendo no preview, o `html2canvas` pode capturar o card antes do canvas do QR terminar de pintar os pixels, especialmente ao trocar layout para **Central** e baixar logo em seguida.
+### Mudanças a implementar
 
-Resultado: o PNG final captura o espaço branco do QR, mas sem o desenho interno.
+1. **Adicionar `waitForCanvases` logo após `waitForCardAssets`**
 
-### Correção
-
-#### 1. Adicionar `waitForCanvases`
-Logo após a função existente `waitForCardAssets`, adicionar uma função para aguardar todos os elementos `<canvas>` dentro do banner:
+Adicionar a função no mesmo escopo de `waitForCardAssets`, sem alterar a lógica existente:
 
 ```tsx
 const waitForCanvases = async (node: HTMLElement) => {
@@ -43,25 +39,15 @@ const waitForCanvases = async (node: HTMLElement) => {
 };
 ```
 
-#### 2. Usar `waitForCanvases` no download
-No `handleExport`, antes do `html2canvas`, manter a espera atual de fontes/imagens e adicionar a espera do QR:
+2. **Atualizar `handleExport`**
+
+Adicionar apenas esta linha logo após:
 
 ```tsx
-if (document.fonts?.ready) await document.fonts.ready;
 await waitForCardAssets(cardRef.current);
-await waitForCanvases(cardRef.current);
-
-const canvas = await html2canvas(cardRef.current, {
-  scale: 2,
-  useCORS: true,
-  allowTaint: false,
-  backgroundColor: null,
-  logging: false,
-});
 ```
 
-#### 3. Usar `waitForCanvases` no compartilhamento
-Aplicar a mesma espera no `handleShare`, também antes do `html2canvas`:
+Nova sequência:
 
 ```tsx
 if (document.fonts?.ready) await document.fonts.ready;
@@ -69,35 +55,39 @@ await waitForCardAssets(cardRef.current);
 await waitForCanvases(cardRef.current);
 ```
 
-#### 4. Manter a remoção do `composeWithQr`
-Não reintroduzir composição manual do QR por cima do canvas. O `QRCodeCanvas` deve ser capturado nativamente pelo `html2canvas`; o problema atual é timing, não formato do arquivo.
+Manter o restante do `handleExport` idêntico.
 
-#### 5. Verificar se o QR continua estável nos layouts
-Confirmar que o `QRBlock` continua usando:
+3. **Atualizar `handleShare`**
+
+Adicionar apenas esta linha logo após:
 
 ```tsx
-<QRCodeCanvas
-  value={referralLink || "https://example.com"}
-  size={size}
-  level="H"
-  bgColor={colors.qrBg}
-  fgColor="#000000"
-  includeMargin={false}
-/>
+await waitForCardAssets(cardRef.current);
 ```
 
-### Validação necessária
+Nova sequência:
 
-Depois da alteração, testar o download PNG em:
+```tsx
+if (document.fonts?.ready) await document.fonts.ready;
+await waitForCardAssets(cardRef.current);
+await waitForCanvases(cardRef.current);
+```
 
-1. Layout **Clássico**
-2. Layout **Central**
-3. Layout **Lado a Lado**
-4. Trocar para o layout Central e baixar imediatamente
-5. Baixar com fundo personalizado
-6. Baixar com logo personalizada
-7. Confirmar visualmente que o QR aparece no arquivo baixado
-8. Confirmar que o QR é escaneável
+Manter o restante do `handleShare` idêntico.
 
-### Resultado esperado
-O preview continua igual, mas o download passa a aguardar o canvas interno do QR terminar de renderizar antes da captura. Assim, o QR Code deve aparecer corretamente no PNG exportado em todos os layouts.
+### O que não será alterado
+- Não alterar layout dos banners
+- Não alterar `QRCodeCanvas`
+- Não alterar estilos
+- Não alterar lógica de templates
+- Não reintroduzir composição manual do QR
+- Não alterar nenhuma outra funcionalidade do app
+
+### Validação após aplicar
+Testar o download PNG nos layouts:
+
+1. Clássico
+2. Central
+3. Lado a Lado
+
+Confirmar que o QR aparece no arquivo baixado e permanece escaneável.
