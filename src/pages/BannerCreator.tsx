@@ -293,12 +293,34 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
+  const waitForCanvases = async (node: HTMLElement) => {
+    const canvases = Array.from(node.querySelectorAll("canvas"));
+    if (canvases.length === 0) return;
+
+    await Promise.all(
+      canvases.map(
+        (canvas) =>
+          new Promise<void>((resolve) => {
+            const tryResolve = () => {
+              if (canvas.width > 0 && canvas.height > 0) {
+                requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+              } else {
+                requestAnimationFrame(tryResolve);
+              }
+            };
+            tryResolve();
+          })
+      )
+    );
+  };
+
   const handleExport = async () => {
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await waitForCardAssets(cardRef.current);
+      await waitForCanvases(cardRef.current);
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null, logging: false });
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
@@ -318,6 +340,7 @@ const BannerCreator = () => {
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await waitForCardAssets(cardRef.current);
+      await waitForCanvases(cardRef.current);
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
