@@ -1,93 +1,96 @@
 
-## Plano: aplicar correção mínima do QR no download
+## Plano: aplicar correção mínima no QR do download
 
-### Escopo
-Aplicar somente as 3 mudanças solicitadas no componente correto do projeto:
+### Arquivo correto
+Aplicar a alteração em:
 
 ```text
 src/pages/BannerCreator.tsx
 ```
 
-Observação: o projeto é React + Vite, então não existe `src/app/banner-creator/page.tsx`.
+O projeto é React + Vite, então não existe `src/app/banner-creator/page.tsx`.
 
-### Mudanças a implementar
+### Mudanças exatas
 
-1. **Adicionar `waitForCanvases` logo após `waitForCardAssets`**
+#### 1. Substituir `waitForCardAssets`
+Trocar a função atual por uma versão que aguarda:
 
-Adicionar a função no mesmo escopo de `waitForCardAssets`, sem alterar a lógica existente:
+- carregamento das imagens
+- `img.decode()` quando disponível
+- dois ciclos de `requestAnimationFrame`
+
+Isso garante que imagens SVG/data URI usadas no banner estejam decodificadas antes do `html2canvas`.
+
+Função final:
 
 ```tsx
-const waitForCanvases = async (node: HTMLElement) => {
-  const canvases = Array.from(node.querySelectorAll("canvas"));
-  if (canvases.length === 0) return;
+const waitForCardAssets = async (node: HTMLElement) => {
+  const images = Array.from(node.querySelectorAll("img"));
 
   await Promise.all(
-    canvases.map(
-      (canvas) =>
-        new Promise<void>((resolve) => {
-          const tryResolve = () => {
-            if (canvas.width > 0 && canvas.height > 0) {
-              requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-            } else {
-              requestAnimationFrame(tryResolve);
-            }
-          };
-          tryResolve();
-        })
-    )
+    images.map((img) => {
+      const loaded =
+        img.complete && img.naturalWidth > 0
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+              img.addEventListener("load", () => resolve(), { once: true });
+              img.addEventListener("error", () => resolve(), { once: true });
+            });
+
+      return loaded.then(
+        () => img.decode?.().catch(() => {}) ?? Promise.resolve()
+      );
+    })
   );
+
+  await new Promise((r) => requestAnimationFrame(() => r(null)));
+  await new Promise((r) => requestAnimationFrame(() => r(null)));
 };
 ```
 
-2. **Atualizar `handleExport`**
-
-Adicionar apenas esta linha logo após:
+#### 2. Remover `waitForCanvases`
+Remover completamente a função:
 
 ```tsx
-await waitForCardAssets(cardRef.current);
+const waitForCanvases = async (...)
 ```
 
-Nova sequência:
+Ela não será mais necessária neste fluxo.
+
+#### 3. Remover chamadas de `waitForCanvases`
+Remover estas linhas:
+
+```tsx
+await waitForCanvases(cardRef.current);
+```
+
+Dos dois pontos:
+
+- `handleExport`
+- `handleShare`
+
+A sequência final deve ficar apenas:
 
 ```tsx
 if (document.fonts?.ready) await document.fonts.ready;
 await waitForCardAssets(cardRef.current);
-await waitForCanvases(cardRef.current);
+const canvas = await html2canvas(...);
 ```
-
-Manter o restante do `handleExport` idêntico.
-
-3. **Atualizar `handleShare`**
-
-Adicionar apenas esta linha logo após:
-
-```tsx
-await waitForCardAssets(cardRef.current);
-```
-
-Nova sequência:
-
-```tsx
-if (document.fonts?.ready) await document.fonts.ready;
-await waitForCardAssets(cardRef.current);
-await waitForCanvases(cardRef.current);
-```
-
-Manter o restante do `handleShare` idêntico.
 
 ### O que não será alterado
 - Não alterar layout dos banners
-- Não alterar `QRCodeCanvas`
 - Não alterar estilos
+- Não alterar `html2canvas`
+- Não alterar `QRCodeCanvas`
 - Não alterar lógica de templates
-- Não reintroduzir composição manual do QR
-- Não alterar nenhuma outra funcionalidade do app
+- Não alterar botões ou textos
+- Não modificar nenhuma outra funcionalidade
 
-### Validação após aplicar
-Testar o download PNG nos layouts:
+### Validação
+Depois de aplicar, testar download PNG nos três layouts:
 
 1. Clássico
 2. Central
 3. Lado a Lado
 
-Confirmar que o QR aparece no arquivo baixado e permanece escaneável.
+Confirmar que o QR aparece no arquivo baixado e continua escaneável.
