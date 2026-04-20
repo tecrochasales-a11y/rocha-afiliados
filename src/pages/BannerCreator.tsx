@@ -359,7 +359,7 @@ const BannerCreator = () => {
     }, [size, referralLink, colors.qrBg]);
     return (
       <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
-        <img src={dataUrl} width={size} height={size} alt="QR" style={{ display: "block" }} />
+        <img src={dataUrl} width={size} height={size} alt="QR" decoding="sync" style={{ display: "block" }} />
       </div>
     );
   };
