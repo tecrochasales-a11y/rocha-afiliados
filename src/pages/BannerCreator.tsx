@@ -294,6 +294,54 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
+  const handleExport = async () => {
+    if (!cardRef.current) return;
+    setIsExporting(true);
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+      await waitForCardAssets(cardRef.current);
+      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
+      await composeWithQr(canvas);
+      const link = document.createElement("a");
+      link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast({ title: "Banner exportado!", description: "A imagem foi salva no seu dispositivo." });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({ title: "Erro ao exportar", description: "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!cardRef.current) return;
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+      await waitForCardAssets(cardRef.current);
+      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null });
+      await composeWithQr(canvas);
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        if (navigator.share && navigator.canShare) {
+          const file = new File([blob], "banner.png", { type: "image/png" });
+          const shareData = { files: [file], title: "Meu Banner" };
+          if (navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+            return;
+          }
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = "banner.png";
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    } catch { /* cancelled */ }
+  };
+
   const buildQrDataUrl = useCallback(
     (size: number, bgColor: string, fgColor: string) => {
       let svg = renderToStaticMarkup(
