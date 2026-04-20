@@ -408,7 +408,9 @@ const BannerCreator = () => {
         </p>
         <div style={{ display: "flex", flexWrap: "nowrap", justifyContent: "space-around", alignItems: "center", width: "100%" }}>
           {visible.map((ins) => (
-            <img key={ins.key} src={ins.logo} alt={ins.name} style={{ height: 56, maxWidth: "22%", objectFit: "contain" }} crossOrigin="anonymous" />
+            <div key={ins.key} style={{ flex: 1, height: 56, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px", minWidth: 0 }}>
+              <img src={ins.logo} alt={ins.name} style={{ maxHeight: 56, maxWidth: "100%", width: "auto", height: "auto", display: "block" }} crossOrigin="anonymous" />
+            </div>
           ))}
         </div>
       </div>
