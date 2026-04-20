@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
+import { renderToStaticMarkup } from "react-dom/server";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -322,18 +323,35 @@ const BannerCreator = () => {
   };
 
   // ─── Banner blocks ───
-  const QRBlock = ({ size = 130 }: { size?: number }) => (
-    <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
-      <QRCodeSVG value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor="#000000" includeMargin={false} />
-    </div>
-  );
+  const QRBlock = ({ size = 130 }: { size?: number }) => {
+    const dataUrl = useMemo(() => {
+      const svg = renderToStaticMarkup(
+        <QRCodeSVG
+          value={referralLink || "https://example.com"}
+          size={size}
+          level="H"
+          bgColor={colors.qrBg}
+          fgColor="#000000"
+          includeMargin={false}
+        />
+      );
+      return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+    }, [size]);
+    return (
+      <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
+        <img src={dataUrl} width={size} height={size} alt="QR" style={{ display: "block" }} />
+      </div>
+    );
+  };
 
   const LogoBlock = () => {
     if (!config.logoData) return null;
     const justify = config.textAlign === "center" ? "center" : config.textAlign === "right" ? "flex-end" : "flex-start";
     return (
       <div style={{ display: "flex", justifyContent: justify, marginBottom: 16 }}>
-        <img src={config.logoData} alt="Logo" style={{ height: config.logoSize, maxWidth: "70%", objectFit: "contain" }} crossOrigin="anonymous" />
+        <div style={{ height: config.logoSize, maxWidth: "70%", display: "flex", alignItems: "center" }}>
+          <img src={config.logoData} alt="Logo" style={{ maxHeight: config.logoSize, maxWidth: "100%", width: "auto", height: "auto", display: "block" }} crossOrigin="anonymous" />
+        </div>
       </div>
     );
   };
@@ -392,7 +410,9 @@ const BannerCreator = () => {
         </p>
         <div style={{ display: "flex", flexWrap: "nowrap", justifyContent: "space-around", alignItems: "center", width: "100%" }}>
           {visible.map((ins) => (
-            <img key={ins.key} src={ins.logo} alt={ins.name} style={{ height: 56, maxWidth: "22%", objectFit: "contain" }} crossOrigin="anonymous" />
+            <div key={ins.key} style={{ flex: 1, height: 56, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px", minWidth: 0 }}>
+              <img src={ins.logo} alt={ins.name} style={{ maxHeight: 56, maxWidth: "100%", width: "auto", height: "auto", display: "block" }} crossOrigin="anonymous" />
+            </div>
           ))}
         </div>
       </div>
