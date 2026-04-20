@@ -324,7 +324,7 @@ const BannerCreator = () => {
   // ─── Banner blocks ───
   const QRBlock = ({ size = 130 }: { size?: number }) => (
     <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
-      <QRCodeCanvas value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor="#000000" includeMargin={false} />
+      <QRCodeSVG value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor="#000000" includeMargin={false} />
     </div>
   );
 
