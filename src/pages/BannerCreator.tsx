@@ -325,7 +325,7 @@ const BannerCreator = () => {
   // ─── Banner blocks ───
   const QRBlock = ({ size = 130 }: { size?: number }) => {
     const dataUrl = useMemo(() => {
-      const svg = renderToStaticMarkup(
+      let svg = renderToStaticMarkup(
         <QRCodeSVG
           value={referralLink || "https://example.com"}
           size={size}
@@ -335,8 +335,11 @@ const BannerCreator = () => {
           includeMargin={false}
         />
       );
+      if (!svg.includes("xmlns=")) {
+        svg = svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ');
+      }
       return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
-    }, [size]);
+    }, [size, referralLink, colors.qrBg]);
     return (
       <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
         <img src={dataUrl} width={size} height={size} alt="QR" style={{ display: "block" }} />
