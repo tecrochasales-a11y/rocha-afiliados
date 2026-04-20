@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect, useCallback, memo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
-import QRCode from "qrcode";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -300,8 +299,7 @@ const BannerCreator = () => {
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await waitForCardAssets(cardRef.current);
-      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
-      await composeWithQr(canvas);
+      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null, logging: false });
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -320,8 +318,7 @@ const BannerCreator = () => {
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await waitForCardAssets(cardRef.current);
-      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null });
-      await composeWithQr(canvas);
+      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         if (navigator.share && navigator.canShare) {
@@ -340,80 +337,6 @@ const BannerCreator = () => {
         URL.revokeObjectURL(url);
       }, "image/png");
     } catch { /* cancelled */ }
-  };
-
-  const buildQrDataUrl = useCallback(
-    async (size: number, bgColor: string, fgColor: string) => {
-      return await QRCode.toDataURL(referralLink || "https://example.com", {
-        width: size,
-        margin: 0,
-        errorCorrectionLevel: "H",
-        color: { dark: fgColor, light: bgColor },
-      });
-    },
-    [referralLink]
-  );
-
-  // Compose QR onto rasterized banner canvas (bypasses html2canvas data-URL issues)
-  const composeWithQr = async (canvas: HTMLCanvasElement) => {
-    if (!cardRef.current || !qrWrapperRef.current) return canvas;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return canvas;
-
-    const cardRect = cardRef.current.getBoundingClientRect();
-    const qrRect = qrWrapperRef.current.getBoundingClientRect();
-    const scaleX = canvas.width / cardRect.width;
-    const scaleY = canvas.height / cardRect.height;
-
-    const padding = 10 * scaleX;
-    const innerW = (qrRect.width - 20) * scaleX;
-    const innerH = (qrRect.height - 20) * scaleY;
-    const x = (qrRect.left - cardRect.left) * scaleX;
-    const y = (qrRect.top - cardRect.top) * scaleY;
-
-    const targetSize = Math.round(Math.max(innerW, innerH));
-    let dataUrl: string;
-    try {
-      dataUrl = await buildQrDataUrl(targetSize, colors.qrBg || "#ffffff", "#000000");
-    } catch (err) {
-      console.warn("QR build failed:", err);
-      return canvas;
-    }
-
-    const img = new Image();
-    const loaded = await new Promise<boolean>((resolve) => {
-      img.onload = () => resolve(true);
-      img.onerror = (e) => {
-        console.warn("QR image load failed:", e);
-        resolve(false);
-      };
-      img.src = dataUrl;
-    });
-    if (!loaded) return canvas;
-    try { if (img.decode) await img.decode(); } catch { /* noop */ }
-
-    // Draw white rounded background only after QR is ready
-    const radius = 14 * scaleX;
-    const rw = qrRect.width * scaleX;
-    const rh = qrRect.height * scaleY;
-    ctx.save();
-    ctx.fillStyle = colors.qrBg || "#ffffff";
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + rw - radius, y);
-    ctx.quadraticCurveTo(x + rw, y, x + rw, y + radius);
-    ctx.lineTo(x + rw, y + rh - radius);
-    ctx.quadraticCurveTo(x + rw, y + rh, x + rw - radius, y + rh);
-    ctx.lineTo(x + radius, y + rh);
-    ctx.quadraticCurveTo(x, y + rh, x, y + rh - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-
-    ctx.drawImage(img, x + padding, y + padding, innerW, innerH);
-    return canvas;
   };
 
   // ─── Banner blocks ───
