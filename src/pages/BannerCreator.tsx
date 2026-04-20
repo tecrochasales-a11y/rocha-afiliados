@@ -349,7 +349,9 @@ const BannerCreator = () => {
     const justify = config.textAlign === "center" ? "center" : config.textAlign === "right" ? "flex-end" : "flex-start";
     return (
       <div style={{ display: "flex", justifyContent: justify, marginBottom: 16 }}>
-        <img src={config.logoData} alt="Logo" style={{ height: config.logoSize, maxWidth: "70%", objectFit: "contain" }} crossOrigin="anonymous" />
+        <div style={{ height: config.logoSize, maxWidth: "70%", display: "flex", alignItems: "center" }}>
+          <img src={config.logoData} alt="Logo" style={{ maxHeight: config.logoSize, maxWidth: "100%", width: "auto", height: "auto", display: "block" }} crossOrigin="anonymous" />
+        </div>
       </div>
     );
   };
