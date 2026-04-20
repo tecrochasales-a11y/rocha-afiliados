@@ -299,12 +299,16 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
+  const waitBeforeCapture = () =>
+    new Promise((r) => setTimeout(r, 500));
+
   const handleExport = async () => {
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await waitForCardAssets(cardRef.current);
+      await waitBeforeCapture();
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null, logging: false });
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
