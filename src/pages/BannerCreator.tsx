@@ -177,6 +177,7 @@ const BannerCreator = () => {
   const { profile, user } = useAuth();
   const { toast } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
+  const qrWrapperRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const [config, setConfig] = useState<BannerConfig>(DEFAULT_CONFIG);
