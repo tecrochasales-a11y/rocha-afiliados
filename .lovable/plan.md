@@ -1,11 +1,13 @@
 
-Testar end-to-end o Banner Creator no preview, focando na posição/tamanho da marca d'água Rocha Sales (canto inferior esquerdo, acima da faixa branca de seguradoras).
+## Plano: corrigir QR code ausente no PNG exportado
 
-### Passos
-1. `browser--navigate_to_sandbox` em `/banner-creator`
-2. `browser--screenshot` do estado inicial
-3. Verificar marca d'água com faixa de seguradoras visível
-4. Alternar visibilidade das seguradoras (toggle "Mostrar seguradoras") e tirar screenshot para confirmar que a marca d'água continua bem posicionada sem a faixa branca
-5. Reportar resultado (posição, tamanho, eventuais sobreposições)
+### Causa
+Em `src/pages/BannerCreator.tsx`, o QR é renderizado com `QRCodeCanvas` (canvas HTML). O `html2canvas` não consegue clonar de forma confiável o conteúdo de elementos `<canvas>` aninhados — o resultado costuma sair em branco (exatamente o quadrado branco visto no banner exportado).
 
-Se encontrar problema visual, paro e reporto antes de qualquer alteração de código.
+O componente `QRCodeGenerator.tsx` já usa `QRCodeSVG` corretamente — basta aplicar o mesmo no BannerCreator.
+
+### Mudança em `src/pages/BannerCreator.tsx`
+1. Trocar import: `QRCodeCanvas` → `QRCodeSVG` (de `qrcode.react`)
+2. No componente `QRBlock` (linha 327), substituir `<QRCodeCanvas .../>` por `<QRCodeSVG .../>` mantendo as mesmas props (`value`, `size`, `level="H"`, `bgColor`, `fgColor`, `includeMargin={false}`)
+
+Sem outras alterações — fontes, layout e `html2canvas` permanecem.
