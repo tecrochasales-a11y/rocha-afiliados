@@ -294,62 +294,15 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
-  const handleExport = async () => {
-    if (!cardRef.current) return;
-    setIsExporting(true);
-    try {
-      if (document.fonts?.ready) await document.fonts.ready;
-      await waitForCardAssets(cardRef.current);
-      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
-      const link = document.createElement("a");
-      link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-      toast({ title: "Banner exportado!", description: "A imagem foi salva no seu dispositivo." });
-    } catch (error) {
-      console.error("Export error:", error);
-      toast({ title: "Erro ao exportar", description: "Tente novamente.", variant: "destructive" });
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleShare = async () => {
-    if (!cardRef.current) return;
-    try {
-      if (document.fonts?.ready) await document.fonts.ready;
-      await waitForCardAssets(cardRef.current);
-      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null });
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        if (navigator.share && navigator.canShare) {
-          const file = new File([blob], "banner.png", { type: "image/png" });
-          const shareData = { files: [file], title: "Meu Banner" };
-          if (navigator.canShare(shareData)) {
-            await navigator.share(shareData);
-            return;
-          }
-        }
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.download = "banner.png";
-        link.href = url;
-        link.click();
-        URL.revokeObjectURL(url);
-      }, "image/png");
-    } catch { /* cancelled */ }
-  };
-
-  // ─── Banner blocks ───
-  const QRBlock = ({ size = 130 }: { size?: number }) => {
-    const dataUrl = useMemo(() => {
+  const buildQrDataUrl = useCallback(
+    (size: number, bgColor: string, fgColor: string) => {
       let svg = renderToStaticMarkup(
         <QRCodeSVG
           value={referralLink || "https://example.com"}
           size={size}
           level="H"
-          bgColor={colors.qrBg}
-          fgColor="#000000"
+          bgColor={bgColor}
+          fgColor={fgColor}
           includeMargin={false}
         />
       );
@@ -357,9 +310,71 @@ const BannerCreator = () => {
         svg = svg.replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ');
       }
       return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
-    }, [size, referralLink, colors.qrBg]);
+    },
+    [referralLink]
+  );
+
+  // Compose QR onto rasterized banner canvas (bypasses html2canvas data-URL issues)
+  const composeWithQr = async (canvas: HTMLCanvasElement) => {
+    if (!cardRef.current || !qrWrapperRef.current) return canvas;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return canvas;
+
+    const cardRect = cardRef.current.getBoundingClientRect();
+    const qrRect = qrWrapperRef.current.getBoundingClientRect();
+    const scaleX = canvas.width / cardRect.width;
+    const scaleY = canvas.height / cardRect.height;
+
+    const padding = 10 * scaleX;
+    const innerW = (qrRect.width - 20) * scaleX;
+    const innerH = (qrRect.height - 20) * scaleY;
+    const x = (qrRect.left - cardRect.left) * scaleX;
+    const y = (qrRect.top - cardRect.top) * scaleY;
+
+    // White rounded background matching QRBlock wrapper
+    const radius = 14 * scaleX;
+    ctx.save();
+    ctx.fillStyle = colors.qrBg || "#ffffff";
+    const rw = qrRect.width * scaleX;
+    const rh = qrRect.height * scaleY;
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + rw - radius, y);
+    ctx.quadraticCurveTo(x + rw, y, x + rw, y + radius);
+    ctx.lineTo(x + rw, y + rh - radius);
+    ctx.quadraticCurveTo(x + rw, y + rh, x + rw - radius, y + rh);
+    ctx.lineTo(x + radius, y + rh);
+    ctx.quadraticCurveTo(x, y + rh, x, y + rh - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    const targetSize = Math.round(Math.max(innerW, innerH));
+    const dataUrl = buildQrDataUrl(targetSize, colors.qrBg || "#ffffff", "#000000");
+    await new Promise<void>((resolve) => {
+      const img = new Image();
+      img.onload = async () => {
+        try { if (img.decode) await img.decode(); } catch { /* noop */ }
+        ctx.drawImage(img, x + padding, y + padding, innerW, innerH);
+        resolve();
+      };
+      img.onerror = () => resolve();
+      img.src = dataUrl;
+    });
+
+    return canvas;
+  };
+
+  // ─── Banner blocks ───
+  const QRBlock = ({ size = 130 }: { size?: number }) => {
+    const dataUrl = useMemo(
+      () => buildQrDataUrl(size, colors.qrBg, "#000000"),
+      [size, colors.qrBg]
+    );
     return (
-      <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
+      <div ref={qrWrapperRef} style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
         <img src={dataUrl} width={size} height={size} alt="QR" decoding="sync" style={{ display: "block" }} />
       </div>
     );
