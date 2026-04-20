@@ -276,12 +276,29 @@ const BannerCreator = () => {
     }
   };
 
+  const waitForCardAssets = async (node: HTMLElement) => {
+    const images = Array.from(node.querySelectorAll("img"));
+    await Promise.all(
+      images.map((img) => {
+        const loaded = img.complete && img.naturalWidth > 0
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+              img.addEventListener("load", () => resolve(), { once: true });
+              img.addEventListener("error", () => resolve(), { once: true });
+            });
+        return loaded.then(() => (img.decode ? img.decode().catch(() => {}) : undefined));
+      })
+    );
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+  };
+
   const handleExport = async () => {
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
       if (document.fonts?.ready) await document.fonts.ready;
-      await new Promise((r) => setTimeout(r, 80));
+      await waitForCardAssets(cardRef.current);
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null, logging: false });
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
@@ -300,7 +317,7 @@ const BannerCreator = () => {
     if (!cardRef.current) return;
     try {
       if (document.fonts?.ready) await document.fonts.ready;
-      await new Promise((r) => setTimeout(r, 80));
+      await waitForCardAssets(cardRef.current);
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
@@ -342,7 +359,7 @@ const BannerCreator = () => {
     }, [size, referralLink, colors.qrBg]);
     return (
       <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
-        <img src={dataUrl} width={size} height={size} alt="QR" style={{ display: "block" }} />
+        <img src={dataUrl} width={size} height={size} alt="QR" decoding="sync" style={{ display: "block" }} />
       </div>
     );
   };
