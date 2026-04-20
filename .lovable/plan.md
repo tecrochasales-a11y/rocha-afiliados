@@ -1,55 +1,49 @@
 
 
-## Fix: QR não renderiza no layout Central exportado
+## Fix definitivo: QR ausente em todos os layouts exportados
 
-### Causa real
-Em `src/pages/BannerCreator.tsx`, o `composeWithQr` desenha o **fundo branco arredondado** primeiro e depois tenta carregar o QR via `<img src="data:image/svg+xml;base64,...">`. Quando o `targetSize` do QR é maior (no layout Central, `size=150` + `scale: 2` → ~300px), o SVG gerado tem mais nós e a sequência `btoa(unescape(encodeURIComponent(svg)))` pode falhar/produzir data URL inválido em alguns navegadores. O `img.onerror` dispara silenciosamente, o `drawImage` nunca é chamado, e sobra apenas o retângulo branco vazio — exatamente o bug do print.
+### Causa raiz
+Em `src/pages/BannerCreator.tsx`, depois de migrar de `QRCodeSVG` para `QRCodeCanvas`, o `html2canvas` já captura o QR corretamente (canvas é nativamente suportado pela lib). Mas a função `composeWithQr` continua sendo executada após o snapshot e:
 
-Além disso há dois problemas estruturais:
-1. `QRBlock` é declarado **dentro** do componente `BannerCreator` e recriado a cada render — `qrWrapperRef` aponta para nós que mudam, gerando medições instáveis.
-2. `useMemo` do `dataUrl` no `QRBlock` não tem `referralLink` nas dependências (a dep está em `buildQrDataUrl`, mas o memo do componente ignora).
+1. Pinta um **retângulo branco arredondado sólido** sobre a área do QR (cobrindo o QR já renderizado)
+2. Depois tenta carregar/desenhar um PNG do QR por cima
+
+Se qualquer passo do passo 2 falhar silenciosamente (timing, decode, etc.) — ou mesmo quando funciona, há sobreposição inútil — sobra apenas o retângulo branco. É exatamente o que o print mostra: o fundo branco arredondado intacto, sem o QR.
+
+A “correção manual” virou a causa do bug agora que o preview já é canvas nativo.
 
 ### Correção em `src/pages/BannerCreator.tsx`
 
-**1) Substituir SVG-data-URL pelo canvas nativo do `qrcode`**  
-Em vez de `renderToStaticMarkup(<QRCodeSVG/>)` + `btoa`, usar a lib `qrcode` (ou `QRCodeCanvas` do mesmo `qrcode.react`) para gerar um **PNG data URL via canvas off-screen**:
+**1) Remover `composeWithQr` do fluxo de exportação**
+- Em `handleExport`: tirar a chamada `await composeWithQr(canvas)` após o `html2canvas`
+- Em `handleShare`: idem
+- Manter `waitForCardAssets` (continua útil para logos personalizadas e fundo)
 
-```ts
-import QRCode from "qrcode";
+**2) Remover a função `composeWithQr` inteira**
+Não é mais necessária — o `QRCodeCanvas` é capturado diretamente pelo `html2canvas`.
 
-const buildQrDataUrl = useCallback(async (size, bgColor, fgColor) => {
-  return await QRCode.toDataURL(referralLink || "https://example.com", {
-    width: size,
-    margin: 0,
-    errorCorrectionLevel: "H",
-    color: { dark: fgColor, light: bgColor },
-  });
-}, [referralLink]);
-```
+**3) Garantir que `html2canvas` trate o canvas do QR**
+- Manter `useCORS: true`
+- Adicionar `allowTaint: false` explicitamente (default seguro)
+- O `QRCodeCanvas` já é canvas-element same-origin → captura nativa funciona
 
-PNG data URLs são universalmente carregáveis — elimina o ponto de falha do `<img onerror>`.
+**4) Estabilizar `QRBlock`**
+- Mover a definição de `QRBlock` para fora do componente `BannerCreator` (recebendo `referralLink` e `colors` por props) OU envolver com `memo`
+- Isso evita remount em cada render e garante que o canvas do QR fique pronto antes do export
 
-**2) Usar `<canvas>` (via `QRCodeCanvas`) no preview**  
-Trocar `QRCodeSVG` por `QRCodeCanvas` no `QRBlock`. O `html2canvas` consegue copiar `<canvas>` diretamente, sem o problema do data URL externo. Isso elimina a dependência de `composeWithQr` para o preview funcionar.
+**5) Manter `buildQrDataUrl` apenas para uso futuro/fallback**
+Pode ser removido também, já que ninguém mais o consome. Limpeza opcional.
 
-**3) Manter `composeWithQr` como fallback robusto**  
-Continuar com a sobreposição manual no export, mas:
-- usar o novo `buildQrDataUrl` (PNG) 
-- mover `QRBlock` para fora do `BannerCreator` OU memoizar com `React.memo` para estabilizar o ref
-- desenhar o fundo branco **somente após** o QR carregar com sucesso (evita o "retângulo branco vazio" se algo der errado)
-- adicionar `console.warn` no `img.onerror` para diagnóstico futuro
-
-**4) Corrigir dependências do `useMemo` no `QRBlock`**  
-Incluir `referralLink` (via `buildQrDataUrl` referência), garantindo que o QR atualize ao mudar o link.
-
-### Verificação adicional
-- Confirmar que layouts Clássico, Central e Lado a Lado renderizam o QR no preview
-- Confirmar export funcional nos 3 layouts + com fundo customizado + com cores customizadas
-- Confirmar que `qrWrapperRef` mede corretamente o wrapper inline-block centralizado
+### Verificação
+Após a correção, validar no preview e download:
+1. Layout **Clássico** — QR visível e escaneável
+2. Layout **Central** — QR visível e escaneável (era o caso quebrado)
+3. Layout **Lado a Lado** — QR visível e escaneável
+4. Com cores customizadas — QR mantém contraste preto/branco
+5. Com fundo personalizado — QR e overlay corretos
+6. Logo personalizada não distorce
+7. Faixa de seguradoras intacta
 
 ### Arquivo alterado
 - `src/pages/BannerCreator.tsx`
-
-### Dependência
-- `qrcode` (já é dep transitiva de `qrcode.react`; se faltar, adicionar)
 
