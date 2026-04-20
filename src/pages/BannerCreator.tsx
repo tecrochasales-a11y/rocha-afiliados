@@ -319,8 +319,7 @@ const BannerCreator = () => {
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await waitForCardAssets(cardRef.current);
-      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, backgroundColor: null });
-      await composeWithQr(canvas);
+      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         if (navigator.share && navigator.canShare) {
