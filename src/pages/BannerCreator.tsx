@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -324,7 +324,7 @@ const BannerCreator = () => {
   // ─── Banner blocks ───
   const QRBlock = ({ size = 130 }: { size?: number }) => (
     <div style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}>
-      <QRCodeCanvas value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor="#000000" includeMargin={false} />
+      <QRCodeSVG value={referralLink || "https://example.com"} size={size} level="H" bgColor={colors.qrBg} fgColor="#000000" includeMargin={false} />
     </div>
   );
 
