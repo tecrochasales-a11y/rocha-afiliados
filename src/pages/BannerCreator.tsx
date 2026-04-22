@@ -394,11 +394,29 @@ const BannerCreator = () => {
         ignoreElements: (element) =>
           element instanceof HTMLElement && element.dataset.qrTarget === "true",
         onclone: (clonedDoc) => {
-          const qrSvg = clonedDoc.querySelector(
-            '[data-qr-target="true"] svg'
-          ) as SVGElement | null;
-          if (qrSvg) {
-            qrSvg.style.display = "block";
+          // Converter o QR SVG em <img> data:image/svg+xml para garantir captura pelo html2canvas
+          const qrWrapper = clonedDoc.querySelector(
+            '[data-qr-target="true"]'
+          ) as HTMLElement | null;
+          if (qrWrapper) {
+            const qrSvg = qrWrapper.querySelector("svg");
+            if (qrSvg) {
+              try {
+                if (!qrSvg.getAttribute("xmlns")) {
+                  qrSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+                }
+                const svgData = new XMLSerializer().serializeToString(qrSvg);
+                const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgData)}`;
+                const imgElement = clonedDoc.createElement("img");
+                imgElement.src = svgDataUrl;
+                imgElement.style.display = "block";
+                imgElement.style.width = "100%";
+                imgElement.style.height = "100%";
+                qrSvg.parentNode?.replaceChild(imgElement, qrSvg);
+              } catch (e) {
+                console.warn("[QR export] Falha ao converter SVG para img", e);
+              }
+            }
           }
         },
       });
@@ -440,7 +458,7 @@ const BannerCreator = () => {
     setIsExporting(true);
     try {
       // Aguardar layout ser aplicado antes de capturar
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 200));
       const canvas = await captureBannerCanvas();
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
@@ -470,6 +488,7 @@ const BannerCreator = () => {
       return;
     }
     try {
+      await new Promise((r) => setTimeout(r, 200));
       const canvas = await captureBannerCanvas();
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob((b) => resolve(b), "image/png")
