@@ -458,7 +458,7 @@ const BannerCreator = () => {
     setIsExporting(true);
     try {
       // Aguardar layout ser aplicado antes de capturar
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 200));
       const canvas = await captureBannerCanvas();
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
