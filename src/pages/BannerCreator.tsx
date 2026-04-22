@@ -304,25 +304,41 @@ const BannerCreator = () => {
   // Using toCanvas avoids SVG serialization + async image decoding,
   // which was the fragile step causing the QR to disappear in exports.
   const generateExportQrCanvas = async (size: number): Promise<HTMLCanvasElement> => {
+    const safeSize = Math.max(64, Math.floor(size));
+    const value = (referralLink || "").trim();
+    if (!value) {
+      throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
+    }
     const offscreen = document.createElement("canvas");
-    offscreen.width = size;
-    offscreen.height = size;
-    await QRCode.toCanvas(offscreen, referralLink || "https://example.com", {
-      width: size,
-      margin: 0,
-      errorCorrectionLevel: "H",
-      color: {
-        dark: "#000000",
-        light: colors.qrBg,
-      },
-    });
+    try {
+      await QRCode.toCanvas(offscreen, value, {
+        width: safeSize,
+        margin: 0,
+        errorCorrectionLevel: "H",
+        color: {
+          dark: "#000000",
+          light: colors.qrBg,
+        },
+      });
+    } catch (err) {
+      console.error("[QR export] QRCode.toCanvas failed", { value, safeSize, err });
+      throw new Error(
+        `Falha ao gerar o QR Code: ${err instanceof Error ? err.message : "erro desconhecido"}`
+      );
+    }
+    if (!offscreen.width || !offscreen.height) {
+      throw new Error("QR gerado com dimensões inválidas.");
+    }
     return offscreen;
   };
 
   // Capture banner with html2canvas and overlay a freshly generated QR bitmap
   // at the position/size of the QR wrapper. Decoupled from the live preview.
   const captureBannerCanvas = async (): Promise<HTMLCanvasElement> => {
-    const node = cardRef.current!;
+    const node = cardRef.current;
+    if (!node) {
+      throw new Error("Banner não está pronto para exportação.");
+    }
     if (document.fonts?.ready) await document.fonts.ready;
     await waitForCardAssets(node);
 
@@ -333,7 +349,7 @@ const BannerCreator = () => {
       (node.querySelector('[data-qr-target="true"]') as HTMLElement | null);
 
     if (!qrTarget) {
-      throw new Error("Área do QR não encontrada para exportação");
+      throw new Error("Área do QR não encontrada no layout atual.");
     }
 
     const qrStyles = window.getComputedStyle(qrTarget);
@@ -346,6 +362,11 @@ const BannerCreator = () => {
     const cardRect = node.getBoundingClientRect();
     const qrRect = qrTarget.getBoundingClientRect();
 
+    if (qrRect.width <= 0 || qrRect.height <= 0) {
+      console.error("[QR export] Invalid qrRect", qrRect);
+      throw new Error("Área do QR com dimensões inválidas. Aguarde o layout terminar de renderizar.");
+    }
+
     const x = (qrRect.left - cardRect.left) * SCALE;
     const y = (qrRect.top - cardRect.top) * SCALE;
     const w = qrRect.width * SCALE;
@@ -357,8 +378,14 @@ const BannerCreator = () => {
     const innerX = x + padL * SCALE + (innerW - innerSide) / 2;
     const innerY = y + padT * SCALE + (innerH - innerSide) / 2;
 
-    const [captured, qrCanvas] = await Promise.all([
-      html2canvas(node, {
+    if (innerSide < 32) {
+      console.error("[QR export] innerSide too small", { innerSide, qrRect, padL, padR, padT, padB });
+      throw new Error(`QR muito pequeno para exportar (${innerSide}px). Verifique o layout.`);
+    }
+
+    let captured: HTMLCanvasElement;
+    try {
+      captured = await html2canvas(node, {
         scale: SCALE,
         useCORS: true,
         allowTaint: false,
@@ -366,13 +393,19 @@ const BannerCreator = () => {
         logging: false,
         ignoreElements: (element) =>
           element instanceof HTMLElement && element.dataset.qrTarget === "true",
-      }),
-      generateExportQrCanvas(innerSide),
-    ]);
+      });
+    } catch (err) {
+      console.error("[QR export] html2canvas failed", err);
+      throw new Error(
+        `Falha ao capturar o banner: ${err instanceof Error ? err.message : "erro desconhecido"}`
+      );
+    }
+
+    const qrCanvas = await generateExportQrCanvas(innerSide);
 
     const ctx = captured.getContext("2d");
     if (!ctx) {
-      throw new Error("Não foi possível compor o QR na exportação");
+      throw new Error("Contexto 2D indisponível para compor o QR.");
     }
 
     // Paint wrapper background with rounded corners, then draw QR bitmap.
@@ -392,45 +425,77 @@ const BannerCreator = () => {
   };
 
   const handleExport = async () => {
-    if (!cardRef.current) return;
+    if (!cardRef.current) {
+      toast({ title: "Erro ao exportar", description: "Banner não encontrado.", variant: "destructive" });
+      return;
+    }
     setIsExporting(true);
     try {
       const canvas = await captureBannerCanvas();
+      const dataUrl = canvas.toDataURL("image/png");
+      if (!dataUrl || dataUrl === "data:,") {
+        throw new Error("Imagem gerada está vazia.");
+      }
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = dataUrl;
       link.click();
       toast({ title: "Banner exportado!", description: "A imagem foi salva no seu dispositivo." });
     } catch (error) {
-      console.error("Export error:", error);
-      toast({ title: "Erro ao exportar", description: "Tente novamente.", variant: "destructive" });
+      console.error("[QR export] handleExport error:", error);
+      const msg = error instanceof Error ? error.message : "Erro desconhecido ao exportar.";
+      toast({
+        title: "Falha ao exportar banner",
+        description: msg,
+        variant: "destructive",
+      });
     } finally {
       setIsExporting(false);
     }
   };
 
   const handleShare = async () => {
-    if (!cardRef.current) return;
+    if (!cardRef.current) {
+      toast({ title: "Erro ao compartilhar", description: "Banner não encontrado.", variant: "destructive" });
+      return;
+    }
     try {
       const canvas = await captureBannerCanvas();
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        if (navigator.share && navigator.canShare) {
-          const file = new File([blob], "banner.png", { type: "image/png" });
-          const shareData = { files: [file], title: "Meu Banner" };
-          if (navigator.canShare(shareData)) {
+      const blob: Blob | null = await new Promise((resolve) =>
+        canvas.toBlob((b) => resolve(b), "image/png")
+      );
+      if (!blob) {
+        throw new Error("Não foi possível gerar a imagem para compartilhamento.");
+      }
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], "banner.png", { type: "image/png" });
+        const shareData = { files: [file], title: "Meu Banner" };
+        if (navigator.canShare(shareData)) {
+          try {
             await navigator.share(shareData);
             return;
+          } catch (shareErr) {
+            // User cancelled share — silent.
+            if ((shareErr as Error)?.name === "AbortError") return;
+            throw shareErr;
           }
         }
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.download = "banner.png";
-        link.href = url;
-        link.click();
-        URL.revokeObjectURL(url);
-      }, "image/png");
-    } catch { /* cancelled */ }
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = "banner.png";
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("[QR export] handleShare error:", error);
+      const msg = error instanceof Error ? error.message : "Erro desconhecido.";
+      toast({
+        title: "Falha ao compartilhar banner",
+        description: msg,
+        variant: "destructive",
+      });
+    }
   };
 
   // ─── Banner blocks ───
