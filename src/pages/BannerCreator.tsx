@@ -300,60 +300,121 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
-  const waitBeforeCapture = () =>
-    new Promise((r) => setTimeout(r, 500));
+  // Generate a stable, independent QR image (PNG) for the export pipeline.
+  // Renders an offscreen QRCodeSVG, serializes it, and rasterizes it via Image.
+  // This does NOT depend on the preview canvas state.
+  const generateExportQrImage = (size: number): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const host = document.createElement("div");
+      host.style.position = "fixed";
+      host.style.left = "-99999px";
+      host.style.top = "0";
+      host.style.pointerEvents = "none";
+      document.body.appendChild(host);
 
-  // Wait until the QRCodeCanvas inside the visible card has actually painted.
-  const waitForQrCanvas = async (node: HTMLElement): Promise<HTMLCanvasElement | null> => {
-    const deadline = Date.now() + 2000;
-    while (Date.now() < deadline) {
-      const canvases = Array.from(node.querySelectorAll("canvas")) as HTMLCanvasElement[];
-      // Pick the first visible canvas with real dimensions (the QR).
-      const qr = canvases.find((c) => {
-        const rect = c.getBoundingClientRect();
-        return c.width > 0 && c.height > 0 && rect.width > 0 && rect.height > 0;
-      });
-      if (qr) {
-        await new Promise((r) => requestAnimationFrame(() => r(null)));
-        await new Promise((r) => requestAnimationFrame(() => r(null)));
-        return qr;
+      const root = createRoot(host);
+      const cleanup = () => {
+        try { root.unmount(); } catch {}
+        if (host.parentNode) host.parentNode.removeChild(host);
+      };
+
+      try {
+        root.render(
+          <QRCodeSVG
+            value={referralLink || "https://example.com"}
+            size={size}
+            level="H"
+            bgColor={colors.qrBg}
+            fgColor="#000000"
+            includeMargin={false}
+          />
+        );
+      } catch (err) {
+        cleanup();
+        reject(err);
+        return;
       }
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    return null;
-  };
 
-  // Capture banner with html2canvas and manually redraw the QR canvas on top
-  // to guarantee it is present in the exported image.
+      // Wait a frame for React to mount the SVG, then serialize it.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const svg = host.querySelector("svg");
+          if (!svg) {
+            cleanup();
+            reject(new Error("QR SVG not rendered"));
+            return;
+          }
+          // Ensure xmlns for serialization.
+          if (!svg.getAttribute("xmlns")) {
+            svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+          }
+          const xml = new XMLSerializer().serializeToString(svg);
+          const svg64 = window.btoa(unescape(encodeURIComponent(xml)));
+          const dataUrl = `data:image/svg+xml;base64,${svg64}`;
+
+          const img = new Image();
+          img.onload = () => { cleanup(); resolve(img); };
+          img.onerror = (e) => { cleanup(); reject(e); };
+          img.src = dataUrl;
+        });
+      });
+    });
+
+  // Capture banner with html2canvas and overlay a freshly generated QR image
+  // at the position/size of the QR wrapper. Decoupled from the live canvas.
   const captureBannerCanvas = async (): Promise<HTMLCanvasElement> => {
     const node = cardRef.current!;
     if (document.fonts?.ready) await document.fonts.ready;
     await waitForCardAssets(node);
-    const qrCanvas = await waitForQrCanvas(node);
-    await waitBeforeCapture();
 
     const SCALE = 2;
-    const captured = await html2canvas(node, {
-      scale: SCALE,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: null,
-      logging: false,
-    });
 
-    if (qrCanvas) {
+    // Locate QR wrapper BEFORE capture (stable across all layouts).
+    const qrTarget =
+      qrWrapperRef.current ??
+      (node.querySelector('[data-qr-target="true"]') as HTMLElement | null);
+
+    // Generate the export QR image in parallel with the html2canvas snapshot.
+    const innerSize = qrTarget
+      ? Math.max(
+          80,
+          Math.round(
+            (qrTarget.querySelector("canvas, svg") as HTMLElement | null)
+              ?.getBoundingClientRect().width || 130
+          )
+        )
+      : 130;
+
+    const [captured, qrImg] = await Promise.all([
+      html2canvas(node, {
+        scale: SCALE,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: null,
+        logging: false,
+      }),
+      generateExportQrImage(innerSize * SCALE).catch(() => null),
+    ]);
+
+    if (qrTarget && qrImg) {
       try {
         const cardRect = node.getBoundingClientRect();
-        const qrRect = qrCanvas.getBoundingClientRect();
+        // Use the inner QR canvas/svg rect (not the padded wrapper) so the
+        // generated image lands exactly where the preview QR is painted.
+        const innerEl =
+          (qrTarget.querySelector("canvas, svg") as HTMLElement | null) ?? qrTarget;
+        const qrRect = innerEl.getBoundingClientRect();
         const x = (qrRect.left - cardRect.left) * SCALE;
         const y = (qrRect.top - cardRect.top) * SCALE;
         const w = qrRect.width * SCALE;
         const h = qrRect.height * SCALE;
         const ctx = captured.getContext("2d");
         if (ctx && w > 0 && h > 0) {
-          // Clear the area first to avoid any artifact under the QR.
-          ctx.clearRect(x, y, w, h);
-          ctx.drawImage(qrCanvas, x, y, w, h);
+          // Paint a clean white background under the QR (matches qrBg) then
+          // draw the freshly generated QR on top — guaranteed visible.
+          ctx.fillStyle = colors.qrBg;
+          ctx.fillRect(x, y, w, h);
+          ctx.drawImage(qrImg, x, y, w, h);
         }
       } catch (err) {
         console.warn("QR overlay failed:", err);
