@@ -488,6 +488,7 @@ const BannerCreator = () => {
       return;
     }
     try {
+      await new Promise((r) => setTimeout(r, 200));
       const canvas = await captureBannerCanvas();
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob((b) => resolve(b), "image/png")
