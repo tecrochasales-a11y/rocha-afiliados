@@ -1,60 +1,104 @@
 
-Corrigir em `src/pages/BannerCreator.tsx` com uma abordagem determinística para o QR no export.
+Corrigir definitivamente em `src/pages/BannerCreator.tsx` sem mexer no layout do banner.
 
-1. Diagnóstico real
-- O problema não é mais apenas “espera insuficiente”.
-- Hoje o export ainda depende do QR visível do preview, que é um `<canvas>` interno do `QRCodeCanvas`.
-- Ao trocar de layout, esse canvas pode já existir com tamanho válido, mas ainda estar com o bitmap em branco por um instante.
-- A lógica atual então redesenha no PNG exatamente esse canvas ainda vazio, por isso o bloco branco aparece sem o QR em alguns layouts.
+### O que realmente está acontecendo
+O QR do export ainda falha porque a correção atual depende de um fluxo que continua frágil:
 
-2. Correção definitiva
-- Manter o preview do banner como está visualmente.
-- Parar de depender do canvas visível do preview como fonte do export.
-- Gerar uma fonte de QR exclusiva para export, baseada em SVG/Imagem estável, usando a mesma biblioteca já presente no projeto.
-- No fluxo de exportação:
-  - capturar o banner com `html2canvas`
-  - localizar a área do QR pelo wrapper do QR, não pelo canvas interno
-  - gerar um QR limpo e pronto para desenho
-  - desenhar esse QR manualmente no canvas final, na posição e tamanho corretos para cada layout
+1. `generateExportQrImage` usa `createRoot(...).render(...)` num host offscreen
+2. no React 18 esse render não é garantidamente síncrono
+3. o código tenta serializar o `<svg>` antes de ele existir de forma confiável
+4. quando isso falha, o `.catch(() => null)` silencia o erro
+5. o `html2canvas` então exporta só o bloco branco que já veio do preview
 
-3. Ajustes de implementação
-- Substituir a lógica atual baseada em `waitForQrCanvas` + cópia do canvas visível por um helper único, por exemplo:
-  - `generateExportQrImage(size)`
-  - `captureBannerCanvas()`
-  - `drawQrIntoExportedCanvas(...)`
-- Marcar o wrapper do QR com um alvo estável (`ref` ou `data-*`) para medir sempre a caixa correta em:
-  - Clássico
-  - Central
-  - Lado a Lado
-- Manter `waitForCardAssets` apenas para imagens reais do banner:
-  - logo personalizada
-  - fundo personalizado
-  - logos das operadoras
-- Remover a dependência do `waitBeforeCapture` e da verificação do canvas do preview para o QR, porque isso continua sendo frágil após mudança de layout.
-- Garantir remount estável do bloco do QR ao trocar layout/tamanho/link, para evitar estado visual residual no preview.
+Ou seja: o problema agora não é mais o layout, nem o tempo do `QRCodeCanvas` visível. O problema é que a geração “independente” do QR para export ainda não é determinística.
 
-4. O que não será alterado
+### Correção que vou aplicar
+#### 1. Trocar a geração do QR de export por uma versão síncrona e determinística
+Substituir a lógica atual de `generateExportQrImage` por uma geração de SVG sem depender de `createRoot` assíncrono.
+
+Implementação prevista:
+- gerar o markup do QR em SVG de forma síncrona
+- converter esse SVG em `data:image/svg+xml`
+- carregar em `Image`
+- aguardar `img.decode()` antes de desenhar
+
+Objetivo: o QR do export precisa nascer pronto, não “talvez pronto”.
+
+#### 2. Parar de depender do QR capturado pelo `html2canvas`
+No `captureBannerCanvas`:
+- instruir o `html2canvas` a ignorar o bloco do QR no snapshot
+- depois desenhar manualmente:
+  - o fundo branco do bloco
+  - o QR gerado de forma determinística
+
+Assim o PNG final nunca mais dependerá do QR que está pintado no preview.
+
+#### 3. Medir a caixa correta do QR em todos os layouts
+Hoje a lógica usa o `canvas/svg` interno para medir posição. Vou trocar para uma medição estável do wrapper real do QR:
+
+- medir `qrWrapperRef.current`
+- ler padding/radius do wrapper
+- calcular a área interna útil do QR
+- usar essa mesma caixa para:
+  - clássico
+  - central
+  - lado a lado
+
+Isso elimina diferença de posicionamento entre layouts.
+
+#### 4. Falhar com segurança em vez de exportar PNG quebrado
+Se a geração do QR falhar:
+- não baixar imagem defeituosa
+- mostrar toast de erro
+- registrar erro no console
+
+Não vou mais deixar `generateExportQrImage(...).catch(() => null)` mascarar o problema.
+
+#### 5. Manter o restante intacto
+Não alterar:
 - layouts
 - estilos
+- tipografia
+- cores
 - textos
-- paleta visual
 - lógica de templates
+- preview geral
 - fluxo de compartilhamento
-- restante do app
 
-5. Validação obrigatória
-Testar exportando logo após trocar de layout, sem esperar manualmente:
-1. Clássico
-2. Central
-3. Lado a Lado
-4. com logo personalizada
-5. com fundo personalizado
-6. exportação PNG
-7. compartilhamento
-8. leitura real do QR
+A correção ficará concentrada no pipeline de exportação/compartilhamento do QR.
 
-Resultado esperado:
-- o QR aparece em todos os layouts
-- continua escaneável
-- o preview continua com a mesma aparência
-- o export deixa de depender do timing do canvas renderizado na tela
+### Estrutura final da solução
+```text
+waitForCardAssets(node)
+buildQrSvgDataUrl(...)
+loadQrImage(...)
+captureBannerCanvas()
+  -> html2canvas ignorando o QR do preview
+  -> mede wrapper do QR
+  -> pinta fundo branco do QR
+  -> desenha QR definitivo por cima
+handleExport()
+handleShare()
+```
+
+### Resultado esperado
+Após a implementação:
+- o QR aparece no PNG baixado em todos os layouts
+- o QR continua escaneável
+- trocar layout imediatamente antes do download não quebra o export
+- o app não depende mais de timing frágil do preview
+
+### Validação após aplicar
+Testar em `BannerCreator`:
+1. layout Clássico
+2. layout Central
+3. layout Lado a Lado
+4. troca rápida entre layouts e download imediato
+5. com logo personalizada
+6. com fundo personalizado
+7. download PNG
+8. compartilhamento
+
+Critério de aceite:
+- nenhum download pode sair com quadrado branco vazio no lugar do QR
+- o QR final precisa bater visualmente com o preview esperado
