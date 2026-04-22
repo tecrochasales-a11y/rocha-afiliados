@@ -302,14 +302,71 @@ const BannerCreator = () => {
   const waitBeforeCapture = () =>
     new Promise((r) => setTimeout(r, 500));
 
+  // Wait until the QRCodeCanvas inside the visible card has actually painted.
+  const waitForQrCanvas = async (node: HTMLElement): Promise<HTMLCanvasElement | null> => {
+    const deadline = Date.now() + 2000;
+    while (Date.now() < deadline) {
+      const canvases = Array.from(node.querySelectorAll("canvas")) as HTMLCanvasElement[];
+      // Pick the first visible canvas with real dimensions (the QR).
+      const qr = canvases.find((c) => {
+        const rect = c.getBoundingClientRect();
+        return c.width > 0 && c.height > 0 && rect.width > 0 && rect.height > 0;
+      });
+      if (qr) {
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        return qr;
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return null;
+  };
+
+  // Capture banner with html2canvas and manually redraw the QR canvas on top
+  // to guarantee it is present in the exported image.
+  const captureBannerCanvas = async (): Promise<HTMLCanvasElement> => {
+    const node = cardRef.current!;
+    if (document.fonts?.ready) await document.fonts.ready;
+    await waitForCardAssets(node);
+    const qrCanvas = await waitForQrCanvas(node);
+    await waitBeforeCapture();
+
+    const SCALE = 2;
+    const captured = await html2canvas(node, {
+      scale: SCALE,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: null,
+      logging: false,
+    });
+
+    if (qrCanvas) {
+      try {
+        const cardRect = node.getBoundingClientRect();
+        const qrRect = qrCanvas.getBoundingClientRect();
+        const x = (qrRect.left - cardRect.left) * SCALE;
+        const y = (qrRect.top - cardRect.top) * SCALE;
+        const w = qrRect.width * SCALE;
+        const h = qrRect.height * SCALE;
+        const ctx = captured.getContext("2d");
+        if (ctx && w > 0 && h > 0) {
+          // Clear the area first to avoid any artifact under the QR.
+          ctx.clearRect(x, y, w, h);
+          ctx.drawImage(qrCanvas, x, y, w, h);
+        }
+      } catch (err) {
+        console.warn("QR overlay failed:", err);
+      }
+    }
+
+    return captured;
+  };
+
   const handleExport = async () => {
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
-      if (document.fonts?.ready) await document.fonts.ready;
-      await waitForCardAssets(cardRef.current);
-      await waitBeforeCapture();
-      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null, logging: false });
+      const canvas = await captureBannerCanvas();
       const link = document.createElement("a");
       link.download = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -326,9 +383,7 @@ const BannerCreator = () => {
   const handleShare = async () => {
     if (!cardRef.current) return;
     try {
-      if (document.fonts?.ready) await document.fonts.ready;
-      await waitForCardAssets(cardRef.current);
-      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true, allowTaint: false, backgroundColor: null });
+      const canvas = await captureBannerCanvas();
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         if (navigator.share && navigator.canShare) {
