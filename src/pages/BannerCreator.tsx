@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { createRoot } from "react-dom/client";
 import { Link } from "react-router-dom";
-import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import html2canvas from "html2canvas";
+import QRCode from "qrcode";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -300,65 +300,36 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
-  // Generate a stable, independent QR image (PNG) for the export pipeline.
-  // Renders an offscreen QRCodeSVG, serializes it, and rasterizes it via Image.
-  // This does NOT depend on the preview canvas state.
-  const generateExportQrImage = (size: number): Promise<HTMLImageElement> =>
-    new Promise((resolve, reject) => {
-      const host = document.createElement("div");
-      host.style.position = "fixed";
-      host.style.left = "-99999px";
-      host.style.top = "0";
-      host.style.pointerEvents = "none";
-      document.body.appendChild(host);
-
-      const root = createRoot(host);
-      const cleanup = () => {
-        try { root.unmount(); } catch {}
-        if (host.parentNode) host.parentNode.removeChild(host);
-      };
-
-      try {
-        root.render(
-          <QRCodeSVG
-            value={referralLink || "https://example.com"}
-            size={size}
-            level="H"
-            bgColor={colors.qrBg}
-            fgColor="#000000"
-            includeMargin={false}
-          />
-        );
-      } catch (err) {
-        cleanup();
-        reject(err);
-        return;
-      }
-
-      // Wait a frame for React to mount the SVG, then serialize it.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const svg = host.querySelector("svg");
-          if (!svg) {
-            cleanup();
-            reject(new Error("QR SVG not rendered"));
-            return;
-          }
-          // Ensure xmlns for serialization.
-          if (!svg.getAttribute("xmlns")) {
-            svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-          }
-          const xml = new XMLSerializer().serializeToString(svg);
-          const svg64 = window.btoa(unescape(encodeURIComponent(xml)));
-          const dataUrl = `data:image/svg+xml;base64,${svg64}`;
-
-          const img = new Image();
-          img.onload = () => { cleanup(); resolve(img); };
-          img.onerror = (e) => { cleanup(); reject(e); };
-          img.src = dataUrl;
-        });
-      });
+  const buildQrSvgDataUrl = async (size: number) => {
+    const svg = await QRCode.toString(referralLink || "https://example.com", {
+      type: "svg",
+      width: size,
+      margin: 0,
+      errorCorrectionLevel: "H",
+      color: {
+        dark: "#000000",
+        light: colors.qrBg,
+      },
     });
+
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  };
+
+  const loadQrImage = async (dataUrl: string): Promise<HTMLImageElement> => {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = dataUrl;
+    await (img.decode?.() ?? new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Falha ao carregar QR para exportação"));
+    }));
+    return img;
+  };
+
+  const generateExportQrImage = async (size: number): Promise<HTMLImageElement> => {
+    const dataUrl = await buildQrSvgDataUrl(size);
+    return loadQrImage(dataUrl);
+  };
 
   // Capture banner with html2canvas and overlay a freshly generated QR image
   // at the position/size of the QR wrapper. Decoupled from the live canvas.
@@ -374,15 +345,12 @@ const BannerCreator = () => {
       qrWrapperRef.current ??
       (node.querySelector('[data-qr-target="true"]') as HTMLElement | null);
 
-    // Generate the export QR image in parallel with the html2canvas snapshot.
+    const qrStyles = qrTarget ? window.getComputedStyle(qrTarget) : null;
+    const qrPaddingX = qrStyles ? parseFloat(qrStyles.paddingLeft) + parseFloat(qrStyles.paddingRight) : 20;
+    const qrPaddingY = qrStyles ? parseFloat(qrStyles.paddingTop) + parseFloat(qrStyles.paddingBottom) : 20;
+    const qrRadius = qrStyles ? parseFloat(qrStyles.borderRadius) : 14;
     const innerSize = qrTarget
-      ? Math.max(
-          80,
-          Math.round(
-            (qrTarget.querySelector("canvas, svg") as HTMLElement | null)
-              ?.getBoundingClientRect().width || 130
-          )
-        )
+      ? Math.max(80, Math.round(Math.min(qrTarget.clientWidth - qrPaddingX, qrTarget.clientHeight - qrPaddingY)))
       : 130;
 
     const [captured, qrImg] = await Promise.all([
@@ -392,34 +360,36 @@ const BannerCreator = () => {
         allowTaint: false,
         backgroundColor: null,
         logging: false,
+        ignoreElements: (element) => element instanceof HTMLElement && element.dataset.qrTarget === "true",
       }),
-      generateExportQrImage(innerSize * SCALE).catch(() => null),
+      generateExportQrImage(innerSize * SCALE),
     ]);
 
-    if (qrTarget && qrImg) {
-      try {
-        const cardRect = node.getBoundingClientRect();
-        // Use the inner QR canvas/svg rect (not the padded wrapper) so the
-        // generated image lands exactly where the preview QR is painted.
-        const innerEl =
-          (qrTarget.querySelector("canvas, svg") as HTMLElement | null) ?? qrTarget;
-        const qrRect = innerEl.getBoundingClientRect();
-        const x = (qrRect.left - cardRect.left) * SCALE;
-        const y = (qrRect.top - cardRect.top) * SCALE;
-        const w = qrRect.width * SCALE;
-        const h = qrRect.height * SCALE;
-        const ctx = captured.getContext("2d");
-        if (ctx && w > 0 && h > 0) {
-          // Paint a clean white background under the QR (matches qrBg) then
-          // draw the freshly generated QR on top — guaranteed visible.
-          ctx.fillStyle = colors.qrBg;
-          ctx.fillRect(x, y, w, h);
-          ctx.drawImage(qrImg, x, y, w, h);
-        }
-      } catch (err) {
-        console.warn("QR overlay failed:", err);
-      }
+    if (!qrTarget) {
+      throw new Error("Área do QR não encontrada para exportação");
     }
+
+    const cardRect = node.getBoundingClientRect();
+    const qrRect = qrTarget.getBoundingClientRect();
+    const x = (qrRect.left - cardRect.left) * SCALE;
+    const y = (qrRect.top - cardRect.top) * SCALE;
+    const w = qrRect.width * SCALE;
+    const h = qrRect.height * SCALE;
+    const innerX = x + ((qrRect.width - innerSize) / 2) * SCALE;
+    const innerY = y + ((qrRect.height - innerSize) / 2) * SCALE;
+    const innerW = innerSize * SCALE;
+    const innerH = innerSize * SCALE;
+    const ctx = captured.getContext("2d");
+
+    if (!ctx || w <= 0 || h <= 0 || innerW <= 0 || innerH <= 0) {
+      throw new Error("Não foi possível compor o QR na exportação");
+    }
+
+    ctx.fillStyle = colors.qrBg;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, qrRadius * SCALE);
+    ctx.fill();
+    ctx.drawImage(qrImg, innerX, innerY, innerW, innerH);
 
     return captured;
   };
