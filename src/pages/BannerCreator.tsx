@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import QRCode from "qrcode";
 import { useAuth } from "@/hooks/useAuth";
@@ -441,13 +441,13 @@ const BannerCreator = () => {
       key={`qr-${config.layout}-${size}-${referralLink}`}
       style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}
     >
-      <QRCodeCanvas
+      <QRCodeSVG
         value={referralLink || "https://example.com"}
         size={size}
         level="H"
         bgColor={colors.qrBg}
         fgColor="#000000"
-        includeMargin={false}
+        marginSize={0}
         style={{ display: "block", width: size, height: size }}
       />
     </div>
