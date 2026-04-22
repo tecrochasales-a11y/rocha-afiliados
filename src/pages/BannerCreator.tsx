@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import QRCode from "qrcode";
 import { useAuth } from "@/hooks/useAuth";
@@ -300,9 +300,14 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
-  const buildQrSvgDataUrl = async (size: number) => {
-    const svg = await QRCode.toString(referralLink || "https://example.com", {
-      type: "svg",
+  // Generate a bitmap QR canvas directly from the `qrcode` lib.
+  // Using toCanvas avoids SVG serialization + async image decoding,
+  // which was the fragile step causing the QR to disappear in exports.
+  const generateExportQrCanvas = async (size: number): Promise<HTMLCanvasElement> => {
+    const offscreen = document.createElement("canvas");
+    offscreen.width = size;
+    offscreen.height = size;
+    await QRCode.toCanvas(offscreen, referralLink || "https://example.com", {
       width: size,
       margin: 0,
       errorCorrectionLevel: "H",
@@ -311,28 +316,11 @@ const BannerCreator = () => {
         light: colors.qrBg,
       },
     });
-
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    return offscreen;
   };
 
-  const loadQrImage = async (dataUrl: string): Promise<HTMLImageElement> => {
-    const img = new Image();
-    img.decoding = "async";
-    img.src = dataUrl;
-    await (img.decode?.() ?? new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("Falha ao carregar QR para exportação"));
-    }));
-    return img;
-  };
-
-  const generateExportQrImage = async (size: number): Promise<HTMLImageElement> => {
-    const dataUrl = await buildQrSvgDataUrl(size);
-    return loadQrImage(dataUrl);
-  };
-
-  // Capture banner with html2canvas and overlay a freshly generated QR image
-  // at the position/size of the QR wrapper. Decoupled from the live canvas.
+  // Capture banner with html2canvas and overlay a freshly generated QR bitmap
+  // at the position/size of the QR wrapper. Decoupled from the live preview.
   const captureBannerCanvas = async (): Promise<HTMLCanvasElement> => {
     const node = cardRef.current!;
     if (document.fonts?.ready) await document.fonts.ready;
@@ -340,56 +328,65 @@ const BannerCreator = () => {
 
     const SCALE = 2;
 
-    // Locate QR wrapper BEFORE capture (stable across all layouts).
     const qrTarget =
       qrWrapperRef.current ??
       (node.querySelector('[data-qr-target="true"]') as HTMLElement | null);
 
-    const qrStyles = qrTarget ? window.getComputedStyle(qrTarget) : null;
-    const qrPaddingX = qrStyles ? parseFloat(qrStyles.paddingLeft) + parseFloat(qrStyles.paddingRight) : 20;
-    const qrPaddingY = qrStyles ? parseFloat(qrStyles.paddingTop) + parseFloat(qrStyles.paddingBottom) : 20;
-    const qrRadius = qrStyles ? parseFloat(qrStyles.borderRadius) : 14;
-    const innerSize = qrTarget
-      ? Math.max(80, Math.round(Math.min(qrTarget.clientWidth - qrPaddingX, qrTarget.clientHeight - qrPaddingY)))
-      : 130;
+    if (!qrTarget) {
+      throw new Error("Área do QR não encontrada para exportação");
+    }
 
-    const [captured, qrImg] = await Promise.all([
+    const qrStyles = window.getComputedStyle(qrTarget);
+    const padL = parseFloat(qrStyles.paddingLeft) || 0;
+    const padR = parseFloat(qrStyles.paddingRight) || 0;
+    const padT = parseFloat(qrStyles.paddingTop) || 0;
+    const padB = parseFloat(qrStyles.paddingBottom) || 0;
+    const qrRadius = parseFloat(qrStyles.borderRadius) || 14;
+
+    const cardRect = node.getBoundingClientRect();
+    const qrRect = qrTarget.getBoundingClientRect();
+
+    const x = (qrRect.left - cardRect.left) * SCALE;
+    const y = (qrRect.top - cardRect.top) * SCALE;
+    const w = qrRect.width * SCALE;
+    const h = qrRect.height * SCALE;
+
+    const innerW = Math.max(1, (qrRect.width - padL - padR) * SCALE);
+    const innerH = Math.max(1, (qrRect.height - padT - padB) * SCALE);
+    const innerSide = Math.floor(Math.min(innerW, innerH));
+    const innerX = x + padL * SCALE + (innerW - innerSide) / 2;
+    const innerY = y + padT * SCALE + (innerH - innerSide) / 2;
+
+    const [captured, qrCanvas] = await Promise.all([
       html2canvas(node, {
         scale: SCALE,
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
         logging: false,
-        ignoreElements: (element) => element instanceof HTMLElement && element.dataset.qrTarget === "true",
+        ignoreElements: (element) =>
+          element instanceof HTMLElement && element.dataset.qrTarget === "true",
       }),
-      generateExportQrImage(innerSize * SCALE),
+      generateExportQrCanvas(innerSide),
     ]);
 
-    if (!qrTarget) {
-      throw new Error("Área do QR não encontrada para exportação");
-    }
-
-    const cardRect = node.getBoundingClientRect();
-    const qrRect = qrTarget.getBoundingClientRect();
-    const x = (qrRect.left - cardRect.left) * SCALE;
-    const y = (qrRect.top - cardRect.top) * SCALE;
-    const w = qrRect.width * SCALE;
-    const h = qrRect.height * SCALE;
-    const innerX = x + ((qrRect.width - innerSize) / 2) * SCALE;
-    const innerY = y + ((qrRect.height - innerSize) / 2) * SCALE;
-    const innerW = innerSize * SCALE;
-    const innerH = innerSize * SCALE;
     const ctx = captured.getContext("2d");
-
-    if (!ctx || w <= 0 || h <= 0 || innerW <= 0 || innerH <= 0) {
+    if (!ctx) {
       throw new Error("Não foi possível compor o QR na exportação");
     }
 
+    // Paint wrapper background with rounded corners, then draw QR bitmap.
+    ctx.save();
     ctx.fillStyle = colors.qrBg;
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, qrRadius * SCALE);
-    ctx.fill();
-    ctx.drawImage(qrImg, innerX, innerY, innerW, innerH);
+    if (typeof ctx.roundRect === "function") {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, qrRadius * SCALE);
+      ctx.fill();
+    } else {
+      ctx.fillRect(x, y, w, h);
+    }
+    ctx.drawImage(qrCanvas, innerX, innerY, innerSide, innerSide);
+    ctx.restore();
 
     return captured;
   };
@@ -444,13 +441,13 @@ const BannerCreator = () => {
       key={`qr-${config.layout}-${size}-${referralLink}`}
       style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}
     >
-      <QRCodeCanvas
+      <QRCodeSVG
         value={referralLink || "https://example.com"}
         size={size}
         level="H"
         bgColor={colors.qrBg}
         fgColor="#000000"
-        includeMargin={false}
+        marginSize={0}
         style={{ display: "block", width: size, height: size }}
       />
     </div>
