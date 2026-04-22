@@ -304,18 +304,31 @@ const BannerCreator = () => {
   // Using toCanvas avoids SVG serialization + async image decoding,
   // which was the fragile step causing the QR to disappear in exports.
   const generateExportQrCanvas = async (size: number): Promise<HTMLCanvasElement> => {
+    const safeSize = Math.max(64, Math.floor(size));
+    const value = (referralLink || "").trim();
+    if (!value) {
+      throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
+    }
     const offscreen = document.createElement("canvas");
-    offscreen.width = size;
-    offscreen.height = size;
-    await QRCode.toCanvas(offscreen, referralLink || "https://example.com", {
-      width: size,
-      margin: 0,
-      errorCorrectionLevel: "H",
-      color: {
-        dark: "#000000",
-        light: colors.qrBg,
-      },
-    });
+    try {
+      await QRCode.toCanvas(offscreen, value, {
+        width: safeSize,
+        margin: 0,
+        errorCorrectionLevel: "H",
+        color: {
+          dark: "#000000",
+          light: colors.qrBg,
+        },
+      });
+    } catch (err) {
+      console.error("[QR export] QRCode.toCanvas failed", { value, safeSize, err });
+      throw new Error(
+        `Falha ao gerar o QR Code: ${err instanceof Error ? err.message : "erro desconhecido"}`
+      );
+    }
+    if (!offscreen.width || !offscreen.height) {
+      throw new Error("QR gerado com dimensões inválidas.");
+    }
     return offscreen;
   };
 
