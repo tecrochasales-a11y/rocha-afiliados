@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createRoot } from "react-dom/client";
 import { Link } from "react-router-dom";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
