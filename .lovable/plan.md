@@ -1,69 +1,90 @@
 
-## Plano: adicionar espera extra antes do download do banner
+## Correção definitiva do QR no PNG do Banner Creator
 
-### Arquivo
-Aplicar somente em:
+### O que realmente está acontecendo
+O componente atual usa `QRCodeCanvas` em `src/pages/BannerCreator.tsx`, então o QR não é um `<img>` SVG: ele é um `<canvas>` interno renderizado pela biblioteca.
 
+O preview funciona porque o navegador pinta esse canvas na tela normalmente. O problema acontece na exportação: o `html2canvas` faz um snapshot do DOM e pode copiar o canvas do QR antes de ele estar confiavelmente disponível no clone/capture, resultando exatamente no sintoma que você está vendo: o bloco branco aparece, mas o miolo do QR sai vazio.
+
+As correções aplicadas até agora (`img.decode()` e `setTimeout(500)`) ajudam imagens comuns, mas não resolvem de forma determinística um QR que nasce como canvas. Ou seja: o problema não é “falta de espera de imagem”, e sim “captura não confiável de um canvas filho”.
+
+### Arquivo a alterar
 ```text
 src/pages/BannerCreator.tsx
 ```
 
-### Estado atual identificado
-A função `waitForCardAssets` já está com a versão que aguarda:
+### Correção proposta
+#### 1. Manter `waitForCardAssets` apenas para imagens reais
+Continuar usando essa função para:
+- logo personalizada
+- imagem de fundo
+- logos das seguradoras
 
-- carregamento das imagens
-- `img.decode()`
-- dois ciclos de `requestAnimationFrame`
+Ela continua útil, mas não será mais a solução principal do QR.
 
-Também não há mais `waitForCanvases` no trecho atual.
+#### 2. Adicionar uma espera específica para o canvas do QR
+Criar uma função dedicada para:
+- localizar o `<canvas>` dentro de `qrWrapperRef`
+- aguardar largura/altura válidas
+- aguardar ciclos de `requestAnimationFrame`
+- confirmar que o canvas já foi realmente pintado
 
-### Mudança necessária
+Objetivo: sincronizar com o ativo real que está falhando, não com `<img>` genéricas.
 
-#### 1. Adicionar `waitBeforeCapture`
-Logo após `waitForCardAssets`, adicionar:
+#### 3. Tornar a exportação definitiva com composição manual do QR
+Depois do `html2canvas(cardRef.current)`, redesenhar o QR original por cima do PNG final usando o canvas real do `QRCodeCanvas`.
 
-```tsx
-const waitBeforeCapture = () =>
-  new Promise((r) => setTimeout(r, 500));
-```
+Fluxo:
+1. capturar o banner inteiro com `html2canvas`
+2. medir a posição do QR dentro do card com `getBoundingClientRect`
+3. converter essa posição para a escala do canvas exportado
+4. usar `drawImage` para desenhar o canvas do QR na posição correta
 
-#### 2. Atualizar `handleExport`
-Adicionar a chamada logo depois de:
+Isso evita depender de o `html2canvas` clonar corretamente o canvas interno do QR. O banner continua sendo exportado pelo mesmo mecanismo, mas o QR passa a ser garantido no resultado final.
 
-```tsx
-await waitForCardAssets(cardRef.current);
-```
+#### 4. Aplicar a mesma pipeline em `handleExport` e `handleShare`
+Hoje o fluxo de exportação e compartilhamento não está totalmente alinhado. A correção precisa ser centralizada para os dois casos, para não existir:
+- PNG baixado com um comportamento
+- compartilhamento com outro comportamento
 
-Sequência final:
+A melhor abordagem é extrair uma função única de geração do canvas final já com o QR recomposto.
 
-```tsx
-if (document.fonts?.ready) await document.fonts.ready;
-await waitForCardAssets(cardRef.current);
-await waitBeforeCapture();
-
-const canvas = await html2canvas(cardRef.current, {
-  scale: 2,
-  useCORS: true,
-  allowTaint: false,
-  backgroundColor: null,
-  logging: false,
-});
+### Estrutura da solução
+```text
+waitForCardAssets(node)          -> espera logos/fundos/imagens
+waitForQrCanvas()                -> espera o QR canvas real estar pronto
+captureBannerCanvas()            -> faz html2canvas(cardRef)
+composeQrOnCapturedCanvas()      -> desenha o QR original no snapshot final
+handleExport()                   -> usa o canvas final
+handleShare()                    -> usa o mesmo canvas final
 ```
 
 ### O que não será alterado
-- Não alterar layout dos banners
-- Não alterar estilos
-- Não alterar QR Code
-- Não alterar `html2canvas`
-- Não alterar lógica de templates
-- Não alterar textos ou botões
-- Não modificar outras funcionalidades
+- layout dos 3 templates
+- textos
+- estilos
+- paletas
+- lógica de templates salvos
+- comportamento do preview
+- biblioteca `html2canvas`
+- biblioteca `qrcode.react`
 
-### Validação
-Depois da alteração, testar o download PNG nos três layouts:
+### Por que essa é a correção definitiva
+Porque ela para de depender de timing frágil (`decode`, timeout, sorte do clone) e passa a usar diretamente a fonte real do QR no resultado final. Mesmo que o `html2canvas` falhe ao clonar o canvas interno, o QR será desenhado explicitamente no PNG exportado.
 
-1. Clássico
-2. Central
-3. Lado a Lado
+### Validação após implementar
+Testar obrigatoriamente:
+1. layout Clássico
+2. layout Central
+3. layout Lado a Lado
+4. com logo personalizada
+5. com fundo personalizado
+6. exportação PNG
+7. compartilhamento
+8. leitura do QR por scanner real
 
-Confirmar que o QR aparece no arquivo baixado e permanece escaneável.
+Resultado esperado:
+- preview continua igual
+- PNG exportado mantém o QR visível
+- QR permanece escaneável
+- nenhuma outra parte do banner é afetada
