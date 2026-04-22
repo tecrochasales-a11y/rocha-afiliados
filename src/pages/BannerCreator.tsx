@@ -393,6 +393,14 @@ const BannerCreator = () => {
         logging: false,
         ignoreElements: (element) =>
           element instanceof HTMLElement && element.dataset.qrTarget === "true",
+        onclone: (clonedDoc) => {
+          const qrSvg = clonedDoc.querySelector(
+            '[data-qr-target="true"] svg'
+          ) as SVGElement | null;
+          if (qrSvg) {
+            qrSvg.style.display = "block";
+          }
+        },
       });
     } catch (err) {
       console.error("[QR export] html2canvas failed", err);
@@ -431,6 +439,8 @@ const BannerCreator = () => {
     }
     setIsExporting(true);
     try {
+      // Aguardar layout ser aplicado antes de capturar
+      await new Promise((r) => setTimeout(r, 100));
       const canvas = await captureBannerCanvas();
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
