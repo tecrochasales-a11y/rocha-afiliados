@@ -487,43 +487,59 @@ const BannerCreator = () => {
       toast({ title: "Erro ao compartilhar", description: "Banner não encontrado.", variant: "destructive" });
       return;
     }
+    setIsExporting(true);
     try {
+      // Mesma lógica do handleExport: aguardar layout estabilizar antes de capturar
       await new Promise((r) => setTimeout(r, 200));
       const canvas = await captureBannerCanvas();
+
+      // Validação equivalente à do handleExport (detecta canvas vazio)
+      const dataUrl = canvas.toDataURL("image/png");
+      if (!dataUrl || dataUrl === "data:,") {
+        throw new Error("Imagem gerada está vazia.");
+      }
+
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob((b) => resolve(b), "image/png")
       );
-      if (!blob) {
+      if (!blob || blob.size === 0) {
         throw new Error("Não foi possível gerar a imagem para compartilhamento.");
       }
+
+      const fileName = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
+
       if (navigator.share && navigator.canShare) {
-        const file = new File([blob], "banner.png", { type: "image/png" });
+        const file = new File([blob], fileName, { type: "image/png" });
         const shareData = { files: [file], title: "Meu Banner" };
         if (navigator.canShare(shareData)) {
           try {
             await navigator.share(shareData);
             return;
           } catch (shareErr) {
-            // User cancelled share — silent.
+            // Usuário cancelou — silencioso.
             if ((shareErr as Error)?.name === "AbortError") return;
             throw shareErr;
           }
         }
       }
+
+      // Fallback: download direto, mesmo padrão de nome do handleExport
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = "banner.png";
+      link.download = fileName;
       link.href = url;
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("[QR export] handleShare error:", error);
-      const msg = error instanceof Error ? error.message : "Erro desconhecido.";
+      const msg = error instanceof Error ? error.message : "Erro desconhecido ao compartilhar.";
       toast({
         title: "Falha ao compartilhar banner",
         description: msg,
         variant: "destructive",
       });
+    } finally {
+      setIsExporting(false);
     }
   };
 
