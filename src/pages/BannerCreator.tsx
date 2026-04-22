@@ -470,6 +470,8 @@ const BannerCreator = () => {
   const QRBlock = ({ size = 130 }: { size?: number }) => (
     <div
       ref={qrWrapperRef}
+      data-qr-target="true"
+      key={`qr-${config.layout}-${size}-${referralLink}`}
       style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}
     >
       <QRCodeCanvas
