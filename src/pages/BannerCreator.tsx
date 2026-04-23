@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { createRoot } from "react-dom/client";
-import { flushSync } from "react-dom";
 import { Link } from "react-router-dom";
+import QRCode from "qrcode";
 import { QRCodeCanvas } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
@@ -470,77 +469,46 @@ const BannerCreator = () => {
       throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
     }
 
-    const host = document.createElement("div");
-    host.style.position = "fixed";
-    host.style.left = "-10000px";
-    host.style.top = "0";
-    host.style.width = `${sizePx}px`;
-    host.style.height = `${sizePx}px`;
-    host.style.pointerEvents = "none";
-    host.style.opacity = "0";
-    document.body.appendChild(host);
+    const out = document.createElement("canvas");
+    out.width = sizePx;
+    out.height = sizePx;
 
-    const root = createRoot(host);
-    try {
-      flushSync(() => {
-        root.render(
-          <QRCodeCanvas
-            value={value}
-            size={sizePx}
-            level="H"
-            bgColor="#ffffff"
-            fgColor="#000000"
-            marginSize={0}
-          />
-        );
-      });
+    await QRCode.toCanvas(out, value, {
+      width: sizePx,
+      margin: 0,
+      errorCorrectionLevel: "H",
+      color: {
+        dark: "#000000",
+        light: "#ffffff",
+      },
+    });
 
-      // Wait for paint
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
+    const outCtx = out.getContext("2d");
+    if (!outCtx) throw new Error("Contexto 2D indisponível para o QR de exportação.");
 
-      const sourceCanvas = host.querySelector("canvas") as HTMLCanvasElement | null;
-      if (!sourceCanvas || sourceCanvas.width === 0 || sourceCanvas.height === 0) {
-        throw new Error("QR Code de exportação não pôde ser renderizado off-screen.");
-      }
-
-      // Validate it has ink
-      const probeCtx = sourceCanvas.getContext("2d");
-      let hasInk = false;
-      if (probeCtx) {
-        const { data } = probeCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
-        for (let i = 0; i < data.length; i += 4) {
-          if (data[i] < 128 && data[i + 1] < 128 && data[i + 2] < 128) {
-            hasInk = true;
-            break;
-          }
-        }
-      }
-      if (!hasInk) {
-        throw new Error("QR Code off-screen ficou em branco.");
-      }
-
-      // Copy to a detached canvas so we can unmount the React root safely.
-      const out = document.createElement("canvas");
-      out.width = sourceCanvas.width;
-      out.height = sourceCanvas.height;
-      const outCtx = out.getContext("2d");
-      if (!outCtx) throw new Error("Contexto 2D indisponível para o QR de exportação.");
-      outCtx.fillStyle = "#ffffff";
-      outCtx.fillRect(0, 0, out.width, out.height);
-      outCtx.imageSmoothingEnabled = false;
-      outCtx.drawImage(sourceCanvas, 0, 0);
-
-      console.warn("[QR export] Off-screen QR rendered", {
-        width: out.width,
-        height: out.height,
-      });
-
-      return out;
-    } finally {
-      try { root.unmount(); } catch { /* noop */ }
-      if (host.parentNode) host.parentNode.removeChild(host);
+    const { data } = outCtx.getImageData(0, 0, out.width, out.height);
+    let darkCount = 0;
+    let whiteCount = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      if (r < 80 && g < 80 && b < 80) darkCount++;
+      else if (r > 240 && g > 240 && b > 240) whiteCount++;
     }
+
+    if (darkCount <= 50) {
+      throw new Error("QR Code de exportação ficou sem módulos escuros.");
+    }
+
+    console.warn("[QR export] Off-screen QR rendered", {
+      width: out.width,
+      height: out.height,
+      darkCount,
+      whiteCount,
+    });
+
+    return out;
   };
 
   // Capture banner with html2canvas and overlay a freshly generated QR bitmap
