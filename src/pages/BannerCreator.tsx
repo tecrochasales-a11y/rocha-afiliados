@@ -750,6 +750,47 @@ const BannerCreator = () => {
     }
   };
 
+  // Generates the export (final canvas + standalone QR bitmap) and opens
+  // a preview dialog so the user can confirm before downloading the PNG.
+  const handlePreviewExport = async () => {
+    if (!cardRef.current) {
+      toast({ title: "Erro ao pré-visualizar", description: "Banner não encontrado.", variant: "destructive" });
+      return;
+    }
+    setIsExporting(true);
+    try {
+      // Generate the standalone QR exactly as the export pipeline will use it.
+      const qrPreviewCanvas = await renderExportQrCanvas(512);
+      const qrDataUrl = qrPreviewCanvas.toDataURL("image/png");
+
+      // Generate the final composed banner (same path as the actual download).
+      const canvas = await captureBannerCanvasWithRetry();
+      const finalDataUrl = canvas.toDataURL("image/png");
+      if (!finalDataUrl || finalDataUrl === "data:,") {
+        throw new Error("Imagem gerada está vazia.");
+      }
+
+      const fileName = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
+      setExportPreview({ qrDataUrl, finalDataUrl, fileName, qrSize: qrPreviewCanvas.width });
+    } catch (error) {
+      console.error("[QR export] handlePreviewExport error:", error);
+      const msg = error instanceof Error ? error.message : "Erro desconhecido ao pré-visualizar.";
+      toast({ title: "Falha na pré-visualização", description: msg, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const confirmPreviewDownload = () => {
+    if (!exportPreview) return;
+    const link = document.createElement("a");
+    link.download = exportPreview.fileName;
+    link.href = exportPreview.finalDataUrl;
+    link.click();
+    toast({ title: "Banner exportado!", description: "A imagem foi salva no seu dispositivo." });
+    setExportPreview(null);
+  };
+
   const handleShare = async () => {
     if (!cardRef.current) {
       toast({ title: "Erro ao compartilhar", description: "Banner não encontrado.", variant: "destructive" });
