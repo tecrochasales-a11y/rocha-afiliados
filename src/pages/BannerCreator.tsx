@@ -451,24 +451,10 @@ const BannerCreator = () => {
       );
     }
 
-    const ctx = captured.getContext("2d");
-    if (!ctx) {
-      throw new Error("Contexto 2D indisponível para compor o QR.");
-    }
-
-    // Paint wrapper background with rounded corners, then draw QR bitmap.
-    ctx.save();
-    ctx.fillStyle = colors.qrBg;
-    if (typeof ctx.roundRect === "function") {
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, h, qrRadius * SCALE);
-      ctx.fill();
-    } else {
-      ctx.fillRect(x, y, w, h);
-    }
-    ctx.drawImage(qrCanvas, innerX, innerY, innerSide, innerSide);
-    ctx.restore();
-
+    // QR is already injected into the cloned DOM as an <img> with a data URL,
+    // so html2canvas captured it at the correct position for any layout.
+    // No manual overlay — coordinates from the live DOM can drift after
+    // layout changes (e.g. Central) and would paint over the captured QR.
     return captured;
   };
 
