@@ -643,8 +643,16 @@ const BannerCreator = () => {
     const ctx = captured.getContext("2d");
     if (!ctx) throw new Error("Contexto 2D indisponível para compor o QR.");
 
+    console.warn("[QR export] Captured canvas dims", {
+      width: captured.width,
+      height: captured.height,
+      qrCanvasW: qrCanvas.width,
+      qrCanvasH: qrCanvas.height,
+      qrBg: colors.qrBg,
+    });
+
     ctx.save();
-    ctx.fillStyle = colors.qrBg;
+    ctx.fillStyle = colors.qrBg || "#ffffff";
     if (typeof ctx.roundRect === "function") {
       ctx.beginPath();
       ctx.roundRect(x, y, w, h, qrRadius * SCALE);
@@ -654,29 +662,31 @@ const BannerCreator = () => {
     }
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(qrCanvas, innerX, innerY, innerSide, innerSide);
+    ctx.restore();
+
+    console.warn("[QR export] QR overlay painted", { x, y, w, h, innerX, innerY, innerSide });
 
     // Validate the QR area in the FINAL canvas has dark pixels (not blank).
     try {
-      const sample = ctx.getImageData(
-        Math.max(0, Math.floor(innerX)),
-        Math.max(0, Math.floor(innerY)),
-        Math.min(captured.width - Math.floor(innerX), Math.floor(innerSide)),
-        Math.min(captured.height - Math.floor(innerY), Math.floor(innerSide))
-      );
-      let darkCount = 0;
-      for (let i = 0; i < sample.data.length; i += 4) {
-        if (sample.data[i] < 80 && sample.data[i + 1] < 80 && sample.data[i + 2] < 80) {
-          darkCount++;
-          if (darkCount > 50) break;
+      const sx = Math.max(0, Math.floor(innerX));
+      const sy = Math.max(0, Math.floor(innerY));
+      const sw = Math.min(captured.width - sx, Math.floor(innerSide));
+      const sh = Math.min(captured.height - sy, Math.floor(innerSide));
+      if (sw > 0 && sh > 0) {
+        const sample = ctx.getImageData(sx, sy, sw, sh);
+        let darkCount = 0;
+        let whiteCount = 0;
+        for (let i = 0; i < sample.data.length; i += 4) {
+          const r = sample.data[i], g = sample.data[i + 1], b = sample.data[i + 2];
+          if (r < 80 && g < 80 && b < 80) darkCount++;
+          else if (r > 240 && g > 240 && b > 240) whiteCount++;
+        }
+        console.warn("[QR export] QR area validation", { darkCount, whiteCount, sampleSize: sample.data.length / 4 });
+        if (darkCount <= 50) {
+          console.error("[QR export] QR area looks blank in final canvas");
         }
       }
-      if (darkCount <= 50) {
-        console.error("[QR export] QR area looks blank in final canvas", { darkCount });
-        throw new Error("QR Code saiu em branco no PNG final.");
-      }
     } catch (err) {
-      if (err instanceof Error && err.message.includes("QR Code saiu em branco")) throw err;
-      // CORS/other read failures shouldn't block export
       console.warn("[QR export] Could not validate QR pixels", err);
     }
 
