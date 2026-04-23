@@ -715,8 +715,10 @@ const BannerCreator = () => {
         ignoreElements: (element) =>
           element instanceof HTMLElement &&
           (element.dataset.exportIgnore === "custom-logo" ||
-            element.dataset.exportIgnore === "brand-logo" ||
-            element.dataset.qrTarget === "true"),
+            element.dataset.exportIgnore === "brand-logo"),
+        // NOTE: do NOT ignore the QR wrapper — it must keep its space in the
+        // captured layout so the surrounding text doesn't collapse over it.
+        // We overpaint our own off-screen QR on top of it afterwards.
       });
     } catch (err) {
       console.error("[QR export] html2canvas failed", err);
