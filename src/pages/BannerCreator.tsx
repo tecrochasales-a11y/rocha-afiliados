@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
-import QRCode from "qrcode";
+import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -178,6 +177,7 @@ const BannerCreator = () => {
   const { toast } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
   const qrWrapperRef = useRef<HTMLDivElement>(null);
+  const exportQrRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const [config, setConfig] = useState<BannerConfig>(DEFAULT_CONFIG);
@@ -307,26 +307,26 @@ const BannerCreator = () => {
       throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
     }
 
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+
+    const sourceCanvas = exportQrRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!sourceCanvas || sourceCanvas.width <= 0 || sourceCanvas.height <= 0) {
+      throw new Error("QR Code de exportação não ficou pronto a tempo.");
+    }
+
     const canvas = document.createElement("canvas");
     canvas.width = exportSize;
     canvas.height = exportSize;
 
-    try {
-      await QRCode.toCanvas(canvas, value, {
-        width: exportSize,
-        margin: 0,
-        errorCorrectionLevel: "H",
-        color: {
-          dark: "#000000",
-          light: "#FFFFFF",
-        },
-      });
-    } catch (err) {
-      console.error("[QR export] QR canvas generation failed", { value, exportSize, err });
-      throw new Error(
-        `Falha ao gerar o QR Code: ${err instanceof Error ? err.message : "erro desconhecido"}`
-      );
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Contexto 2D indisponível para renderizar o QR Code.");
     }
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, exportSize, exportSize);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sourceCanvas, 0, 0, exportSize, exportSize);
 
     return canvas;
   };
@@ -699,6 +699,22 @@ const BannerCreator = () => {
           <h1 className="font-heading font-bold text-foreground text-lg">Criar Banner</h1>
         </div>
       </header>
+
+      <div
+        ref={exportQrRef}
+        aria-hidden="true"
+        style={{ position: "fixed", left: -9999, top: -9999, opacity: 0, pointerEvents: "none" }}
+      >
+        <QRCodeCanvas
+          value={referralLink || "https://example.com"}
+          size={220}
+          level="H"
+          bgColor="#ffffff"
+          fgColor="#000000"
+          marginSize={0}
+          style={{ display: "block", imageRendering: "pixelated" }}
+        />
+      </div>
 
       <main className="pt-24 pb-12">
         <div className="container mx-auto px-4">
