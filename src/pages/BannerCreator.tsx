@@ -13,6 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { HexColorPicker } from "react-colorful";
 import {
   RotateCcw,
@@ -182,6 +183,12 @@ const BannerCreator = () => {
   const logoImageRef = useRef<HTMLImageElement>(null);
   const brandLogoRef = useRef<HTMLImageElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportPreview, setExportPreview] = useState<{
+    qrDataUrl: string;
+    finalDataUrl: string;
+    fileName: string;
+    qrSize: number;
+  } | null>(null);
 
   const [config, setConfig] = useState<BannerConfig>(DEFAULT_CONFIG);
   const [templates, setTemplates] = useState<SavedTemplate[]>([]);
