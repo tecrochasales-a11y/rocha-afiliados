@@ -299,8 +299,8 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
-  const renderExportQrCanvas = async (size: number): Promise<HTMLCanvasElement> => {
-    const safeSize = Math.max(64, Math.floor(size));
+  const renderExportQrCanvas = async (): Promise<HTMLCanvasElement> => {
+    const exportSize = 220;
     const value = (referralLink || "").trim();
     if (!value) {
       throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
@@ -316,21 +316,21 @@ const BannerCreator = () => {
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = safeSize;
-    canvas.height = safeSize;
+    canvas.width = exportSize;
+    canvas.height = exportSize;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       throw new Error("Contexto 2D indisponível para renderizar o QR Code.");
     }
 
-    ctx.fillStyle = colors.qrBg;
-    ctx.fillRect(0, 0, safeSize, safeSize);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, exportSize, exportSize);
 
     const svgClone = qrSvg.cloneNode(true) as SVGSVGElement;
     svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    svgClone.setAttribute("width", String(safeSize));
-    svgClone.setAttribute("height", String(safeSize));
+    svgClone.setAttribute("width", String(exportSize));
+    svgClone.setAttribute("height", String(exportSize));
     svgClone.style.display = "block";
 
     const svgData = new XMLSerializer().serializeToString(svgClone);
@@ -341,7 +341,7 @@ const BannerCreator = () => {
       await new Promise<void>((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
-          ctx.drawImage(img, 0, 0, safeSize, safeSize);
+          ctx.drawImage(img, 0, 0, exportSize, exportSize);
           URL.revokeObjectURL(url);
           resolve();
         };
@@ -352,7 +352,7 @@ const BannerCreator = () => {
         img.src = url;
       });
     } catch (err) {
-      console.error("[QR export] QR SVG rasterization failed", { value, safeSize, err });
+      console.error("[QR export] QR SVG rasterization failed", { value, exportSize, err });
       throw new Error(
         `Falha ao gerar o QR Code: ${err instanceof Error ? err.message : "erro desconhecido"}`
       );
@@ -412,11 +412,7 @@ const BannerCreator = () => {
       throw new Error(`QR muito pequeno para exportar (${innerSide}px). Verifique o layout.`);
     }
 
-    const qrCanvas = await renderExportQrCanvas(innerSide);
-    const qrDataUrl = qrCanvas.toDataURL("image/png");
-    if (!qrDataUrl || qrDataUrl === "data:,") {
-      throw new Error("Falha ao converter o QR Code para imagem antes da exportação.");
-    }
+    const qrCanvas = await renderExportQrCanvas();
 
     let captured: HTMLCanvasElement;
     try {
@@ -431,16 +427,15 @@ const BannerCreator = () => {
             '[data-qr-target="true"]'
           ) as HTMLElement | null;
           if (clonedQr) {
-            const imgElement = clonedDoc.createElement("img");
-            imgElement.src = qrDataUrl;
-            imgElement.alt = "QR Code";
-            imgElement.style.display = "block";
-            imgElement.style.width = "100%";
-            imgElement.style.height = "100%";
-            imgElement.style.objectFit = "contain";
-            imgElement.style.imageRendering = "pixelated";
+            const qrCanvasClone = qrCanvas.cloneNode(true) as HTMLCanvasElement;
+            qrCanvasClone.style.display = "block";
+            qrCanvasClone.style.width = "100%";
+            qrCanvasClone.style.height = "100%";
+            qrCanvasClone.style.maxWidth = "100%";
+            qrCanvasClone.style.maxHeight = "100%";
+            qrCanvasClone.style.imageRendering = "pixelated";
             clonedQr.innerHTML = "";
-            clonedQr.appendChild(imgElement);
+            clonedQr.appendChild(qrCanvasClone);
           }
         },
       });
