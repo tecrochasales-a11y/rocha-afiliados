@@ -13,6 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { HexColorPicker } from "react-colorful";
 import {
   RotateCcw,
@@ -182,6 +183,12 @@ const BannerCreator = () => {
   const logoImageRef = useRef<HTMLImageElement>(null);
   const brandLogoRef = useRef<HTMLImageElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportPreview, setExportPreview] = useState<{
+    qrDataUrl: string;
+    finalDataUrl: string;
+    fileName: string;
+    qrSize: number;
+  } | null>(null);
 
   const [config, setConfig] = useState<BannerConfig>(DEFAULT_CONFIG);
   const [templates, setTemplates] = useState<SavedTemplate[]>([]);
@@ -743,6 +750,47 @@ const BannerCreator = () => {
     }
   };
 
+  // Generates the export (final canvas + standalone QR bitmap) and opens
+  // a preview dialog so the user can confirm before downloading the PNG.
+  const handlePreviewExport = async () => {
+    if (!cardRef.current) {
+      toast({ title: "Erro ao pré-visualizar", description: "Banner não encontrado.", variant: "destructive" });
+      return;
+    }
+    setIsExporting(true);
+    try {
+      // Generate the standalone QR exactly as the export pipeline will use it.
+      const qrPreviewCanvas = await renderExportQrCanvas(512);
+      const qrDataUrl = qrPreviewCanvas.toDataURL("image/png");
+
+      // Generate the final composed banner (same path as the actual download).
+      const canvas = await captureBannerCanvasWithRetry();
+      const finalDataUrl = canvas.toDataURL("image/png");
+      if (!finalDataUrl || finalDataUrl === "data:,") {
+        throw new Error("Imagem gerada está vazia.");
+      }
+
+      const fileName = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
+      setExportPreview({ qrDataUrl, finalDataUrl, fileName, qrSize: qrPreviewCanvas.width });
+    } catch (error) {
+      console.error("[QR export] handlePreviewExport error:", error);
+      const msg = error instanceof Error ? error.message : "Erro desconhecido ao pré-visualizar.";
+      toast({ title: "Falha na pré-visualização", description: msg, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const confirmPreviewDownload = () => {
+    if (!exportPreview) return;
+    const link = document.createElement("a");
+    link.download = exportPreview.fileName;
+    link.href = exportPreview.finalDataUrl;
+    link.click();
+    toast({ title: "Banner exportado!", description: "A imagem foi salva no seu dispositivo." });
+    setExportPreview(null);
+  };
+
   const handleShare = async () => {
     if (!cardRef.current) {
       toast({ title: "Erro ao compartilhar", description: "Banner não encontrado.", variant: "destructive" });
@@ -1272,9 +1320,9 @@ const BannerCreator = () => {
                 <Button variant="outline" className="flex-1 gap-2" onClick={handleShare}>
                   <Share2 className="w-4 h-4" /> Compartilhar
                 </Button>
-                <Button variant="hero" className="flex-1 gap-2" onClick={handleExport} disabled={isExporting}>
+                <Button variant="hero" className="flex-1 gap-2" onClick={handlePreviewExport} disabled={isExporting}>
                   {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  Baixar PNG
+                  Pré-visualizar e baixar
                 </Button>
               </div>
             </div>
@@ -1316,6 +1364,61 @@ const BannerCreator = () => {
           </div>
         </div>
       </main>
+
+      <Dialog open={!!exportPreview} onOpenChange={(open) => !open && setExportPreview(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização do download</DialogTitle>
+            <DialogDescription>
+              Confira como o banner e o QR Code ficarão no PNG final antes de baixar.
+              Compare o QR isolado abaixo com o do preview ao vivo.
+            </DialogDescription>
+          </DialogHeader>
+
+          {exportPreview && (
+            <div className="space-y-6">
+              <div>
+                <p className="text-sm font-medium mb-2">QR Code que será embutido ({exportPreview.qrSize}px)</p>
+                <div className="inline-block bg-white p-3 rounded-lg border border-border">
+                  <img
+                    src={exportPreview.qrDataUrl}
+                    alt="QR de exportação"
+                    style={{ width: 180, height: 180, imageRendering: "pixelated" }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Se este QR estiver em branco, o problema está na geração off-screen.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium mb-2">Banner final composto</p>
+                <div className="bg-muted/40 rounded-lg p-3 border border-border">
+                  <img
+                    src={exportPreview.finalDataUrl}
+                    alt="Banner final"
+                    style={{ width: "100%", height: "auto", display: "block" }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Se o banner estiver correto mas o QR no banner sair em branco,
+                  o problema é na composição (drawImage / posicionamento).
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setExportPreview(null)}>
+              Cancelar
+            </Button>
+            <Button variant="hero" className="gap-2" onClick={confirmPreviewDownload}>
+              <Download className="w-4 h-4" />
+              Confirmar e baixar PNG
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
