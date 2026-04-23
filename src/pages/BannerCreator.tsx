@@ -1320,9 +1320,9 @@ const BannerCreator = () => {
                 <Button variant="outline" className="flex-1 gap-2" onClick={handleShare}>
                   <Share2 className="w-4 h-4" /> Compartilhar
                 </Button>
-                <Button variant="hero" className="flex-1 gap-2" onClick={handleExport} disabled={isExporting}>
+                <Button variant="hero" className="flex-1 gap-2" onClick={handlePreviewExport} disabled={isExporting}>
                   {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  Baixar PNG
+                  Pré-visualizar e baixar
                 </Button>
               </div>
             </div>
