@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
+import QRCode from "qrcode";
 import html2canvas from "html2canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -306,53 +307,22 @@ const BannerCreator = () => {
       throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
     }
 
-    const qrContainer =
-      qrWrapperRef.current ??
-      (document.querySelector('[data-qr-target="true"]') as HTMLElement | null);
-    const qrSvg = qrContainer?.querySelector("svg");
-
-    if (!qrContainer || !qrSvg) {
-      throw new Error("QR Code não encontrado no layout atual.");
-    }
-
     const canvas = document.createElement("canvas");
     canvas.width = exportSize;
     canvas.height = exportSize;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      throw new Error("Contexto 2D indisponível para renderizar o QR Code.");
-    }
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, exportSize, exportSize);
-
-    const svgClone = qrSvg.cloneNode(true) as SVGSVGElement;
-    svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    svgClone.setAttribute("width", String(exportSize));
-    svgClone.setAttribute("height", String(exportSize));
-    svgClone.style.display = "block";
-
-    const svgData = new XMLSerializer().serializeToString(svgClone);
-    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-
     try {
-      await new Promise<void>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, exportSize, exportSize);
-          URL.revokeObjectURL(url);
-          resolve();
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          reject(new Error("Falha ao converter o SVG do QR Code para bitmap."));
-        };
-        img.src = url;
+      await QRCode.toCanvas(canvas, value, {
+        width: exportSize,
+        margin: 0,
+        errorCorrectionLevel: "H",
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
       });
     } catch (err) {
-      console.error("[QR export] QR SVG rasterization failed", { value, exportSize, err });
+      console.error("[QR export] QR canvas generation failed", { value, exportSize, err });
       throw new Error(
         `Falha ao gerar o QR Code: ${err instanceof Error ? err.message : "erro desconhecido"}`
       );
