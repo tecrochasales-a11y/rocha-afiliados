@@ -429,6 +429,7 @@ const BannerCreator = () => {
     }
     if (document.fonts?.ready) await document.fonts.ready;
     await waitForCardAssets(node);
+    await waitForBannerImages(node);
 
     const SCALE = 2;
 
