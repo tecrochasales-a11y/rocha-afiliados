@@ -610,21 +610,13 @@ const BannerCreator = () => {
       throw new Error(`QR muito pequeno para exportar (${innerSide}px). Verifique o layout.`);
     }
 
-    const qrCanvas = await renderExportQrCanvas(qrTarget);
+    // Render QR independently off-screen — does NOT depend on the visible preview.
+    const qrCanvas = await renderExportQrCanvas(innerSide);
     console.warn("[QR export] Overlay placement", {
       layout: config.layout,
       textAlign: config.textAlign,
-      x,
-      y,
-      w,
-      h,
-      innerX,
-      innerY,
-      innerSide,
-      qrRect: {
-        width: qrRect.width,
-        height: qrRect.height,
-      },
+      x, y, w, h, innerX, innerY, innerSide,
+      qrRect: { width: qrRect.width, height: qrRect.height },
     });
 
     let captured: HTMLCanvasElement;
@@ -638,7 +630,8 @@ const BannerCreator = () => {
         ignoreElements: (element) =>
           element instanceof HTMLElement &&
           (element.dataset.exportIgnore === "custom-logo" ||
-            element.dataset.exportIgnore === "brand-logo"),
+            element.dataset.exportIgnore === "brand-logo" ||
+            element.dataset.qrTarget === "true"),
       });
     } catch (err) {
       console.error("[QR export] html2canvas failed", err);
@@ -659,7 +652,33 @@ const BannerCreator = () => {
     } else {
       ctx.fillRect(x, y, w, h);
     }
+    ctx.imageSmoothingEnabled = false;
     ctx.drawImage(qrCanvas, innerX, innerY, innerSide, innerSide);
+
+    // Validate the QR area in the FINAL canvas has dark pixels (not blank).
+    try {
+      const sample = ctx.getImageData(
+        Math.max(0, Math.floor(innerX)),
+        Math.max(0, Math.floor(innerY)),
+        Math.min(captured.width - Math.floor(innerX), Math.floor(innerSide)),
+        Math.min(captured.height - Math.floor(innerY), Math.floor(innerSide))
+      );
+      let darkCount = 0;
+      for (let i = 0; i < sample.data.length; i += 4) {
+        if (sample.data[i] < 80 && sample.data[i + 1] < 80 && sample.data[i + 2] < 80) {
+          darkCount++;
+          if (darkCount > 50) break;
+        }
+      }
+      if (darkCount <= 50) {
+        console.error("[QR export] QR area looks blank in final canvas", { darkCount });
+        throw new Error("QR Code saiu em branco no PNG final.");
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("QR Code saiu em branco")) throw err;
+      // CORS/other read failures shouldn't block export
+      console.warn("[QR export] Could not validate QR pixels", err);
+    }
 
     if (readyLogoImage && logoRect && logoRect.width > 0 && logoRect.height > 0) {
       const logoX = (logoRect.left - cardRect.left) * SCALE;
