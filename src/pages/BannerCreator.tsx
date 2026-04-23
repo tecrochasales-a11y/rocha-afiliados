@@ -719,8 +719,6 @@ const BannerCreator = () => {
       ctx.restore();
     }
 
-    ctx.restore();
-
     return captured;
   };
 
