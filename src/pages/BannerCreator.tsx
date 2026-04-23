@@ -157,6 +157,75 @@ interface SavedTemplate {
   created_at: string;
 }
 
+type PixelStats = {
+  darkCount: number;
+  whiteCount: number;
+  transparentCount: number;
+  otherCount: number;
+  sampleSize: number;
+};
+
+type ExportDebugChecklistItem = {
+  id: string;
+  label: string;
+  ok: boolean;
+  detail: string;
+};
+
+type ExportDebugInfo = {
+  timestamp: string;
+  referralLinkPresent: boolean;
+  qrTarget: {
+    width: number;
+    height: number;
+    dataExportIgnore: string | null;
+    previewCanvasWidth: number;
+    previewCanvasHeight: number;
+    padding: { left: number; right: number; top: number; bottom: number };
+    radius: number;
+  };
+  offscreenQr: {
+    width: number;
+    height: number;
+    darkCount: number;
+    whiteCount: number;
+  };
+  capturedCanvas: {
+    width: number;
+    height: number;
+    qrBg: string | null;
+  };
+  overlayPlacement: {
+    layout: LayoutType;
+    textAlign: TextAlign;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    innerX: number;
+    innerY: number;
+    innerSide: number;
+    qrRect: { width: number; height: number };
+  };
+  beforeOverlay: PixelStats | null;
+  afterOverlay: PixelStats | null;
+  finalCanvas: {
+    width: number;
+    height: number;
+    composedOnFreshCanvas: boolean;
+  };
+  issues: string[];
+  checklist: ExportDebugChecklistItem[];
+};
+
+type ExportPreviewState = {
+  qrDataUrl: string;
+  finalDataUrl: string;
+  fileName: string;
+  qrSize: number;
+  debug: ExportDebugInfo;
+};
+
 const DEFAULT_CONFIG: BannerConfig = {
   title: "Proteja quem você ama",
   layout: "classic",
@@ -183,12 +252,7 @@ const BannerCreator = () => {
   const logoImageRef = useRef<HTMLImageElement>(null);
   const brandLogoRef = useRef<HTMLImageElement>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [exportPreview, setExportPreview] = useState<{
-    qrDataUrl: string;
-    finalDataUrl: string;
-    fileName: string;
-    qrSize: number;
-  } | null>(null);
+  const [exportPreview, setExportPreview] = useState<ExportPreviewState | null>(null);
 
   const [config, setConfig] = useState<BannerConfig>(DEFAULT_CONFIG);
   const [templates, setTemplates] = useState<SavedTemplate[]>([]);
