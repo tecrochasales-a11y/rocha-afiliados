@@ -568,10 +568,7 @@ const BannerCreator = () => {
     }
     setIsExporting(true);
     try {
-      // Mesma lógica do handleExport: aguardar layout estabilizar antes de capturar
-      await new Promise((r) => setTimeout(r, 1000));
-      const canvas = await captureBannerCanvas();
-
+      const canvas = await captureBannerCanvasWithRetry();
       // Validação equivalente à do handleExport (detecta canvas vazio)
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
