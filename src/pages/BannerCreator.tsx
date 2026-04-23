@@ -177,7 +177,6 @@ const BannerCreator = () => {
   const { toast } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
   const qrWrapperRef = useRef<HTMLDivElement>(null);
-  const exportQrRef = useRef<HTMLDivElement>(null);
   const logoWrapperRef = useRef<HTMLDivElement>(null);
   const logoImageRef = useRef<HTMLImageElement>(null);
   const brandLogoRef = useRef<HTMLImageElement>(null);
@@ -303,15 +302,21 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
-  // Verifies that the hidden export QR canvas has actually been painted
-  // (qrcode.react renders asynchronously, especially after layout changes).
-  const waitForExportQrReady = async (
+  // Verifies that the visible QR canvas inside the preview has actually been painted
+  // before we reuse it for the export overlay.
+  const waitForQrCanvasReady = async (
+    qrNode: HTMLElement | null,
+    label: string,
     maxAttempts = 8,
     delayMs = 150
   ): Promise<HTMLCanvasElement> => {
+    if (!qrNode) {
+      throw new Error("Área visível do QR não encontrada para exportação.");
+    }
+
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       await new Promise((r) => requestAnimationFrame(() => r(null)));
-      const candidate = exportQrRef.current?.querySelector(
+      const candidate = qrNode.querySelector(
         "canvas"
       ) as HTMLCanvasElement | null;
 
@@ -348,7 +353,7 @@ const BannerCreator = () => {
       }
 
       console.warn(
-        `[QR export] QR canvas not ready (attempt ${attempt}/${maxAttempts}). Retrying in ${delayMs}ms...`
+        `[QR export] ${label} canvas not ready (attempt ${attempt}/${maxAttempts}). Retrying in ${delayMs}ms...`
       );
       await new Promise((r) => setTimeout(r, delayMs));
     }
@@ -455,14 +460,14 @@ const BannerCreator = () => {
     };
   };
 
-  const renderExportQrCanvas = async (): Promise<HTMLCanvasElement> => {
+  const renderExportQrCanvas = async (qrNode: HTMLElement): Promise<HTMLCanvasElement> => {
     const exportSize = 220;
     const value = (referralLink || "").trim();
     if (!value) {
       throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
     }
 
-    const sourceCanvas = await waitForExportQrReady();
+    const sourceCanvas = await waitForQrCanvasReady(qrNode, "Visible QR");
 
     const canvas = document.createElement("canvas");
     canvas.width = exportSize;
@@ -550,7 +555,7 @@ const BannerCreator = () => {
       throw new Error(`QR muito pequeno para exportar (${innerSide}px). Verifique o layout.`);
     }
 
-    const qrCanvas = await renderExportQrCanvas();
+    const qrCanvas = await renderExportQrCanvas(qrTarget);
 
     let captured: HTMLCanvasElement;
     try {
