@@ -830,6 +830,7 @@ const BannerCreator = () => {
     <div
       ref={qrWrapperRef}
       data-qr-target="true"
+      data-export-ignore="qr"
       key={`qr-${config.layout}-${size}-${referralLink}`}
       style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}
     >
