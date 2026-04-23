@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createRoot } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { Link } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import html2canvas from "html2canvas";
@@ -460,48 +462,85 @@ const BannerCreator = () => {
     };
   };
 
-  const renderExportQrCanvas = async (qrNode: HTMLElement): Promise<HTMLImageElement> => {
-    const exportSize = 220;
+  // Renders an INDEPENDENT QR canvas off-screen, decoupled from the visible preview.
+  // This avoids any race with html2canvas / preview re-renders.
+  const renderExportQrCanvas = async (sizePx: number): Promise<HTMLCanvasElement> => {
     const value = (referralLink || "").trim();
     if (!value) {
       throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
     }
 
-    const sourceCanvas = await waitForQrCanvasReady(qrNode, "Visible QR");
-    const frozenUrl = sourceCanvas.toDataURL("image/png");
+    const host = document.createElement("div");
+    host.style.position = "fixed";
+    host.style.left = "-10000px";
+    host.style.top = "0";
+    host.style.width = `${sizePx}px`;
+    host.style.height = `${sizePx}px`;
+    host.style.pointerEvents = "none";
+    host.style.opacity = "0";
+    document.body.appendChild(host);
 
-    const frozenImage = new Image();
-    frozenImage.crossOrigin = "anonymous";
-    frozenImage.decoding = "async";
-    frozenImage.src = frozenUrl;
-    await new Promise<void>((resolve, reject) => {
-      frozenImage.onload = () => resolve();
-      frozenImage.onerror = () => reject(new Error("Falha ao congelar o bitmap do QR para exportação."));
-    });
-    await frozenImage.decode?.().catch(() => {});
+    const root = createRoot(host);
+    try {
+      flushSync(() => {
+        root.render(
+          <QRCodeCanvas
+            value={value}
+            size={sizePx}
+            level="H"
+            bgColor="#ffffff"
+            fgColor="#000000"
+            marginSize={0}
+          />
+        );
+      });
 
-    console.warn("[QR export] Frozen QR bitmap prepared", {
-      sourceWidth: sourceCanvas.width,
-      sourceHeight: sourceCanvas.height,
-      frozenWidth: frozenImage.naturalWidth,
-      frozenHeight: frozenImage.naturalHeight,
-    });
+      // Wait for paint
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
 
-    const canvas = document.createElement("canvas");
-    canvas.width = exportSize;
-    canvas.height = exportSize;
+      const sourceCanvas = host.querySelector("canvas") as HTMLCanvasElement | null;
+      if (!sourceCanvas || sourceCanvas.width === 0 || sourceCanvas.height === 0) {
+        throw new Error("QR Code de exportação não pôde ser renderizado off-screen.");
+      }
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      throw new Error("Contexto 2D indisponível para renderizar o QR Code.");
+      // Validate it has ink
+      const probeCtx = sourceCanvas.getContext("2d");
+      let hasInk = false;
+      if (probeCtx) {
+        const { data } = probeCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i] < 128 && data[i + 1] < 128 && data[i + 2] < 128) {
+            hasInk = true;
+            break;
+          }
+        }
+      }
+      if (!hasInk) {
+        throw new Error("QR Code off-screen ficou em branco.");
+      }
+
+      // Copy to a detached canvas so we can unmount the React root safely.
+      const out = document.createElement("canvas");
+      out.width = sourceCanvas.width;
+      out.height = sourceCanvas.height;
+      const outCtx = out.getContext("2d");
+      if (!outCtx) throw new Error("Contexto 2D indisponível para o QR de exportação.");
+      outCtx.fillStyle = "#ffffff";
+      outCtx.fillRect(0, 0, out.width, out.height);
+      outCtx.imageSmoothingEnabled = false;
+      outCtx.drawImage(sourceCanvas, 0, 0);
+
+      console.warn("[QR export] Off-screen QR rendered", {
+        width: out.width,
+        height: out.height,
+      });
+
+      return out;
+    } finally {
+      try { root.unmount(); } catch { /* noop */ }
+      if (host.parentNode) host.parentNode.removeChild(host);
     }
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, exportSize, exportSize);
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(frozenImage, 0, 0, exportSize, exportSize);
-
-    return frozenImage;
   };
 
   // Capture banner with html2canvas and overlay a freshly generated QR bitmap
@@ -571,21 +610,13 @@ const BannerCreator = () => {
       throw new Error(`QR muito pequeno para exportar (${innerSide}px). Verifique o layout.`);
     }
 
-    const qrCanvas = await renderExportQrCanvas(qrTarget);
+    // Render QR independently off-screen — does NOT depend on the visible preview.
+    const qrCanvas = await renderExportQrCanvas(innerSide);
     console.warn("[QR export] Overlay placement", {
       layout: config.layout,
       textAlign: config.textAlign,
-      x,
-      y,
-      w,
-      h,
-      innerX,
-      innerY,
-      innerSide,
-      qrRect: {
-        width: qrRect.width,
-        height: qrRect.height,
-      },
+      x, y, w, h, innerX, innerY, innerSide,
+      qrRect: { width: qrRect.width, height: qrRect.height },
     });
 
     let captured: HTMLCanvasElement;
@@ -599,7 +630,8 @@ const BannerCreator = () => {
         ignoreElements: (element) =>
           element instanceof HTMLElement &&
           (element.dataset.exportIgnore === "custom-logo" ||
-            element.dataset.exportIgnore === "brand-logo"),
+            element.dataset.exportIgnore === "brand-logo" ||
+            element.dataset.qrTarget === "true"),
       });
     } catch (err) {
       console.error("[QR export] html2canvas failed", err);
@@ -620,7 +652,33 @@ const BannerCreator = () => {
     } else {
       ctx.fillRect(x, y, w, h);
     }
+    ctx.imageSmoothingEnabled = false;
     ctx.drawImage(qrCanvas, innerX, innerY, innerSide, innerSide);
+
+    // Validate the QR area in the FINAL canvas has dark pixels (not blank).
+    try {
+      const sample = ctx.getImageData(
+        Math.max(0, Math.floor(innerX)),
+        Math.max(0, Math.floor(innerY)),
+        Math.min(captured.width - Math.floor(innerX), Math.floor(innerSide)),
+        Math.min(captured.height - Math.floor(innerY), Math.floor(innerSide))
+      );
+      let darkCount = 0;
+      for (let i = 0; i < sample.data.length; i += 4) {
+        if (sample.data[i] < 80 && sample.data[i + 1] < 80 && sample.data[i + 2] < 80) {
+          darkCount++;
+          if (darkCount > 50) break;
+        }
+      }
+      if (darkCount <= 50) {
+        console.error("[QR export] QR area looks blank in final canvas", { darkCount });
+        throw new Error("QR Code saiu em branco no PNG final.");
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("QR Code saiu em branco")) throw err;
+      // CORS/other read failures shouldn't block export
+      console.warn("[QR export] Could not validate QR pixels", err);
+    }
 
     if (readyLogoImage && logoRect && logoRect.width > 0 && logoRect.height > 0) {
       const logoX = (logoRect.left - cardRect.left) * SCALE;
@@ -772,6 +830,7 @@ const BannerCreator = () => {
     <div
       ref={qrWrapperRef}
       data-qr-target="true"
+      data-export-ignore="qr"
       key={`qr-${config.layout}-${size}-${referralLink}`}
       style={{ background: colors.qrBg, borderRadius: 14, padding: 10, display: "inline-block" }}
     >
