@@ -414,11 +414,6 @@ const BannerCreator = () => {
 
     const qrCanvas = await renderExportQrCanvas();
 
-    // Capture coordinates from the CLONED DOM inside onclone — this avoids
-    // drift between the live DOM (used for measurement) and the snapshot
-    // html2canvas actually rasterizes (especially in centered/flex layouts).
-    let cloneRect: { x: number; y: number; w: number; h: number } | null = null;
-
     let captured: HTMLCanvasElement;
     try {
       captured = await html2canvas(node, {
@@ -427,26 +422,6 @@ const BannerCreator = () => {
         allowTaint: false,
         backgroundColor: null,
         logging: false,
-        onclone: (_clonedDoc, clonedNode) => {
-          const clonedQr = clonedNode.querySelector(
-            '[data-qr-target="true"]'
-          ) as HTMLElement | null;
-          if (!clonedQr) return;
-
-          // Hide the original QR content so html2canvas paints only the
-          // wrapper background; we'll draw the QR bitmap on top afterwards
-          // using the clone's own measured coordinates.
-          clonedQr.innerHTML = "";
-
-          const cRect = clonedNode.getBoundingClientRect();
-          const qRect = clonedQr.getBoundingClientRect();
-          cloneRect = {
-            x: (qRect.left - cRect.left) * SCALE,
-            y: (qRect.top - cRect.top) * SCALE,
-            w: qRect.width * SCALE,
-            h: qRect.height * SCALE,
-          };
-        },
       });
     } catch (err) {
       console.error("[QR export] html2canvas failed", err);
@@ -458,15 +433,17 @@ const BannerCreator = () => {
     const ctx = captured.getContext("2d");
     if (!ctx) throw new Error("Contexto 2D indisponível para compor o QR.");
 
-    const rect = cloneRect ?? { x, y, w, h };
-    const cInnerW = Math.max(1, rect.w - (padL + padR) * SCALE);
-    const cInnerH = Math.max(1, rect.h - (padT + padB) * SCALE);
-    const cInnerSide = Math.floor(Math.min(cInnerW, cInnerH));
-    const cInnerX = rect.x + padL * SCALE + (cInnerW - cInnerSide) / 2;
-    const cInnerY = rect.y + padT * SCALE + (cInnerH - cInnerSide) / 2;
-
-    console.log("[QR export] drawing QR", { rect, cInnerSide, cInnerX, cInnerY });
-    ctx.drawImage(qrCanvas, cInnerX, cInnerY, cInnerSide, cInnerSide);
+    ctx.save();
+    ctx.fillStyle = colors.qrBg;
+    if (typeof ctx.roundRect === "function") {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, qrRadius * SCALE);
+      ctx.fill();
+    } else {
+      ctx.fillRect(x, y, w, h);
+    }
+    ctx.drawImage(qrCanvas, innerX, innerY, innerSide, innerSide);
+    ctx.restore();
 
     return captured;
   };
@@ -479,7 +456,7 @@ const BannerCreator = () => {
     setIsExporting(true);
     try {
       // Aguardar layout ser aplicado antes de capturar
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 1000));
       const canvas = await captureBannerCanvas();
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
@@ -511,7 +488,7 @@ const BannerCreator = () => {
     setIsExporting(true);
     try {
       // Mesma lógica do handleExport: aguardar layout estabilizar antes de capturar
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 1000));
       const canvas = await captureBannerCanvas();
 
       // Validação equivalente à do handleExport (detecta canvas vazio)
