@@ -524,7 +524,10 @@ const BannerCreator = () => {
       : readyLogoImage?.getBoundingClientRect() ?? null;
     const liveBrandLogo = brandLogoRef.current ?? (node.querySelector('[data-brand-logo="true"]') as HTMLImageElement | null);
     const readyBrandLogo = await waitForExportImageReady(liveBrandLogo, "Brand logo");
-    const brandLogoRect = readyBrandLogo?.getBoundingClientRect() ?? null;
+    const insurerStripHeight = config.showInsurers && config.selectedInsurers.length > 0 ? 110 : 0;
+    const brandLogoBottom = insurerStripHeight - 8;
+    const brandLogoLeft = 14;
+    const brandLogoWidth = 70;
 
     if (qrRect.width <= 0 || qrRect.height <= 0) {
       console.error("[QR export] Invalid qrRect", qrRect);
@@ -591,11 +594,21 @@ const BannerCreator = () => {
       ctx.drawImage(readyLogoImage, logoX, logoY, logoW, logoH);
     }
 
-    if (readyBrandLogo && brandLogoRect && brandLogoRect.width > 0 && brandLogoRect.height > 0) {
-      const brandX = (brandLogoRect.left - cardRect.left) * SCALE;
-      const brandY = (brandLogoRect.top - cardRect.top) * SCALE;
-      const brandW = brandLogoRect.width * SCALE;
-      const brandH = brandLogoRect.height * SCALE;
+    if (readyBrandLogo && readyBrandLogo.naturalWidth > 0 && readyBrandLogo.naturalHeight > 0) {
+      const brandW = brandLogoWidth * SCALE;
+      const brandH = (brandLogoWidth * (readyBrandLogo.naturalHeight / readyBrandLogo.naturalWidth)) * SCALE;
+      const brandX = brandLogoLeft * SCALE;
+      const brandY = captured.height - brandH - brandLogoBottom * SCALE;
+
+      console.warn("[Banner export] Drawing brand logo overlay", {
+        layout: config.layout,
+        textAlign: config.textAlign,
+        brandX,
+        brandY,
+        brandW,
+        brandH,
+      });
+
       ctx.save();
       ctx.globalAlpha = 0.45;
       ctx.drawImage(readyBrandLogo, brandX, brandY, brandW, brandH);
