@@ -460,7 +460,7 @@ const BannerCreator = () => {
     };
   };
 
-  const renderExportQrCanvas = async (qrNode: HTMLElement): Promise<HTMLCanvasElement> => {
+  const renderExportQrCanvas = async (qrNode: HTMLElement): Promise<HTMLImageElement> => {
     const exportSize = 220;
     const value = (referralLink || "").trim();
     if (!value) {
@@ -468,6 +468,24 @@ const BannerCreator = () => {
     }
 
     const sourceCanvas = await waitForQrCanvasReady(qrNode, "Visible QR");
+    const frozenUrl = sourceCanvas.toDataURL("image/png");
+
+    const frozenImage = new Image();
+    frozenImage.crossOrigin = "anonymous";
+    frozenImage.decoding = "async";
+    frozenImage.src = frozenUrl;
+    await new Promise<void>((resolve, reject) => {
+      frozenImage.onload = () => resolve();
+      frozenImage.onerror = () => reject(new Error("Falha ao congelar o bitmap do QR para exportação."));
+    });
+    await frozenImage.decode?.().catch(() => {});
+
+    console.warn("[QR export] Frozen QR bitmap prepared", {
+      sourceWidth: sourceCanvas.width,
+      sourceHeight: sourceCanvas.height,
+      frozenWidth: frozenImage.naturalWidth,
+      frozenHeight: frozenImage.naturalHeight,
+    });
 
     const canvas = document.createElement("canvas");
     canvas.width = exportSize;
@@ -481,9 +499,9 @@ const BannerCreator = () => {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, exportSize, exportSize);
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(sourceCanvas, 0, 0, exportSize, exportSize);
+    ctx.drawImage(frozenImage, 0, 0, exportSize, exportSize);
 
-    return canvas;
+    return frozenImage;
   };
 
   // Capture banner with html2canvas and overlay a freshly generated QR bitmap
@@ -499,9 +517,7 @@ const BannerCreator = () => {
 
     const SCALE = 2;
 
-    const qrTarget =
-      qrWrapperRef.current ??
-      (node.querySelector('[data-qr-target="true"]') as HTMLElement | null);
+    const qrTarget = node.querySelector('[data-qr-target="true"]') as HTMLElement | null;
 
     if (!qrTarget) {
       throw new Error("Área do QR não encontrada no layout atual.");
@@ -556,6 +572,21 @@ const BannerCreator = () => {
     }
 
     const qrCanvas = await renderExportQrCanvas(qrTarget);
+    console.warn("[QR export] Overlay placement", {
+      layout: config.layout,
+      textAlign: config.textAlign,
+      x,
+      y,
+      w,
+      h,
+      innerX,
+      innerY,
+      innerSide,
+      qrRect: {
+        width: qrRect.width,
+        height: qrRect.height,
+      },
+    });
 
     let captured: HTMLCanvasElement;
     try {
