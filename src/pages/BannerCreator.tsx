@@ -413,9 +413,11 @@ const BannerCreator = () => {
     }
 
     const qrCanvas = await renderExportQrCanvas();
-    // Serialize to data URL — cloneNode(true) on a <canvas> does NOT copy
-    // the pixel buffer, so html2canvas would otherwise capture a blank canvas.
-    const qrDataUrl = qrCanvas.toDataURL("image/png");
+
+    // Capture coordinates from the CLONED DOM inside onclone — this avoids
+    // drift between the live DOM (used for measurement) and the snapshot
+    // html2canvas actually rasterizes (especially in centered/flex layouts).
+    let cloneRect: { x: number; y: number; w: number; h: number } | null = null;
 
     let captured: HTMLCanvasElement;
     try {
@@ -425,23 +427,25 @@ const BannerCreator = () => {
         allowTaint: false,
         backgroundColor: null,
         logging: false,
-        onclone: (clonedDoc) => {
-          const clonedQr = clonedDoc.querySelector(
+        onclone: (_clonedDoc, clonedNode) => {
+          const clonedQr = clonedNode.querySelector(
             '[data-qr-target="true"]'
           ) as HTMLElement | null;
-          if (clonedQr) {
-            const qrImg = clonedDoc.createElement("img");
-            qrImg.src = qrDataUrl;
-            qrImg.decoding = "sync";
-            qrImg.style.display = "block";
-            qrImg.style.width = "100%";
-            qrImg.style.height = "100%";
-            qrImg.style.maxWidth = "100%";
-            qrImg.style.maxHeight = "100%";
-            qrImg.style.imageRendering = "pixelated";
-            clonedQr.innerHTML = "";
-            clonedQr.appendChild(qrImg);
-          }
+          if (!clonedQr) return;
+
+          // Hide the original QR content so html2canvas paints only the
+          // wrapper background; we'll draw the QR bitmap on top afterwards
+          // using the clone's own measured coordinates.
+          clonedQr.innerHTML = "";
+
+          const cRect = clonedNode.getBoundingClientRect();
+          const qRect = clonedQr.getBoundingClientRect();
+          cloneRect = {
+            x: (qRect.left - cRect.left) * SCALE,
+            y: (qRect.top - cRect.top) * SCALE,
+            w: qRect.width * SCALE,
+            h: qRect.height * SCALE,
+          };
         },
       });
     } catch (err) {
@@ -451,10 +455,19 @@ const BannerCreator = () => {
       );
     }
 
-    // QR is already injected into the cloned DOM as an <img> with a data URL,
-    // so html2canvas captured it at the correct position for any layout.
-    // No manual overlay — coordinates from the live DOM can drift after
-    // layout changes (e.g. Central) and would paint over the captured QR.
+    const ctx = captured.getContext("2d");
+    if (!ctx) throw new Error("Contexto 2D indisponível para compor o QR.");
+
+    const rect = cloneRect ?? { x, y, w, h };
+    const cInnerW = Math.max(1, rect.w - (padL + padR) * SCALE);
+    const cInnerH = Math.max(1, rect.h - (padT + padB) * SCALE);
+    const cInnerSide = Math.floor(Math.min(cInnerW, cInnerH));
+    const cInnerX = rect.x + padL * SCALE + (cInnerW - cInnerSide) / 2;
+    const cInnerY = rect.y + padT * SCALE + (cInnerH - cInnerSide) / 2;
+
+    console.log("[QR export] drawing QR", { rect, cInnerSide, cInnerX, cInnerY });
+    ctx.drawImage(qrCanvas, cInnerX, cInnerY, cInnerSide, cInnerSide);
+
     return captured;
   };
 
