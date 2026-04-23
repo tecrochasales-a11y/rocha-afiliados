@@ -413,6 +413,9 @@ const BannerCreator = () => {
     }
 
     const qrCanvas = await renderExportQrCanvas();
+    // Serialize to data URL — cloneNode(true) on a <canvas> does NOT copy
+    // the pixel buffer, so html2canvas would otherwise capture a blank canvas.
+    const qrDataUrl = qrCanvas.toDataURL("image/png");
 
     let captured: HTMLCanvasElement;
     try {
@@ -427,15 +430,17 @@ const BannerCreator = () => {
             '[data-qr-target="true"]'
           ) as HTMLElement | null;
           if (clonedQr) {
-            const qrCanvasClone = qrCanvas.cloneNode(true) as HTMLCanvasElement;
-            qrCanvasClone.style.display = "block";
-            qrCanvasClone.style.width = "100%";
-            qrCanvasClone.style.height = "100%";
-            qrCanvasClone.style.maxWidth = "100%";
-            qrCanvasClone.style.maxHeight = "100%";
-            qrCanvasClone.style.imageRendering = "pixelated";
+            const qrImg = clonedDoc.createElement("img");
+            qrImg.src = qrDataUrl;
+            qrImg.decoding = "sync";
+            qrImg.style.display = "block";
+            qrImg.style.width = "100%";
+            qrImg.style.height = "100%";
+            qrImg.style.maxWidth = "100%";
+            qrImg.style.maxHeight = "100%";
+            qrImg.style.imageRendering = "pixelated";
             clonedQr.innerHTML = "";
-            clonedQr.appendChild(qrCanvasClone);
+            clonedQr.appendChild(qrImg);
           }
         },
       });
