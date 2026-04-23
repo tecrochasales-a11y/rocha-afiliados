@@ -1,32 +1,44 @@
 
+Objetivo: corrigir o problema do QR Code que aparece no preview, mas sai em branco no arquivo baixado do banner.
 
-## Correção do export do QR no BannerCreator
+1. Trocar a fonte do QR do export
+- Remover a dependência do canvas visível do preview como fonte do QR do download.
+- Hoje o export ainda “congela” o QR a partir do DOM visível (`waitForQrCanvasReady` + `toDataURL`), que é a parte mais frágil do fluxo.
+- Vou gerar o bitmap do QR especificamente para o download, a partir do `referralLink`, sem depender do preview já renderizado na tela.
 
-### Causa raiz confirmada
-No `captureBannerCanvas` (src/pages/BannerCreator.tsx, ~linha 366), o `onclone` do `html2canvas` faz `clonedQr.innerHTML = ""` e **só depois** mede `clonedQr.getBoundingClientRect()`. Em layouts flex (Central / Lado a Lado), esvaziar o nó faz o flexbox recalcular e o retângulo medido vira ~0×0 (ou colapsa para o canto), resultando em `cInnerSide` minúsculo ou `cInnerX/Y` errados — por isso o QR “some” no PNG após trocar layout. O preview continua certo porque ele não passa pelo clone.
+2. Unificar preview e export com uma fonte determinística
+- Substituir o QR do `BannerCreator` para usar um SVG como fonte estável.
+- No download, serializar esse SVG para imagem e desenhá-lo no canvas final.
+- Isso evita o cenário em que o preview está correto, mas o bitmap capturado para o PNG sai vazio.
 
-### Correção
-Arquivo único: `src/pages/BannerCreator.tsx`
+3. Corrigir o pipeline atual do export
+- Revisar `renderExportQrCanvas`, porque hoje ele cria um canvas intermediário, desenha o QR nele, mas retorna o `frozenImage` em vez do canvas normalizado.
+- Ajustar para que o export use sempre o bitmap final preparado pelo próprio pipeline de exportação, não uma imagem intermediária do preview.
+- Manter o overlay manual do QR por cima do `html2canvas`, já que as coordenadas registradas nos logs mostram que a posição está correta.
 
-1. **Em `captureBannerCanvas` (linhas ~420–469)** — remover toda a lógica do `onclone` e do `cloneRect`. Confiar apenas nas coordenadas já calculadas do DOM ao vivo (`x, y, w, h, innerX, innerY, innerSide, qrRadius`), que são estáveis pois o nó vivo não é mutado.
+4. Isolar totalmente o QR do html2canvas
+- Marcar o QR visual do card para ser ignorado pelo `html2canvas`.
+- Capturar o banner sem o QR e, em seguida, desenhar o QR exportável por cima.
+- Assim o resultado final não depende da capacidade do `html2canvas` de rasterizar o QR corretamente.
 
-   Após o `html2canvas`, pintar o fundo branco arredondado do QR e desenhar o `qrCanvas` bitmap fresco por cima:
-   - `ctx.save()`
-   - `ctx.fillStyle = colors.qrBg`
-   - `ctx.roundRect(x, y, w, h, qrRadius * SCALE)` + `ctx.fill()` (com fallback `fillRect` se `roundRect` não existir)
-   - `ctx.drawImage(qrCanvas, innerX, innerY, innerSide, innerSide)`
-   - `ctx.restore()`
+5. Adicionar verificação real antes de salvar
+- Depois de desenhar o QR no canvas final, validar pixels da área do QR para confirmar que existem módulos escuros.
+- Se a área ainda estiver branca, disparar retry e falhar com erro explícito em vez de baixar um PNG quebrado.
+- Isso evita “download com sucesso” quando o QR saiu vazio.
 
-   Isso elimina o race condition do clone e garante que o QR fique sempre na posição/tamanho corretos, qualquer que seja o layout. O `html2canvas` continua capturando o SVG original normalmente — o overlay por cima apenas garante nitidez e presença do QR mesmo se o `html2canvas` falhar em rasterizar o SVG.
+6. Manter o restante do banner intacto
+- Preservar o layout atual, logo personalizada, marca Rocha e faixa de seguradoras.
+- Não mexer no preview visual além do necessário para estabilizar a fonte do QR.
 
-2. **Em `handleExport` (linha 482) e `handleShare` (linha 514)** — aumentar o delay de estabilização de layout de `500ms` para `1000ms`, dando tempo ao React/flexbox de assentar após troca de layout antes da medição.
+Arquivos envolvidos
+- `src/pages/BannerCreator.tsx`
+- possível reaproveitamento do padrão já usado em `src/components/QRCodeGenerator.tsx` para serialização de SVG
 
-### Detalhes técnicos
-- Nenhuma nova variável precisa ser declarada — `x, y, w, h, innerX, innerY, innerSide, qrRadius, colors.qrBg, qrCanvas, SCALE` já estão no escopo (calculados nas linhas 374–415).
-- O bloco `cloneRect` e o recálculo de `cInnerW/H/X/Y/Side` (linhas 420, 461–469) são removidos — passam a ser desnecessários.
-- O `onclone` é totalmente removido da config do `html2canvas`.
-- Comportamento do preview não muda (não toca em JSX).
+Resultado esperado
+- O QR continuará aparecendo normalmente no preview.
+- No PNG baixado, o QR passará a sair preenchido e legível também nos layouts Central e Lado a Lado, sem depender do estado visual do preview.
 
-### Resultado esperado
-QR Code presente, nítido e na posição correta no PNG exportado em **todos os layouts** (Clássico, Central, Lado a Lado) e alinhamentos.
-
+Detalhes técnicos
+- Evidência atual: os logs mostram que as coordenadas do overlay estão corretas (`x`, `y`, `innerX`, `innerY`, `innerSide`), então o defeito não está no posicionamento.
+- O problema restante está na origem do bitmap usado no download.
+- A correção será tornar o QR do export independente do canvas renderizado na UI e validar o resultado final antes de concluir o download.
