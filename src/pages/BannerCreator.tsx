@@ -508,6 +508,29 @@ const BannerCreator = () => {
     return captured;
   };
 
+
+  // Captures the banner with progressive backoff. If the first attempt fails
+  // (commonly because QR/logo bitmaps weren't ready), waits longer and retries.
+  const captureBannerCanvasWithRetry = async (): Promise<HTMLCanvasElement> => {
+    const delays = [1000, 1500, 2500];
+    let lastErr: unknown;
+    for (let i = 0; i < delays.length; i++) {
+      try {
+        await new Promise((r) => setTimeout(r, delays[i]));
+        return await captureBannerCanvas();
+      } catch (err) {
+        lastErr = err;
+        console.warn(
+          `[QR export] Capture attempt ${i + 1}/${delays.length} failed:`,
+          err instanceof Error ? err.message : err
+        );
+      }
+    }
+    throw lastErr instanceof Error
+      ? lastErr
+      : new Error("Falha ao capturar o banner após múltiplas tentativas.");
+  };
+
   const handleExport = async () => {
     if (!cardRef.current) {
       toast({ title: "Erro ao exportar", description: "Banner não encontrado.", variant: "destructive" });
@@ -515,9 +538,7 @@ const BannerCreator = () => {
     }
     setIsExporting(true);
     try {
-      // Aguardar layout ser aplicado antes de capturar
-      await new Promise((r) => setTimeout(r, 1000));
-      const canvas = await captureBannerCanvas();
+      const canvas = await captureBannerCanvasWithRetry();
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
         throw new Error("Imagem gerada está vazia.");
