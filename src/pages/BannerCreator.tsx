@@ -178,6 +178,7 @@ const BannerCreator = () => {
   const cardRef = useRef<HTMLDivElement>(null);
   const qrWrapperRef = useRef<HTMLDivElement>(null);
   const exportQrRef = useRef<HTMLDivElement>(null);
+  const logoImageRef = useRef<HTMLImageElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const [config, setConfig] = useState<BannerConfig>(DEFAULT_CONFIG);
@@ -394,6 +395,31 @@ const BannerCreator = () => {
     console.warn("[QR export] Proceeding with export despite unresolved images.");
   };
 
+  const waitForExportImageReady = async (
+    image: HTMLImageElement | null,
+    label: string,
+    maxAttempts = 8,
+    delayMs = 150
+  ): Promise<HTMLImageElement | null> => {
+    if (!image) return null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (image.complete && image.naturalWidth > 0) {
+        await image.decode?.().catch(() => {});
+        return image;
+      }
+
+      console.warn(
+        `[Banner export] ${label} bitmap not ready (attempt ${attempt}/${maxAttempts}). Retrying in ${delayMs}ms...`,
+        image.currentSrc || image.src
+      );
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+
+    console.warn(`[Banner export] ${label} bitmap was not confirmed before capture.`);
+    return image.complete && image.naturalWidth > 0 ? image : null;
+  };
+
   const renderExportQrCanvas = async (): Promise<HTMLCanvasElement> => {
     const exportSize = 220;
     const value = (referralLink || "").trim();
@@ -450,6 +476,11 @@ const BannerCreator = () => {
 
     const cardRect = node.getBoundingClientRect();
     const qrRect = qrTarget.getBoundingClientRect();
+    const liveLogoImage = config.logoData
+      ? logoImageRef.current ?? (node.querySelector('[data-logo-image="true"]') as HTMLImageElement | null)
+      : null;
+    const readyLogoImage = await waitForExportImageReady(liveLogoImage, "Custom logo");
+    const logoRect = readyLogoImage?.getBoundingClientRect() ?? null;
 
     if (qrRect.width <= 0 || qrRect.height <= 0) {
       console.error("[QR export] Invalid qrRect", qrRect);
@@ -503,6 +534,15 @@ const BannerCreator = () => {
       ctx.fillRect(x, y, w, h);
     }
     ctx.drawImage(qrCanvas, innerX, innerY, innerSide, innerSide);
+
+    if (readyLogoImage && logoRect && logoRect.width > 0 && logoRect.height > 0) {
+      const logoX = (logoRect.left - cardRect.left) * SCALE;
+      const logoY = (logoRect.top - cardRect.top) * SCALE;
+      const logoW = logoRect.width * SCALE;
+      const logoH = logoRect.height * SCALE;
+      ctx.drawImage(readyLogoImage, logoX, logoY, logoW, logoH);
+    }
+
     ctx.restore();
 
     return captured;
@@ -644,9 +684,9 @@ const BannerCreator = () => {
     if (!config.logoData) return null;
     const justify = config.textAlign === "center" ? "center" : config.textAlign === "right" ? "flex-end" : "flex-start";
     return (
-      <div style={{ display: "flex", justifyContent: justify, marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: justify, width: "100%", marginBottom: 16 }}>
         <div style={{ height: config.logoSize, maxWidth: "70%", display: "flex", alignItems: "center" }}>
-          <img src={config.logoData} alt="Logo" style={{ maxHeight: config.logoSize, maxWidth: "100%", width: "auto", height: "auto", display: "block" }} crossOrigin="anonymous" />
+          <img ref={logoImageRef} data-logo-image="true" src={config.logoData} alt="Logo" style={{ maxHeight: config.logoSize, maxWidth: "100%", width: "auto", height: "auto", display: "block" }} crossOrigin="anonymous" />
         </div>
       </div>
     );
