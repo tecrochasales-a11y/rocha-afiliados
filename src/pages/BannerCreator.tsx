@@ -300,6 +300,100 @@ const BannerCreator = () => {
     await new Promise((r) => requestAnimationFrame(() => r(null)));
   };
 
+  // Verifies that the hidden export QR canvas has actually been painted
+  // (qrcode.react renders asynchronously, especially after layout changes).
+  const waitForExportQrReady = async (
+    maxAttempts = 8,
+    delayMs = 150
+  ): Promise<HTMLCanvasElement> => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const candidate = exportQrRef.current?.querySelector(
+        "canvas"
+      ) as HTMLCanvasElement | null;
+
+      if (candidate && candidate.width > 0 && candidate.height > 0) {
+        // Confirm it's not a blank canvas by sampling a few pixels.
+        try {
+          const probe = candidate.getContext("2d");
+          if (probe) {
+            const { data } = probe.getImageData(
+              0,
+              0,
+              Math.min(candidate.width, 32),
+              Math.min(candidate.height, 32)
+            );
+            let hasInk = false;
+            for (let i = 3; i < data.length; i += 4) {
+              if (data[i] !== 0) {
+                // any non-transparent pixel implies QR was drawn
+                // (qrcode.react paints opaque white background + black modules)
+                if (data[i - 3] < 250 || data[i - 2] < 250 || data[i - 1] < 250) {
+                  hasInk = true;
+                  break;
+                }
+              }
+            }
+            if (hasInk) return candidate;
+          } else {
+            return candidate;
+          }
+        } catch {
+          // CORS-tainted canvas would throw — but our QR is local, so just accept it.
+          return candidate;
+        }
+      }
+
+      console.warn(
+        `[QR export] QR canvas not ready (attempt ${attempt}/${maxAttempts}). Retrying in ${delayMs}ms...`
+      );
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+    throw new Error("QR Code de exportação não ficou pronto a tempo.");
+  };
+
+  // Ensures all <img> tags inside the banner have decoded bitmaps available
+  // before html2canvas runs. Retries with backoff for slow assets (logo, etc.).
+  const waitForBannerImages = async (
+    node: HTMLElement,
+    maxAttempts = 6,
+    delayMs = 200
+  ): Promise<void> => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const images = Array.from(node.querySelectorAll("img"));
+      const pending = images.filter(
+        (img) => !img.complete || img.naturalWidth === 0
+      );
+
+      if (pending.length === 0) {
+        await Promise.all(
+          images.map((img) =>
+            img.decode ? img.decode().catch(() => {}) : Promise.resolve()
+          )
+        );
+        return;
+      }
+
+      console.warn(
+        `[QR export] ${pending.length} image(s) still loading (attempt ${attempt}/${maxAttempts}). Waiting ${delayMs}ms...`,
+        pending.map((p) => p.src)
+      );
+
+      await Promise.all(
+        pending.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              const done = () => resolve();
+              img.addEventListener("load", done, { once: true });
+              img.addEventListener("error", done, { once: true });
+              setTimeout(done, delayMs);
+            })
+        )
+      );
+    }
+    console.warn("[QR export] Proceeding with export despite unresolved images.");
+  };
+
   const renderExportQrCanvas = async (): Promise<HTMLCanvasElement> => {
     const exportSize = 220;
     const value = (referralLink || "").trim();
@@ -307,12 +401,7 @@ const BannerCreator = () => {
       throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
     }
 
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
-
-    const sourceCanvas = exportQrRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
-    if (!sourceCanvas || sourceCanvas.width <= 0 || sourceCanvas.height <= 0) {
-      throw new Error("QR Code de exportação não ficou pronto a tempo.");
-    }
+    const sourceCanvas = await waitForExportQrReady();
 
     const canvas = document.createElement("canvas");
     canvas.width = exportSize;
@@ -340,6 +429,7 @@ const BannerCreator = () => {
     }
     if (document.fonts?.ready) await document.fonts.ready;
     await waitForCardAssets(node);
+    await waitForBannerImages(node);
 
     const SCALE = 2;
 
@@ -418,6 +508,29 @@ const BannerCreator = () => {
     return captured;
   };
 
+
+  // Captures the banner with progressive backoff. If the first attempt fails
+  // (commonly because QR/logo bitmaps weren't ready), waits longer and retries.
+  const captureBannerCanvasWithRetry = async (): Promise<HTMLCanvasElement> => {
+    const delays = [1000, 1500, 2500];
+    let lastErr: unknown;
+    for (let i = 0; i < delays.length; i++) {
+      try {
+        await new Promise((r) => setTimeout(r, delays[i]));
+        return await captureBannerCanvas();
+      } catch (err) {
+        lastErr = err;
+        console.warn(
+          `[QR export] Capture attempt ${i + 1}/${delays.length} failed:`,
+          err instanceof Error ? err.message : err
+        );
+      }
+    }
+    throw lastErr instanceof Error
+      ? lastErr
+      : new Error("Falha ao capturar o banner após múltiplas tentativas.");
+  };
+
   const handleExport = async () => {
     if (!cardRef.current) {
       toast({ title: "Erro ao exportar", description: "Banner não encontrado.", variant: "destructive" });
@@ -425,9 +538,7 @@ const BannerCreator = () => {
     }
     setIsExporting(true);
     try {
-      // Aguardar layout ser aplicado antes de capturar
-      await new Promise((r) => setTimeout(r, 1000));
-      const canvas = await captureBannerCanvas();
+      const canvas = await captureBannerCanvasWithRetry();
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
         throw new Error("Imagem gerada está vazia.");
@@ -457,10 +568,7 @@ const BannerCreator = () => {
     }
     setIsExporting(true);
     try {
-      // Mesma lógica do handleExport: aguardar layout estabilizar antes de capturar
-      await new Promise((r) => setTimeout(r, 1000));
-      const canvas = await captureBannerCanvas();
-
+      const canvas = await captureBannerCanvasWithRetry();
       // Validação equivalente à do handleExport (detecta canvas vazio)
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
