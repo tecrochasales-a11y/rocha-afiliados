@@ -1364,6 +1364,61 @@ const BannerCreator = () => {
           </div>
         </div>
       </main>
+
+      <Dialog open={!!exportPreview} onOpenChange={(open) => !open && setExportPreview(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização do download</DialogTitle>
+            <DialogDescription>
+              Confira como o banner e o QR Code ficarão no PNG final antes de baixar.
+              Compare o QR isolado abaixo com o do preview ao vivo.
+            </DialogDescription>
+          </DialogHeader>
+
+          {exportPreview && (
+            <div className="space-y-6">
+              <div>
+                <p className="text-sm font-medium mb-2">QR Code que será embutido ({exportPreview.qrSize}px)</p>
+                <div className="inline-block bg-white p-3 rounded-lg border border-border">
+                  <img
+                    src={exportPreview.qrDataUrl}
+                    alt="QR de exportação"
+                    style={{ width: 180, height: 180, imageRendering: "pixelated" }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Se este QR estiver em branco, o problema está na geração off-screen.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium mb-2">Banner final composto</p>
+                <div className="bg-muted/40 rounded-lg p-3 border border-border">
+                  <img
+                    src={exportPreview.finalDataUrl}
+                    alt="Banner final"
+                    style={{ width: "100%", height: "auto", display: "block" }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Se o banner estiver correto mas o QR no banner sair em branco,
+                  o problema é na composição (drawImage / posicionamento).
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setExportPreview(null)}>
+              Cancelar
+            </Button>
+            <Button variant="hero" className="gap-2" onClick={confirmPreviewDownload}>
+              <Download className="w-4 h-4" />
+              Confirmar e baixar PNG
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
