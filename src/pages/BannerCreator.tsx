@@ -532,9 +532,51 @@ const BannerCreator = () => {
     };
   };
 
+  const readPixelStats = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ): PixelStats | null => {
+    const sx = Math.max(0, Math.floor(x));
+    const sy = Math.max(0, Math.floor(y));
+    const sw = Math.min(ctx.canvas.width - sx, Math.max(0, Math.floor(width)));
+    const sh = Math.min(ctx.canvas.height - sy, Math.max(0, Math.floor(height)));
+    if (sw <= 0 || sh <= 0) return null;
+
+    const sample = ctx.getImageData(sx, sy, sw, sh);
+    let darkCount = 0;
+    let whiteCount = 0;
+    let transparentCount = 0;
+    let otherCount = 0;
+
+    for (let i = 0; i < sample.data.length; i += 4) {
+      const r = sample.data[i];
+      const g = sample.data[i + 1];
+      const b = sample.data[i + 2];
+      const a = sample.data[i + 3];
+
+      if (a === 0) transparentCount++;
+      else if (r < 80 && g < 80 && b < 80) darkCount++;
+      else if (r > 240 && g > 240 && b > 240) whiteCount++;
+      else otherCount++;
+    }
+
+    return {
+      darkCount,
+      whiteCount,
+      transparentCount,
+      otherCount,
+      sampleSize: sample.data.length / 4,
+    };
+  };
+
   // Renders an INDEPENDENT QR canvas off-screen, decoupled from the visible preview.
   // This avoids any race with html2canvas / preview re-renders.
-  const renderExportQrCanvas = async (sizePx: number): Promise<HTMLCanvasElement> => {
+  const renderExportQrCanvas = async (
+    sizePx: number
+  ): Promise<{ canvas: HTMLCanvasElement; stats: { darkCount: number; whiteCount: number } }> => {
     const value = (referralLink || "").trim();
     if (!value) {
       throw new Error("Link de indicação indisponível. Verifique seu código de afiliado.");
@@ -579,12 +621,15 @@ const BannerCreator = () => {
       whiteCount,
     });
 
-    return out;
+    return {
+      canvas: out,
+      stats: { darkCount, whiteCount },
+    };
   };
 
   // Capture banner with html2canvas and overlay a freshly generated QR bitmap
   // at the position/size of the QR wrapper. Decoupled from the live preview.
-  const captureBannerCanvas = async (): Promise<HTMLCanvasElement> => {
+  const captureBannerCanvas = async (): Promise<{ canvas: HTMLCanvasElement; debug: ExportDebugInfo }> => {
     const node = cardRef.current;
     if (!node) {
       throw new Error("Banner não está pronto para exportação.");
@@ -602,6 +647,7 @@ const BannerCreator = () => {
     }
 
     const qrStyles = window.getComputedStyle(qrTarget);
+    const previewQrCanvas = qrTarget.querySelector("canvas") as HTMLCanvasElement | null;
     const padL = parseFloat(qrStyles.paddingLeft) || 0;
     const padR = parseFloat(qrStyles.paddingRight) || 0;
     const padT = parseFloat(qrStyles.paddingTop) || 0;
@@ -650,7 +696,7 @@ const BannerCreator = () => {
     }
 
     // Render QR independently off-screen — does NOT depend on the visible preview.
-    const qrCanvas = await renderExportQrCanvas(innerSide);
+    const { canvas: qrCanvas, stats: qrStats } = await renderExportQrCanvas(innerSide);
     console.warn("[QR export] Overlay placement", {
       layout: config.layout,
       textAlign: config.textAlign,
@@ -679,8 +725,15 @@ const BannerCreator = () => {
       );
     }
 
-    const ctx = captured.getContext("2d");
+    const composed = document.createElement("canvas");
+    composed.width = captured.width;
+    composed.height = captured.height;
+
+    const ctx = composed.getContext("2d");
     if (!ctx) throw new Error("Contexto 2D indisponível para compor o QR.");
+    ctx.drawImage(captured, 0, 0);
+
+    const beforeOverlay = readPixelStats(ctx, x, y, w, h);
 
     console.warn("[QR export] Captured canvas dims", {
       width: captured.width,
@@ -705,29 +758,8 @@ const BannerCreator = () => {
 
     console.warn("[QR export] QR overlay painted", { x, y, w, h, innerX, innerY, innerSide });
 
-    // Validate the QR area in the FINAL canvas has dark pixels (not blank).
-    try {
-      const sx = Math.max(0, Math.floor(innerX));
-      const sy = Math.max(0, Math.floor(innerY));
-      const sw = Math.min(captured.width - sx, Math.floor(innerSide));
-      const sh = Math.min(captured.height - sy, Math.floor(innerSide));
-      if (sw > 0 && sh > 0) {
-        const sample = ctx.getImageData(sx, sy, sw, sh);
-        let darkCount = 0;
-        let whiteCount = 0;
-        for (let i = 0; i < sample.data.length; i += 4) {
-          const r = sample.data[i], g = sample.data[i + 1], b = sample.data[i + 2];
-          if (r < 80 && g < 80 && b < 80) darkCount++;
-          else if (r > 240 && g > 240 && b > 240) whiteCount++;
-        }
-        console.warn("[QR export] QR area validation", { darkCount, whiteCount, sampleSize: sample.data.length / 4 });
-        if (darkCount <= 50) {
-          console.error("[QR export] QR area looks blank in final canvas");
-        }
-      }
-    } catch (err) {
-      console.warn("[QR export] Could not validate QR pixels", err);
-    }
+    const afterOverlay = readPixelStats(ctx, x, y, w, h);
+    console.warn("[QR export] QR area validation", afterOverlay);
 
     if (readyLogoImage && logoRect && logoRect.width > 0 && logoRect.height > 0) {
       const logoX = (logoRect.left - cardRect.left) * SCALE;
@@ -758,13 +790,137 @@ const BannerCreator = () => {
       ctx.restore();
     }
 
-    return captured;
+    const issues: string[] = [];
+    if (!referralLink.trim()) issues.push("Link de indicação ausente.");
+    if (!previewQrCanvas) issues.push("Canvas do QR no preview não foi encontrado dentro da área marcada.");
+    if (qrStats.darkCount <= 50) issues.push("QR off-screen foi gerado sem módulos escuros suficientes.");
+    if (!beforeOverlay) issues.push("Não foi possível ler os pixels da área do QR antes da composição.");
+    if (!afterOverlay) issues.push("Não foi possível ler os pixels da área do QR após a composição.");
+    if (afterOverlay && afterOverlay.darkCount <= 50) issues.push("A área final do QR ficou praticamente sem pixels escuros.");
+    if (
+      beforeOverlay &&
+      afterOverlay &&
+      afterOverlay.darkCount <= beforeOverlay.darkCount + 500
+    ) {
+      issues.push("A composição final quase não alterou a quantidade de pixels escuros na área do QR.");
+    }
+    if (
+      beforeOverlay &&
+      afterOverlay &&
+      afterOverlay.whiteCount <= beforeOverlay.whiteCount + 500
+    ) {
+      issues.push("O fundo branco do QR não apareceu com ganho visível na composição final.");
+    }
+    if (x < 0 || y < 0 || x + w > composed.width || y + h > composed.height) {
+      issues.push("A posição calculada do QR extrapola os limites do canvas final.");
+    }
+
+    const debug: ExportDebugInfo = {
+      timestamp: new Date().toISOString(),
+      referralLinkPresent: !!referralLink.trim(),
+      qrTarget: {
+        width: qrRect.width,
+        height: qrRect.height,
+        dataExportIgnore: qrTarget.dataset.exportIgnore ?? null,
+        previewCanvasWidth: previewQrCanvas?.width ?? 0,
+        previewCanvasHeight: previewQrCanvas?.height ?? 0,
+        padding: { left: padL, right: padR, top: padT, bottom: padB },
+        radius: qrRadius,
+      },
+      offscreenQr: {
+        width: qrCanvas.width,
+        height: qrCanvas.height,
+        darkCount: qrStats.darkCount,
+        whiteCount: qrStats.whiteCount,
+      },
+      capturedCanvas: {
+        width: captured.width,
+        height: captured.height,
+        qrBg: colors.qrBg || null,
+      },
+      overlayPlacement: {
+        layout: config.layout,
+        textAlign: config.textAlign,
+        x,
+        y,
+        w,
+        h,
+        innerX,
+        innerY,
+        innerSide,
+        qrRect: { width: qrRect.width, height: qrRect.height },
+      },
+      beforeOverlay,
+      afterOverlay,
+      finalCanvas: {
+        width: composed.width,
+        height: composed.height,
+        composedOnFreshCanvas: true,
+      },
+      issues,
+      checklist: [
+        {
+          id: "link",
+          label: "Link do afiliado disponível",
+          ok: !!referralLink.trim(),
+          detail: referralLink.trim() ? "O QR tem URL para codificar." : "Sem URL, o QR não pode ser montado.",
+        },
+        {
+          id: "preview-target",
+          label: "Área do QR encontrada no layout",
+          ok: qrRect.width > 0 && qrRect.height > 0,
+          detail: `Área medida: ${Math.round(qrRect.width)}x${Math.round(qrRect.height)}px; data-export-ignore=${qrTarget.dataset.exportIgnore ?? "null"}.`,
+        },
+        {
+          id: "preview-canvas",
+          label: "Canvas do preview detectado",
+          ok: !!previewQrCanvas,
+          detail: previewQrCanvas
+            ? `Canvas do preview: ${previewQrCanvas.width}x${previewQrCanvas.height}px.`
+            : "Nenhum canvas do preview foi encontrado dentro do wrapper do QR.",
+        },
+        {
+          id: "offscreen-qr",
+          label: "QR off-screen gerado com pixels válidos",
+          ok: qrStats.darkCount > 50 && qrStats.whiteCount > 50,
+          detail: `Off-screen ${qrCanvas.width}x${qrCanvas.height}px; dark=${qrStats.darkCount}; white=${qrStats.whiteCount}.`,
+        },
+        {
+          id: "placement",
+          label: "Posição calculada dentro do canvas final",
+          ok: x >= 0 && y >= 0 && x + w <= composed.width && y + h <= composed.height,
+          detail: `x=${Math.round(x)}, y=${Math.round(y)}, w=${Math.round(w)}, h=${Math.round(h)}, innerSide=${Math.round(innerSide)}.`,
+        },
+        {
+          id: "overlay-diff",
+          label: "Área final mudou após a composição",
+          ok: !!beforeOverlay && !!afterOverlay && afterOverlay.darkCount > beforeOverlay.darkCount + 500,
+          detail:
+            beforeOverlay && afterOverlay
+              ? `Antes dark/white=${beforeOverlay.darkCount}/${beforeOverlay.whiteCount}; depois=${afterOverlay.darkCount}/${afterOverlay.whiteCount}.`
+              : "Não foi possível comparar pixels antes/depois.",
+        },
+        {
+          id: "overlay-bg",
+          label: "Fundo branco do QR foi pintado",
+          ok: !!beforeOverlay && !!afterOverlay && afterOverlay.whiteCount > beforeOverlay.whiteCount + 500,
+          detail:
+            beforeOverlay && afterOverlay
+              ? `white antes=${beforeOverlay.whiteCount}; white depois=${afterOverlay.whiteCount}.`
+              : "Não foi possível validar o fundo branco.",
+        },
+      ],
+    };
+
+    console.warn("[QR export] Debug snapshot", debug);
+
+    return { canvas: composed, debug };
   };
 
 
   // Captures the banner with progressive backoff. If the first attempt fails
   // (commonly because QR/logo bitmaps weren't ready), waits longer and retries.
-  const captureBannerCanvasWithRetry = async (): Promise<HTMLCanvasElement> => {
+  const captureBannerCanvasWithRetry = async (): Promise<{ canvas: HTMLCanvasElement; debug: ExportDebugInfo }> => {
     const delays = [1000, 1500, 2500];
     let lastErr: unknown;
     for (let i = 0; i < delays.length; i++) {
@@ -791,7 +947,7 @@ const BannerCreator = () => {
     }
     setIsExporting(true);
     try {
-      const canvas = await captureBannerCanvasWithRetry();
+      const { canvas } = await captureBannerCanvasWithRetry();
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
         throw new Error("Imagem gerada está vazia.");
@@ -824,18 +980,18 @@ const BannerCreator = () => {
     setIsExporting(true);
     try {
       // Generate the standalone QR exactly as the export pipeline will use it.
-      const qrPreviewCanvas = await renderExportQrCanvas(512);
+      const { canvas: qrPreviewCanvas } = await renderExportQrCanvas(512);
       const qrDataUrl = qrPreviewCanvas.toDataURL("image/png");
 
       // Generate the final composed banner (same path as the actual download).
-      const canvas = await captureBannerCanvasWithRetry();
+      const { canvas, debug } = await captureBannerCanvasWithRetry();
       const finalDataUrl = canvas.toDataURL("image/png");
       if (!finalDataUrl || finalDataUrl === "data:,") {
         throw new Error("Imagem gerada está vazia.");
       }
 
       const fileName = `banner-${profile?.full_name?.toLowerCase().replace(/\s+/g, "-") || "afiliado"}.png`;
-      setExportPreview({ qrDataUrl, finalDataUrl, fileName, qrSize: qrPreviewCanvas.width });
+      setExportPreview({ qrDataUrl, finalDataUrl, fileName, qrSize: qrPreviewCanvas.width, debug });
     } catch (error) {
       console.error("[QR export] handlePreviewExport error:", error);
       const msg = error instanceof Error ? error.message : "Erro desconhecido ao pré-visualizar.";
@@ -862,7 +1018,7 @@ const BannerCreator = () => {
     }
     setIsExporting(true);
     try {
-      const canvas = await captureBannerCanvasWithRetry();
+      const { canvas } = await captureBannerCanvasWithRetry();
       // Validação equivalente à do handleExport (detecta canvas vazio)
       const dataUrl = canvas.toDataURL("image/png");
       if (!dataUrl || dataUrl === "data:,") {
