@@ -929,23 +929,6 @@ const BannerCreator = () => {
           <h1 className="font-heading font-bold text-foreground text-lg">Criar Banner</h1>
         </div>
       </header>
-
-      <div
-        ref={exportQrRef}
-        aria-hidden="true"
-        style={{ position: "fixed", left: -9999, top: -9999, opacity: 0, pointerEvents: "none" }}
-      >
-        <QRCodeCanvas
-          value={referralLink || "https://example.com"}
-          size={220}
-          level="H"
-          bgColor="#ffffff"
-          fgColor="#000000"
-          marginSize={0}
-          style={{ display: "block", imageRendering: "pixelated" }}
-        />
-      </div>
-
       <main className="pt-24 pb-12">
         <div className="container mx-auto px-4">
           {!referralLink && (
