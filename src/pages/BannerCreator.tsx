@@ -178,7 +178,9 @@ const BannerCreator = () => {
   const cardRef = useRef<HTMLDivElement>(null);
   const qrWrapperRef = useRef<HTMLDivElement>(null);
   const exportQrRef = useRef<HTMLDivElement>(null);
+  const logoWrapperRef = useRef<HTMLDivElement>(null);
   const logoImageRef = useRef<HTMLImageElement>(null);
+  const brandLogoRef = useRef<HTMLImageElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const [config, setConfig] = useState<BannerConfig>(DEFAULT_CONFIG);
@@ -420,6 +422,39 @@ const BannerCreator = () => {
     return image.complete && image.naturalWidth > 0 ? image : null;
   };
 
+  const getContainedImageRect = (
+    containerRect: DOMRect,
+    image: HTMLImageElement
+  ) => {
+    const naturalWidth = image.naturalWidth || containerRect.width;
+    const naturalHeight = image.naturalHeight || containerRect.height;
+
+    if (naturalWidth <= 0 || naturalHeight <= 0) {
+      return {
+        left: containerRect.left,
+        top: containerRect.top,
+        width: containerRect.width,
+        height: containerRect.height,
+      };
+    }
+
+    const scale = Math.min(
+      containerRect.width / naturalWidth,
+      containerRect.height / naturalHeight,
+      1
+    );
+
+    const width = Math.max(1, naturalWidth * scale);
+    const height = Math.max(1, naturalHeight * scale);
+
+    return {
+      left: containerRect.left + (containerRect.width - width) / 2,
+      top: containerRect.top + (containerRect.height - height) / 2,
+      width,
+      height,
+    };
+  };
+
   const renderExportQrCanvas = async (): Promise<HTMLCanvasElement> => {
     const exportSize = 220;
     const value = (referralLink || "").trim();
@@ -476,11 +511,20 @@ const BannerCreator = () => {
 
     const cardRect = node.getBoundingClientRect();
     const qrRect = qrTarget.getBoundingClientRect();
+    const liveLogoTarget = config.logoData
+      ? logoWrapperRef.current ?? (node.querySelector('[data-logo-target="true"]') as HTMLDivElement | null)
+      : null;
     const liveLogoImage = config.logoData
       ? logoImageRef.current ?? (node.querySelector('[data-logo-image="true"]') as HTMLImageElement | null)
       : null;
     const readyLogoImage = await waitForExportImageReady(liveLogoImage, "Custom logo");
-    const logoRect = readyLogoImage?.getBoundingClientRect() ?? null;
+    const logoTargetRect = liveLogoTarget?.getBoundingClientRect() ?? null;
+    const logoRect = readyLogoImage && logoTargetRect
+      ? getContainedImageRect(logoTargetRect, readyLogoImage)
+      : readyLogoImage?.getBoundingClientRect() ?? null;
+    const liveBrandLogo = brandLogoRef.current ?? (node.querySelector('[data-brand-logo="true"]') as HTMLImageElement | null);
+    const readyBrandLogo = await waitForExportImageReady(liveBrandLogo, "Brand logo");
+    const brandLogoRect = readyBrandLogo?.getBoundingClientRect() ?? null;
 
     if (qrRect.width <= 0 || qrRect.height <= 0) {
       console.error("[QR export] Invalid qrRect", qrRect);
@@ -513,6 +557,10 @@ const BannerCreator = () => {
         allowTaint: false,
         backgroundColor: null,
         logging: false,
+        ignoreElements: (element) =>
+          element instanceof HTMLElement &&
+          (element.dataset.exportIgnore === "custom-logo" ||
+            element.dataset.exportIgnore === "brand-logo"),
       });
     } catch (err) {
       console.error("[QR export] html2canvas failed", err);
@@ -541,6 +589,17 @@ const BannerCreator = () => {
       const logoW = logoRect.width * SCALE;
       const logoH = logoRect.height * SCALE;
       ctx.drawImage(readyLogoImage, logoX, logoY, logoW, logoH);
+    }
+
+    if (readyBrandLogo && brandLogoRect && brandLogoRect.width > 0 && brandLogoRect.height > 0) {
+      const brandX = (brandLogoRect.left - cardRect.left) * SCALE;
+      const brandY = (brandLogoRect.top - cardRect.top) * SCALE;
+      const brandW = brandLogoRect.width * SCALE;
+      const brandH = brandLogoRect.height * SCALE;
+      ctx.save();
+      ctx.globalAlpha = 0.45;
+      ctx.drawImage(readyBrandLogo, brandX, brandY, brandW, brandH);
+      ctx.restore();
     }
 
     ctx.restore();
@@ -685,7 +744,12 @@ const BannerCreator = () => {
     const justify = config.textAlign === "center" ? "center" : config.textAlign === "right" ? "flex-end" : "flex-start";
     return (
       <div style={{ display: "flex", justifyContent: justify, width: "100%", marginBottom: 16 }}>
-        <div style={{ height: config.logoSize, maxWidth: "70%", display: "flex", alignItems: "center" }}>
+        <div
+          ref={logoWrapperRef}
+          data-logo-target="true"
+          data-export-ignore="custom-logo"
+          style={{ height: config.logoSize, maxWidth: "70%", display: "flex", alignItems: "center" }}
+        >
           <img ref={logoImageRef} data-logo-image="true" src={config.logoData} alt="Logo" style={{ maxHeight: config.logoSize, maxWidth: "100%", width: "auto", height: "auto", display: "block" }} crossOrigin="anonymous" />
         </div>
       </div>
@@ -1158,6 +1222,9 @@ const BannerCreator = () => {
                     const insurerStripHeight = config.showInsurers && config.selectedInsurers.length > 0 ? 110 : 0;
                     return (
                       <img
+                        ref={brandLogoRef}
+                        data-brand-logo="true"
+                        data-export-ignore="brand-logo"
                         src={rochaLogo}
                         alt=""
                         aria-hidden
