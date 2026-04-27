@@ -1,44 +1,29 @@
+## Objetivo
 
-Objetivo: corrigir o problema do QR Code que aparece no preview, mas sai em branco no arquivo baixado do banner.
+Remover da janela "Pré-visualizar e baixar" do criador de banner os blocos de diagnóstico técnico, mantendo apenas o que o usuário precisa ver: o QR que será embutido e o banner final composto.
 
-1. Trocar a fonte do QR do export
-- Remover a dependência do canvas visível do preview como fonte do QR do download.
-- Hoje o export ainda “congela” o QR a partir do DOM visível (`waitForQrCanvasReady` + `toDataURL`), que é a parte mais frágil do fluxo.
-- Vou gerar o bitmap do QR especificamente para o download, a partir do `referralLink`, sem depender do preview já renderizado na tela.
+## O que será ocultado
 
-2. Unificar preview e export com uma fonte determinística
-- Substituir o QR do `BannerCreator` para usar um SVG como fonte estável.
-- No download, serializar esse SVG para imagem e desenhá-lo no canvas final.
-- Isso evita o cenário em que o preview está correto, mas o bitmap capturado para o PNG sai vazio.
+No diálogo de pré-visualização em `src/pages/BannerCreator.tsx` (linhas ~1616–1687), todo o bloco `<div className="rounded-lg border border-border bg-muted/30 p-4 ...">` será removido da renderização. Isso engloba:
 
-3. Corrigir o pipeline atual do export
-- Revisar `renderExportQrCanvas`, porque hoje ele cria um canvas intermediário, desenha o QR nele, mas retorna o `frozenImage` em vez do canvas normalizado.
-- Ajustar para que o export use sempre o bitmap final preparado pelo próprio pipeline de exportação, não uma imagem intermediária do preview.
-- Manter o overlay manual do QR por cima do `html2canvas`, já que as coordenadas registradas nos logs mostram que a posição está correta.
+- Checklist de debug do QR export (itens OK / Falhou)
+- Resumo rápido (QR target, data-export-ignore, tamanhos de canvas)
+- Pixels na área do QR (antes/depois, posição)
+- Log técnico do export (JSON)
+- Problemas detectados (lista de issues)
 
-4. Isolar totalmente o QR do html2canvas
-- Marcar o QR visual do card para ser ignorado pelo `html2canvas`.
-- Capturar o banner sem o QR e, em seguida, desenhar o QR exportável por cima.
-- Assim o resultado final não depende da capacidade do `html2canvas` de rasterizar o QR corretamente.
+## O que continua visível
 
-5. Adicionar verificação real antes de salvar
-- Depois de desenhar o QR no canvas final, validar pixels da área do QR para confirmar que existem módulos escuros.
-- Se a área ainda estiver branca, disparar retry e falhar com erro explícito em vez de baixar um PNG quebrado.
-- Isso evita “download com sucesso” quando o QR saiu vazio.
+- "QR Code que será embutido" — imagem do QR isolado, para conferência visual
+- "Banner final composto" — imagem do PNG final que será baixado
+- Botões de ação (Cancelar / Confirmar download)
 
-6. Manter o restante do banner intacto
-- Preservar o layout atual, logo personalizada, marca Rocha e faixa de seguradoras.
-- Não mexer no preview visual além do necessário para estabilizar a fonte do QR.
+## O que NÃO muda
 
-Arquivos envolvidos
-- `src/pages/BannerCreator.tsx`
-- possível reaproveitamento do padrão já usado em `src/components/QRCodeGenerator.tsx` para serialização de SVG
+- Toda a lógica de geração (`renderExportQrCanvas`, `captureBannerCanvasWithRetry`, composição em canvas novo) permanece intacta.
+- O objeto `debug` continua sendo computado internamente (mantém a possibilidade de reativar o painel no futuro sem retrabalho), apenas deixa de ser renderizado na UI.
+- O fluxo "Pré-visualizar → Confirmar download" continua igual.
 
-Resultado esperado
-- O QR continuará aparecendo normalmente no preview.
-- No PNG baixado, o QR passará a sair preenchido e legível também nos layouts Central e Lado a Lado, sem depender do estado visual do preview.
+## Arquivos editados
 
-Detalhes técnicos
-- Evidência atual: os logs mostram que as coordenadas do overlay estão corretas (`x`, `y`, `innerX`, `innerY`, `innerSide`), então o defeito não está no posicionamento.
-- O problema restante está na origem do bitmap usado no download.
-- A correção será tornar o QR do export independente do canvas renderizado na UI e validar o resultado final antes de concluir o download.
+- `src/pages/BannerCreator.tsx` — remoção do bloco JSX do painel de debug dentro do `Dialog` de pré-visualização.
