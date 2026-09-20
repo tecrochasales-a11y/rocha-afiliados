@@ -226,6 +226,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/admin/exportar" 
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminExportacao />
+                </ProtectedRoute>
+              } 
+            />
             {/* Gestor Routes */}
             <Route 
               path="/gestor" 
