@@ -29,6 +29,13 @@
       "when": 1792594948304,
       "tag": "0003_bound_email_processing_recovery",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792594980034,
+      "tag": "0004_finalize_exhausted_email_attempts",
+      "breakpoints": true
     }
   ]
 }
