@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useEmailRecordLink } from '@/hooks/useEmailRecordLink';
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -113,6 +114,8 @@ const AdminSaques = () => {
     setNotes(withdrawal.notes || "");
     setIsDialogOpen(true);
   };
+
+  useEmailRecordLink(withdrawals, isLoading, openUpdateDialog);
 
   const handleUpdateWithdrawal = async () => {
     if (!selectedWithdrawal || !user) return;

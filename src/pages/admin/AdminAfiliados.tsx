@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useEmailRecordLink } from '@/hooks/useEmailRecordLink';
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -103,6 +104,8 @@ const AdminAfiliados = () => {
     setSelectedAffiliate(affiliate);
     setIsDialogOpen(true);
   };
+
+  useEmailRecordLink(affiliates, isLoading, viewAffiliate);
 
   if (isLoading) {
     return (

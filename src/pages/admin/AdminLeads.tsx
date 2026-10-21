@@ -169,6 +169,8 @@ const AdminLeads = () => {
     setIsDialogOpen(true);
   };
 
+  useEmailRecordLink(leads, isLoading, openUpdateDialog);
+
   const handleUpdateLead = async () => {
     if (!selectedLead) return;
 

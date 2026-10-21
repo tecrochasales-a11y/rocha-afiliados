@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useEmailRecordLink } from '@/hooks/useEmailRecordLink';
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -274,6 +275,15 @@ const AdminComissoes = () => {
     setSelectedAffiliatePixKey(profileData?.pix_key || null);
     setIsDialogOpen(true);
   };
+
+  const linkedCommissions = affiliates.flatMap(affiliate => affiliate.leads.flatMap(lead =>
+    lead.commissions.map(commission => ({ ...commission, linkedLeadName: lead.name, linkedLeadId: lead.id, linkedAffiliateId: affiliate.id }))
+  ));
+  useEmailRecordLink(linkedCommissions, isLoading, record => {
+    setExpandedAffiliates(previous => new Set([...previous, record.linkedAffiliateId]));
+    setExpandedLeads(previous => new Set([...previous, record.linkedLeadId]));
+    void openCommissionDialog(record, record.linkedLeadName, record.linkedAffiliateId);
+  });
 
   const handleUpdateCommission = async () => {
     if (!selectedCommission) return;
