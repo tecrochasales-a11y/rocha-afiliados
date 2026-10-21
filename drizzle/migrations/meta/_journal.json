@@ -15,6 +15,13 @@
       "when": 1792594747359,
       "tag": "0001_restrict_email_outbox_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792594789802,
+      "tag": "0002_capture_email_signup_from_profile",
+      "breakpoints": true
     }
   ]
 }
