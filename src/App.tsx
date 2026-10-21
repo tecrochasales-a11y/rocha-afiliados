@@ -35,6 +35,7 @@ import AdminIntegracoes from "./pages/admin/AdminIntegracoes";
 import AdminStatusPagamento from "./pages/admin/AdminStatusPagamento";
 import AdminWhiteLabel from "./pages/admin/AdminWhiteLabel";
 import AdminExportacao from "./pages/admin/AdminExportacao";
+import AdminEmails from "./pages/admin/AdminEmails";
 import GestorDashboard from "./pages/gestor/GestorDashboard";
 import GestorAfiliados from "./pages/gestor/GestorAfiliados";
 import GestorLeads from "./pages/gestor/GestorLeads";
@@ -97,6 +98,7 @@ const App = () => (
               } 
             />
             {/* Admin Routes */}
+            <Route path="/admin/emails" element={<ProtectedRoute requireAdmin><AdminEmails /></ProtectedRoute>} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route 
               path="/admin" 
