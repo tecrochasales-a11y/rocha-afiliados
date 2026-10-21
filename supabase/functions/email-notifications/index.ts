@@ -72,7 +72,8 @@ Deno.serve(async req => {
       }
       const parts = messageParts(row.subject, payload, row.created_at, row.entity_id ?? undefined);
       const raw = rawEmail(config.sender_email, row.id, row.subject, parts.text, parts.html);
-      check(await db.from('email_notifications').update({ status:'sending',lease_until:new Date(Date.now()+180000).toISOString() }).eq('id',row.id).eq('status','processing'));
+      const reserved = check(await db.from('email_notifications').update({ status:'sending',lease_until:new Date(Date.now()+180000).toISOString() }).eq('id',row.id).eq('status','processing').eq('attempts',row.attempts).select('id'));
+      if (!reserved.length) continue;
       try {
         const response = await fetch(`${gateway}/users/me/messages/send`, { method:'POST',headers,body:JSON.stringify({ raw }),signal:AbortSignal.timeout(20000) });
         if (!response.ok) {
@@ -82,7 +83,11 @@ Deno.serve(async req => {
           const retryAfter = Number(response.headers.get('retry-after'));
           const delay = Number.isFinite(retryAfter) && retryAfter>0 ? retryAfter*1000 : Math.min(3600000,60000*2**row.attempts);
           check(await db.from('email_notifications').update({ status:state,error_message:`[${response.status}]: ${details}`,lease_until:null,available_at:new Date(Date.now()+delay).toISOString() }).eq('id',row.id));
-          if (response.status === 429) break;
+          if (response.status === 429) {
+            const remaining = rows.filter(candidate => candidate.id !== row.id && candidate.status === 'processing').map(candidate => candidate.id);
+            if (remaining.length) check(await db.from('email_notifications').update({ status:'pending',lease_until:null,available_at:new Date(Date.now()+delay).toISOString() }).in('id',remaining).eq('status','processing'));
+            break;
+          }
           continue;
         }
         const result = await response.json();
