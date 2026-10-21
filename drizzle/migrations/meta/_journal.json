@@ -8,6 +8,13 @@
       "when": 1792594425934,
       "tag": "0000_gmail_notification_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792594747359,
+      "tag": "0001_restrict_email_outbox_grants",
+      "breakpoints": true
     }
   ]
 }
