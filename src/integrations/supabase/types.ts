@@ -180,6 +180,87 @@ export type Database = {
           },
         ]
       }
+      email_notification_runtime: {
+        Row: {
+          enabled: boolean
+          id: boolean
+          sender_email: string | null
+          updated_at: string
+          worker_secret: string | null
+          worker_url: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          id?: boolean
+          sender_email?: string | null
+          updated_at?: string
+          worker_secret?: string | null
+          worker_url?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          id?: boolean
+          sender_email?: string | null
+          updated_at?: string
+          worker_secret?: string | null
+          worker_url?: string | null
+        }
+        Relationships: []
+      }
+      email_notifications: {
+        Row: {
+          attempts: number
+          available_at: string
+          created_at: string
+          entity_id: string | null
+          error_message: string | null
+          event_key: string
+          event_type: string
+          id: string
+          lease_until: string | null
+          payload: Json
+          provider_message_id: string | null
+          recipient_email: string
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          attempts?: number
+          available_at?: string
+          created_at?: string
+          entity_id?: string | null
+          error_message?: string | null
+          event_key: string
+          event_type: string
+          id?: string
+          lease_until?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          attempts?: number
+          available_at?: string
+          created_at?: string
+          entity_id?: string | null
+          error_message?: string | null
+          event_key?: string
+          event_type?: string
+          id?: string
+          lease_until?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       lead_form_questions: {
         Row: {
           conditional_field: string | null
@@ -835,6 +916,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_business_emails: {
+        Args: { _id?: string }
+        Returns: {
+          attempts: number
+          available_at: string
+          created_at: string
+          entity_id: string | null
+          error_message: string | null
+          event_key: string
+          event_type: string
+          id: string
+          lease_until: string | null
+          payload: Json
+          provider_message_id: string | null
+          recipient_email: string
+          sent_at: string | null
+          status: string
+          subject: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "email_notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      configure_email_worker: {
+        Args: { _secret: string; _sender: string; _url: string }
+        Returns: undefined
+      }
       create_installment_commissions: {
         Args: {
           _affiliate_id: string
@@ -851,6 +962,18 @@ export type Database = {
           _converted: boolean
           _lead_name: string
           _rejection_reason?: string
+        }
+        Returns: undefined
+      }
+      email_queue_tick: { Args: never; Returns: undefined }
+      enqueue_business_email: {
+        Args: {
+          _delay?: number
+          _entity: string
+          _key: string
+          _payload: Json
+          _subject: string
+          _type: string
         }
         Returns: undefined
       }
@@ -874,6 +997,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      wake_email_queue: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "affiliate" | "gestor"
