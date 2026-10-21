@@ -52,7 +52,7 @@ Deno.serve(async req => {
     }
     let targetId: string | undefined;
     if (action === 'test') {
-      const test = check(await db.from('email_notifications').insert({ event_key: `test:${crypto.randomUUID()}`, event_type: 'test', subject: 'Teste de notificações — Rocha Sales', payload: { summary: 'Este é um teste do sistema de avisos. O destinatário de todos os eventos é Anderson.', path: '/admin' } }).select('id').single());
+      const test = check(await db.from('email_notifications').insert({ event_key: `test:${crypto.randomUUID()}`, event_type: 'test', subject: 'Teste de notificações — Rocha Sales', payload: { summary: 'Este é um teste do sistema de avisos. Use o botão abaixo para abrir o histórico de notificações. Nos avisos operacionais, o botão abre diretamente o registro correspondente.', path: '/admin/emails' } }).select('id').single());
       targetId = test.id;
     } else if (action === 'retry') {
       if (!id) return respond({ error: 'Selecione um envio com falha' }, 400);
@@ -70,7 +70,7 @@ Deno.serve(async req => {
         const profile = check(await db.from('profiles').select('full_name').eq('id',row.entity_id).maybeSingle());
         payload.name = profile?.full_name ?? payload.name;
       }
-      const parts = messageParts(row.subject, payload, row.created_at, row.entity_id ?? undefined);
+      const parts = messageParts(row.subject, payload, row.created_at, row.entity_id ?? undefined, row.event_type);
       const raw = rawEmail(config.sender_email, row.id, row.subject, parts.text, parts.html);
       const reserved = check(await db.from('email_notifications').update({ status:'sending',lease_until:new Date(Date.now()+180000).toISOString() }).eq('id',row.id).eq('status','processing').eq('attempts',row.attempts).select('id'));
       if (!reserved.length) continue;

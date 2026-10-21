@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useEmailRecordLink } from '@/hooks/useEmailRecordLink';
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -167,6 +168,8 @@ const AdminLeads = () => {
     setPaymentNotes(lead.payment_notes || "");
     setIsDialogOpen(true);
   };
+
+  useEmailRecordLink(leads, isLoading, openUpdateDialog);
 
   const handleUpdateLead = async () => {
     if (!selectedLead) return;

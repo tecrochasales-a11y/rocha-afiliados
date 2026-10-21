@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,15 +19,19 @@ const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from;
+  const destination = typeof from?.pathname === 'string' && (from.pathname === '/admin' || from.pathname.startsWith('/admin/')) && from.pathname !== '/admin/login'
+    ? `${from.pathname}${typeof from.search === 'string' ? from.search : ''}` : '/admin';
   const { toast } = useToast();
   const { signIn, user, isAdmin, isLoading: authLoading } = useAuth();
 
   // Redirect if already logged in as admin
   useEffect(() => {
     if (!authLoading && user && isAdmin) {
-      navigate("/admin");
+      navigate(destination, { replace: true });
     }
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [user, isAdmin, authLoading, navigate, destination]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +83,7 @@ const AdminLogin = () => {
           title: "Bem-vindo, Administrador!",
           description: "Acesso à área administrativa concedido.",
         });
-        navigate("/admin");
+        navigate(destination, { replace: true });
       } else if (!isLoading) {
         // User is logged in but not admin
         toast({
@@ -89,7 +93,7 @@ const AdminLogin = () => {
         });
       }
     }
-  }, [user, isAdmin, authLoading, isLoading, navigate, toast]);
+  }, [user, isAdmin, authLoading, isLoading, navigate, toast, destination]);
 
   if (authLoading) {
     return (

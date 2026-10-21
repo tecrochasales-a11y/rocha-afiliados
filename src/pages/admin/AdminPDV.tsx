@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useEmailRecordLink } from '@/hooks/useEmailRecordLink';
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -156,6 +157,8 @@ const AdminPDV = () => {
     });
     setIsDialogOpen(true);
   };
+
+  useEmailRecordLink(pdvs, isLoading, openEditDialog);
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
